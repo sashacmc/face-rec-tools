@@ -30,12 +30,15 @@ class Patterns(object):
             image = tools.read_image(image_file, self.__max_size)
 
             boxes = face_recognition.face_locations(image, model=self.__model)
+            if len(boxes) != 1:
+                logging.warning(
+                    f'Multiple or zero faces detected in {image_file}. Skip.')
+                continue
             encodings = face_recognition.face_encodings(image, boxes)
 
-            for encoding in encodings:
-                self.__encodings.append(encoding)
-                self.__names.append(name)
-                self.__files.append(os.path.split(image_file)[1])
+            self.__encodings.append(encodings[0])
+            self.__names.append(name)
+            self.__files.append(os.path.split(image_file)[1])
 
         logging.info('Patterns saving')
         data = {
