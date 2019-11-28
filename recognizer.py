@@ -12,7 +12,7 @@ import patterns
 
 
 class Recognizer(object):
-    def __init__(self, patterns, model='hog', num_jitters=1, threshold=0.6):
+    def __init__(self, patterns, model='hog', num_jitters=1, threshold=0.4):
         self.__patterns = patterns
         self.__model = model
         self.__num_jitters = num_jitters
@@ -24,18 +24,33 @@ class Recognizer(object):
 
         image = tools.read_image(filename, self.__max_size)
 
+        encoded_faces = self.encode_faces(image)
+
+        self.match(encoded_faces)
+
+        if debug_out_folder:
+            debug_out_file_name = self.__extract_filename(filename)
+            self.__save_debug_images(
+                encoded_faces, image, debug_out_folder, debug_out_file_name)
+
+        return encoded_faces
+
+    def encode_faces(self, image):
+
         boxes = face_recognition.face_locations(image, model=self.__model)
+
         encodings = face_recognition.face_encodings(
             image, boxes, self.__num_jitters)
 
-        out_filename_patt = os.path.join(
-            debug_out_folder,
-            os.path.splitext(os.path.split(filename)[1])[0])
+        res = [{'encoding': e, 'box': b}
+               for e, b in zip(encodings, boxes)]
 
-        res = []
-        for i, encoding in enumerate(encodings):
+        return res
+
+    def match(self, encoded_faces):
+        for i in range(len(encoded_faces)):
             distances = face_recognition.face_distance(
-                self.__patterns.encodings(), encoding)
+                self.__patterns.encodings(), encoded_faces[i]['encoding'])
 
             names = collections.defaultdict(lambda: [0, 0.])
             for j, name in enumerate(self.__patterns.names()):
@@ -47,39 +62,17 @@ class Recognizer(object):
             for name in names:
                 names_mid.append((names[name][1] / names[name][0], name))
 
-            if len(names_mid) == 0:
-                continue
+            if len(names_mid) != 0:
+                names_mid.sort()
+                dist, name = names_mid[0]
+                logging.info(f'found: {name}: dist: {dist}')
+            else:
+                name = ''
 
-            names_mid.sort()
-            dist, name = names_mid[0]
-            box = boxes[i]
-            logging.info(f'found: {name}, box: {box}: dist: {dist}')
-
-            res.append({'box': box, 'names': names_mid})
-
-            if debug_out_folder:
-                top, right, bottom, left = box
-                d = (bottom - top) // 4
-                out_image = image[top - d:bottom + d, left - d:right + d]
-                out_filename = f'{out_filename_patt}_{i}_{name}.jpg'
-                cv2.imwrite(out_filename, out_image)
-                logging.debug(f'face saved to: {out_filename}')
-
-        return res
+            encoded_faces[i]['name'] = name
 
     def recognize_files(self, filenames, db, debug_out_folder):
-        if debug_out_folder:
-            try:
-                os.makedirs(debug_out_folder, exist_ok=True)
-
-                with open(
-                    os.path.join(
-                        debug_out_folder, '.plexignore'), 'w') as f:
-
-                    f.write('*\n')
-
-            except FileExistsError:
-                pass
+        self.__make_debug_out_folder(debug_out_folder)
 
         for f in filenames:
             res = self.recognize_image(f, debug_out_folder)
@@ -94,6 +87,42 @@ class Recognizer(object):
 
         self.recognize_files(
             filenames, db, os.path.join(folder, 'tags'))
+
+    def __make_debug_out_folder(self, debug_out_folder):
+        if debug_out_folder:
+            try:
+                os.makedirs(debug_out_folder, exist_ok=False)
+
+                with open(
+                    os.path.join(
+                        debug_out_folder, '.plexignore'), 'w') as f:
+
+                    f.write('*\n')
+
+            except FileExistsError:
+                pass
+
+    def __extract_filename(self, filename):
+        return os.path.splitext(os.path.split(filename)[1])[0]
+
+    def __save_debug_images(
+            self, encoded_faces, image, debug_out_folder, debug_out_file_name):
+
+        for i, enc in enumerate(encoded_faces):
+            name = enc['name']
+            out_folder = os.path.join(debug_out_folder, name)
+            self.__make_debug_out_folder(out_folder)
+
+            top, right, bottom, left = enc['box']
+            d = (bottom - top) // 4
+            out_image = image[top - d:bottom + d, left - d:right + d]
+            out_image = cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB)
+
+            out_filename = os.path.join(
+                out_folder, f'{debug_out_file_name}_{i}_{name}.jpg')
+
+            cv2.imwrite(out_filename, out_image)
+            logging.debug(f'face saved to: {out_filename}')
 
 
 if __name__ == '__main__':

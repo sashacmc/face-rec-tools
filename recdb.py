@@ -13,26 +13,14 @@ CREATE TABLE IF NOT EXISTS faces (
     "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     "image_id" INTEGER,
     "box" TEXT,
+    "encoding" BlOB,
     "name" TEXT
-);
-
-CREATE TABLE IF NOT EXISTS persons (
-    "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    "face_id" INTEGER,
-    "name" TEXT,
-    "delta" FLOAT
 );
 
 CREATE TRIGGER IF NOT EXISTS faces_before_delete
 BEFORE DELETE ON images
 BEGIN
     DELETE FROM faces WHERE image_id=OLD.id;
-END;
-
-CREATE TRIGGER IF NOT EXISTS persons_before_delete
-BEFORE DELETE ON faces
-BEGIN
-    DELETE FROM persons WHERE face_id=OLD.id;
 END;
 '''
 
@@ -43,7 +31,12 @@ class RecDB(object):
         self.__conn.executescript(SCHEMA)
 
     def insert(self, filename, rec_result):
-        # rec_result = [{'box': (l, b, r, t), 'names': [(delta, 'name'), ]}, ]
+        # rec_result =
+        #   [{'box': (l, b, r, t),
+        #     'encoding': BLOB,
+        #     'name': name
+        #    }, ...]
+
         c = self.__conn.cursor()
 
         c.execute('DELETE FROM images WHERE filename=?', (filename,))
@@ -52,24 +45,30 @@ class RecDB(object):
             'INSERT INTO images (filename) \
              VALUES (?)', (filename,)).lastrowid
 
+        res = []
         for face in rec_result:
-            names = face['names']
-            if len(names):
-                name = names[0][1]
-            else:
-                name = ''
-
             face_id = c.execute(
-                'INSERT INTO faces (image_id, box, name) \
-                 VALUES (?, ?, ?)',
-                (image_id, str(face["box"]), name)).lastrowid
+                'INSERT INTO faces (image_id, box, encoding, name) \
+                 VALUES (?, ?, ?, ?)',
+                (image_id, str(face["box"]), face['encoding'], face['name'])
+            ).lastrowid
 
-            for person in names:
-                c.execute(
-                    'INSERT INTO persons (face_id, name, delta) \
-                     VALUES (?, ?, ?)',
-                    (face_id, person[1], person[0]))
+            res.append(face_id)
 
+        self.__conn.commit()
+
+        return res
+
+    def get_faces(self):
+        c = self.__conn.cursor()
+        res = c.execute('SELECT image_id, box, encoding FROM faces')
+
+        return [{'id': r[0], 'box': r[1], 'encoding': [2]}
+                for r in res.fetchall()]
+
+    def set_name(self, face_id, name):
+        c = self.__conn.cursor()
+        c.execute('UPDATE faces SET name=? WHERE id=?', (name, face_id))
         self.__conn.commit()
 
     def get_names(self, filename):
@@ -84,19 +83,14 @@ class RecDB(object):
     def print_details(self, filename):
         c = self.__conn.cursor()
         res = c.execute(
-            'SELECT faces.id, faces.box \
+            'SELECT faces.id, faces.box, faces.name \
              FROM images JOIN faces ON images.id=faces.image_id \
              WHERE filename=?', (filename,))
 
         print(f'File: {filename}')
         for r in res.fetchall():
             print(f'\tBox: {r[1]}')
-            res = c.execute(
-                'SELECT name, delta \
-                 FROM persons \
-                 WHERE face_id=?', (r[0],))
-            for r in res.fetchall():
-                print(f'\t\t{r[0]}: {r[1]}')
+            print(f'\tName: {r[2]}')
 
     def mark_as_synced(self, filename):
         pass
