@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import io
+import json
 import numpy
 import sqlite3
 
@@ -72,7 +73,10 @@ class RecDB(object):
             face_id = c.execute(
                 'INSERT INTO faces (image_id, box, encoding, name) \
                  VALUES (?, ?, ?, ?)',
-                (image_id, str(face["box"]), face['encoding'], face['name'])
+                (image_id,
+                 json.dumps(face["box"]),
+                 face['encoding'],
+                 face['name'])
             ).lastrowid
 
             res.append(face_id)
@@ -85,7 +89,7 @@ class RecDB(object):
         c = self.__conn.cursor()
         res = c.execute('SELECT image_id, box, encoding FROM faces')
 
-        return [{'id': r[0], 'box': r[1], 'encoding': [2]}
+        return [{'id': r[0], 'box': json.loads(r[1]), 'encoding': [2]}
                 for r in res.fetchall()]
 
     def set_name(self, face_id, name):
@@ -141,17 +145,17 @@ class RecDB(object):
         for r in res:
             if r[0] != filename:
                 if filename != '':
-                    files_faces.append((filename, faces))
+                    files_faces.append({'filename': filename, 'faces': faces})
                 filename = r[0]
                 faces = []
             faces.append({
                 'face_id': r[1],
-                'box': r[2],
+                'box': json.loads(r[2]),
                 'encoding': r[3],
                 'name': r[4]})
 
         if filename != '':
-            files_faces.append((filename, faces))
+            files_faces.append({'filename': filename, 'faces': faces})
 
         return files_faces
 

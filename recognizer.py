@@ -3,6 +3,7 @@
 import os
 import cv2
 import sys
+import dlib
 import logging
 import argparse
 import collections
@@ -78,13 +79,13 @@ class Recognizer(object):
 
     def clusterize(self, files_faces, debug_out_folder=None):
         encs = []
-        for filename, faces in files_faces:
-            encs.append([dlib.vector(enc) for e['encoding'] in faces])
+        for ff in files_faces:
+            encs += [dlib.vector(face['encoding']) for face in ff['faces']]
 
         labels = dlib.chinese_whispers_clustering(encs, 0.4)
 
         for i in range(len(files_faces)):
-            for j in range(len(files_faces[i][1])):
+            for j in range(len(files_faces[i]['faces'])):
                 if files_faces[i]['faces'][j]['name'] != '':
                     continue
 
@@ -114,15 +115,15 @@ class Recognizer(object):
         files_faces = db.get_unmatched()
         cnt_all = 0
         cnt_changed = 0
-        for filename, faces in files_faces:
-            self.match(faces)
-            for face in faces:
+        for ff in files_faces:
+            self.match(ff['faces'])
+            for face in ff['faces']:
                 cnt_all += 1
                 if face['name']:
                     db.set_name(face['face_id'], face['name'])
                     cnt_changed += 1
                     logging.info(
-                        f"face {face['face_id']} in file '{filename}' " +
+                        f"face {face['face_id']} in file '{ff['filename']}' " +
                         f"matched to '{face['name']}'")
         logging.info(f'match_unmatched: {cnt_all}, changed: {cnt_changed}')
 
@@ -130,15 +131,15 @@ class Recognizer(object):
         files_faces = db.get_all()
         cnt_all = 0
         cnt_changed = 0
-        for filename, faces in files_faces:
-            self.match(faces)
-            for face in faces:
+        for ff in files_faces:
+            self.match(ff['faces'])
+            for face in ff['faces']:
                 cnt_all += 1
                 if 'oldname' in face and face['oldname'] != face['name']:
                     db.set_name(face['face_id'], face['name'])
                     cnt_changed += 1
                     logging.info(
-                        f"face {face['face_id']} in file '{filename}' " +
+                        f"face {face['face_id']} in file '{ff['filename']}' " +
                         f"chnaged '{face['name']}' -> '{face['oldname']}'")
         logging.info(f'match_all: {cnt_all}, changed: {cnt_changed}')
 
@@ -197,7 +198,8 @@ def args_parse():
         choices=['recognize_image',
                  'recognize_folder',
                  'match_unmatched',
-                 'match_all'])
+                 'match_all',
+                 'clusterize_unmatched'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-i', '--input', help='Input file or folder')
@@ -229,6 +231,9 @@ def main():
     elif args.action == 'match_all':
         patt.load()
         rec.match_all(db, args.output)
+    elif args.action == 'clusterize_unmatched':
+        patt.load()
+        rec.clusterize_unmatched(db, args.output)
 
 
 if __name__ == '__main__':
