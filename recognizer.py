@@ -140,7 +140,7 @@ class Recognizer(object):
                     cnt_changed += 1
                     logging.info(
                         f"face {face['face_id']} in file '{ff['filename']}' " +
-                        f"chnaged '{face['name']}' -> '{face['oldname']}'")
+                        f"changed '{face['oldname']}' -> '{face['name']}'")
         logging.info(f'match_all: {cnt_all}, changed: {cnt_changed}')
 
     def recognize_folder(self, folder, db):
