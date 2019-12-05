@@ -1,11 +1,15 @@
 #!/usr/bin/python3
 
 import os
+import re
+import glob
+import shutil
 import pickle
 import logging
-import face_recognition
+import argparse
 from imutils import paths
 
+import log
 import tools
 
 
@@ -19,9 +23,19 @@ class Patterns(object):
         self.__model = model
         self.__max_size = max_size
 
-    def generate(self):
-        logging.info(f'Patterns generation: {self.__folder}')
+    def generate(self, regenerate):
+        import face_recognition
+
+        logging.info(f'Patterns generation: {self.__folder} ({regenerate})')
         image_files = list(paths.list_images(self.__folder))
+
+        if not regenerate:
+            self.load()
+            filtered = []
+            for image_file in image_files:
+                if os.path.split(image_file)[1] not in self.__files:
+                    filtered.append(image_file)
+            image_files = filtered
 
         for (i, image_file) in enumerate(image_files):
             name = image_file.split(os.path.sep)[-2]
@@ -32,7 +46,7 @@ class Patterns(object):
             boxes = face_recognition.face_locations(image, model=self.__model)
             if len(boxes) != 1:
                 logging.warning(
-                    f'Multiple or zero faces detected in {image_file}. Skip.')
+                    f'{len(boxes)} faces detected in {image_file}. Skip.')
                 continue
             encodings = face_recognition.face_encodings(image, boxes)
 
@@ -53,6 +67,18 @@ class Patterns(object):
         logging.info(
             f'Patterns done: {self.__pickle_file} ({len(dump)} bytes)')
 
+    def add_files(self, name, filepatt):
+        for filename in glob.glob(filepatt):
+            out_filename = os.path.split(filename)[1]
+            for n in self.__names:
+                out_filename = out_filename.replace(n, '')
+            out_filename = re.sub('_unknown_\d+', '', out_filename)
+            out_folder = os.path.join(self.__folder, name)
+            os.makedirs(out_folder, exist_ok=True)
+            out_filename = os.path.join(out_folder, out_filename)
+            logging.info(f'adding {filename} to {out_filename}')
+            shutil.copyfile(filename, out_filename)
+
     def load(self):
         data = pickle.loads(open(self.__pickle_file, 'rb').read())
         self.__encodings = data['encodings']
@@ -69,11 +95,43 @@ class Patterns(object):
         return self.__files
 
 
+def args_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-a', '--action', help='Action', required=True,
+        choices=['gen',
+                 'add',
+                 'add_gen',
+                 'list'])
+    parser.add_argument('-p', '--patterns', help='Patterns file')
+    parser.add_argument('-l', '--logfile', help='Log file')
+    parser.add_argument('-n', '--name', help='Person name')
+    parser.add_argument('-f', '--file', help='Files with one face')
+    parser.add_argument('-r', '--regenerate', help='Regenerate all',
+                        action='store_true')
+    return parser.parse_args()
+
+
+def main():
+    args = args_parse()
+    log.initLogger(args.logfile)
+
+    patt = Patterns(args.patterns, 'cnn')
+
+    if args.action == 'gen':
+        patt.generate(args.regenerate)
+    elif args.action == 'add':
+        patt.load()
+        patt.add_files(args.name, args.file)
+    elif args.action == 'add_gen':
+        patt.load()
+        patt.add_files(args.name, args.file)
+        patt.generate(args.regenerate)
+    elif args.action == 'list':
+        patt.load()
+        for name, filename in zip(patt.names(), patt.files()):
+            print(name, filename)
+
+
 if __name__ == '__main__':
-    import sys
-    import log
-
-    log.initLogger()
-
-    patt = Patterns(sys.argv[1], 'cnn')
-    patt.generate()
+    main()
