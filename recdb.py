@@ -137,6 +137,15 @@ class RecDB(object):
 
         return self.__build_files_faces(res.fetchall())
 
+    def get_faces(self, filename):
+        c = self.__conn.cursor()
+        res = c.execute(
+            'SELECT filename, faces.id, box, encoding, name \
+             FROM images JOIN faces ON images.id=faces.image_id \
+             WHERE filename=?', (filename,))
+
+        return self.__build_files_faces(res.fetchall())
+
     def __build_files_faces(self, res):
         files_faces = []
         filename = ''

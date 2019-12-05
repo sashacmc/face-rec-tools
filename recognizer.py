@@ -4,6 +4,7 @@ import os
 import cv2
 import sys
 import dlib
+import shutil
 import logging
 import argparse
 import collections
@@ -116,6 +117,7 @@ class Recognizer(object):
         cnt_all = 0
         cnt_changed = 0
         for ff in files_faces:
+            logging.info(f"match image: {ff['filename']}")
             self.match(ff['faces'])
             for face in ff['faces']:
                 cnt_all += 1
@@ -132,6 +134,7 @@ class Recognizer(object):
         cnt_all = 0
         cnt_changed = 0
         for ff in files_faces:
+            logging.info(f"match image: {ff['filename']}")
             self.match(ff['faces'])
             for face in ff['faces']:
                 cnt_all += 1
@@ -143,14 +146,33 @@ class Recognizer(object):
                         f"changed '{face['oldname']}' -> '{face['name']}'")
         logging.info(f'match_all: {cnt_all}, changed: {cnt_changed}')
 
+    def save_faces(self, db, folder, debug_out_folder):
+        filenames = self.__get_images_from_folders(folder)
+
+        for filename in filenames:
+            logging.info(f"save faces from image: {filename}")
+            files_faces = db.get_faces(filename)
+            if len(files_faces) == 0:
+                continue
+            filename = files_faces[0]['filename']
+            image = tools.read_image(filename, self.__max_size)
+            debug_out_file_name = self.__extract_filename(filename)
+            self.__save_debug_images(
+                files_faces[0]['faces'], image,
+                debug_out_folder, debug_out_file_name)
+
     def recognize_folder(self, folder, db):
+        filenames = self.__get_images_from_folders(folder)
+
+        self.recognize_files(
+            filenames, db, os.path.join(folder, 'tags'))
+
+    def __get_images_from_folders(self, folder):
         filenames = []
         for filename in os.listdir(folder):
             if os.path.splitext(filename)[1].lower() == '.jpg':
                 filenames.append(os.path.join(folder, filename))
-
-        self.recognize_files(
-            filenames, db, os.path.join(folder, 'tags'))
+        return filenames
 
     def __make_debug_out_folder(self, debug_out_folder):
         if debug_out_folder:
@@ -174,6 +196,8 @@ class Recognizer(object):
 
         for i, enc in enumerate(encoded_faces):
             name = enc['name']
+            if name == '':
+                name = 'unknown_0'
             out_folder = os.path.join(debug_out_folder, name)
             self.__make_debug_out_folder(out_folder)
 
@@ -199,7 +223,8 @@ def args_parse():
                  'recognize_folder',
                  'match_unmatched',
                  'match_all',
-                 'clusterize_unmatched'])
+                 'clusterize_unmatched',
+                 'save_faces'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-i', '--input', help='Input file or folder')
@@ -210,10 +235,11 @@ def args_parse():
 
 
 def main():
-    import sys
-
     args = args_parse()
     log.initLogger(args.logfile)
+
+    if args.output and os.path.exists(args.output):
+        shutil.rmtree(args.output)
 
     patt = patterns.Patterns(args.patterns)
 
@@ -234,6 +260,9 @@ def main():
     elif args.action == 'clusterize_unmatched':
         patt.load()
         rec.clusterize_unmatched(db, args.output)
+    elif args.action == 'save_faces':
+        patt.load()
+        rec.save_faces(db, args.input, args.output)
 
 
 if __name__ == '__main__':
