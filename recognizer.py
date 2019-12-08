@@ -80,17 +80,18 @@ class Recognizer(object):
 
     def clusterize(self, files_faces, debug_out_folder=None):
         encs = []
-        for ff in files_faces:
-            encs += [dlib.vector(face['encoding']) for face in ff['faces']]
-
-        labels = dlib.chinese_whispers_clustering(encs, 0.4)
-
         for i in range(len(files_faces)):
             for j in range(len(files_faces[i]['faces'])):
-                if files_faces[i]['faces'][j]['name'] != '':
-                    continue
+                encs.append(dlib.vector(files_faces[i]['faces'][j]['encoding']))
 
-                files_faces[i]['faces'][j]['name'] = f'unknown_{labels[i]}'
+        labels = dlib.chinese_whispers_clustering(encs, 0.5)
+
+        l = 0
+        for i in range(len(files_faces)):
+            for j in range(len(files_faces[i]['faces'])):
+                if files_faces[i]['faces'][j]['name'] == '':
+                    files_faces[i]['faces'][j]['name'] = f'unknown_{labels[l]}'
+                l += 1
 
             if debug_out_folder:
                 filename = files_faces[i]['filename']
