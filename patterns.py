@@ -67,14 +67,18 @@ class Patterns(object):
         logging.info(
             f'Patterns done: {self.__pickle_file} ({len(dump)} bytes)')
 
-    def add_files(self, name, filepatt):
+    def add_files(self, name, filepatt, new=False):
+        out_folder = os.path.join(self.__folder, name)
+        if new:
+            os.makedirs(out_folder, exist_ok=True)
+        else:
+            if not os.path.exists(out_folder):
+                raise Exception(f"Name {name} not exists")
         for filename in glob.glob(filepatt):
             out_filename = os.path.split(filename)[1]
             for n in self.__names:
                 out_filename = out_filename.replace(n, '')
             out_filename = re.sub('_unknown_\d+', '', out_filename)
-            out_folder = os.path.join(self.__folder, name)
-            os.makedirs(out_folder, exist_ok=True)
             out_filename = os.path.join(out_folder, out_filename)
             logging.info(f'adding {filename} to {out_filename}')
             shutil.copyfile(filename, out_filename)
@@ -101,6 +105,7 @@ def args_parse():
         '-a', '--action', help='Action', required=True,
         choices=['gen',
                  'add',
+                 'add_new',
                  'add_gen',
                  'list'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
@@ -123,6 +128,9 @@ def main():
     elif args.action == 'add':
         patt.load()
         patt.add_files(args.name, args.file)
+    elif args.action == 'add_new':
+        patt.load()
+        patt.add_files(args.name, args.file, True)
     elif args.action == 'add_gen':
         patt.load()
         patt.add_files(args.name, args.file)
