@@ -162,11 +162,13 @@ class Recognizer(object):
                 files_faces[0]['faces'], image,
                 debug_out_folder, debug_out_file_name)
 
-    def recognize_folder(self, folder, db):
+    def recognize_folder(self, folder, db, debug_out_folder):
         filenames = self.__get_images_from_folders(folder)
 
-        self.recognize_files(
-            filenames, db, os.path.join(folder, 'tags'))
+        if debug_out_folder == None:
+            debug_out_folder = os.path.join(folder, 'tags')
+
+        self.recognize_files(filenames, db, debug_out_folder)
 
     def __get_images_from_folders(self, folder):
         filenames = []
@@ -251,7 +253,7 @@ def main():
         print(rec.recognize_image(args.input, args.output))
     elif args.action == 'recognize_folder':
         patt.load()
-        rec.recognize_folder(args.input, db)
+        rec.recognize_folder(args.input, db, args.output)
     elif args.action == 'match_unmatched':
         patt.load()
         rec.match_unmatched(db, args.output)
