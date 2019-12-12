@@ -17,6 +17,7 @@ class Config(object):
             'port': 8081,
             'web_path': 'web',
             'face_cache_path': '/tmp/facereccache/',
+            'patterns': '/mnt/multimedia/recdb/face_rec_patt/',
             'log_file': 'face-rec-server.log',
         }
     }

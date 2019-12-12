@@ -88,8 +88,14 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
         self.__ok_response(result)
 
-    def __add_to_pattern_request(params):
-        pass
+    def __get_names(self):
+        self.__ok_response(list(set(self.server.patterns().names())))
+
+    def __add_to_pattern_request(self, params):
+        cache_path = self.server.face_cache_path()
+        filename = os.path.join(cache_path, params['file'][0])
+        self.server.patterns().add_files(params['name'][0], filename, False)
+        self.__ok_response('')
 
     def do_GET(self):
         logging.debug('do_GET: ' + self.path)
@@ -97,6 +103,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             path, params = self.__path_params()
             if path == '/list_cache':
                 self.__list_cache(params)
+                return
+
+            if path == '/get_names':
+                self.__get_names()
                 return
 
             if path == '/':
@@ -135,7 +145,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 class FaceRecServer(http.server.HTTPServer):
     def __init__(self, cfg):
         self.__cfg = cfg
-        self.__importers = {}
+        self.__patterns = patterns.Patterns(cfg['server']['patterns'])
+        self.__patterns.load()
         port = int(cfg['server']['port'])
         self.__web_path = cfg['server']['web_path']
         self.__face_cache_path = cfg['server']['face_cache_path']
@@ -146,6 +157,9 @@ class FaceRecServer(http.server.HTTPServer):
 
     def face_cache_path(self):
         return self.__face_cache_path
+
+    def patterns(self):
+        return self.__patterns
 
 
 def args_parse():

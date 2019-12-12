@@ -77,6 +77,7 @@ class Patterns(object):
         for filename in glob.glob(filepatt):
             out_filename = os.path.split(filename)[1]
             for n in self.__names:
+                out_filename = out_filename.replace('_' + n, '')
                 out_filename = out_filename.replace(n, '')
             out_filename = re.sub('_unknown_\d+', '', out_filename)
             out_filename = os.path.join(out_folder, out_filename)

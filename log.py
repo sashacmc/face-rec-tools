@@ -20,7 +20,7 @@ def initLogger(filename=None):
     fh.setFormatter(fmt)
     logging.getLogger().addHandler(fh)
 
-    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger().setLevel(logging.DEBUG)
 
     logging.info('Log file: ' + str(filename))
     logging.debug(str(sys.argv))
