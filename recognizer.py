@@ -82,16 +82,18 @@ class Recognizer(object):
         encs = []
         for i in range(len(files_faces)):
             for j in range(len(files_faces[i]['faces'])):
-                encs.append(dlib.vector(files_faces[i]['faces'][j]['encoding']))
+                encs.append(dlib.vector(
+                    files_faces[i]['faces'][j]['encoding']))
 
         labels = dlib.chinese_whispers_clustering(encs, 0.5)
 
-        l = 0
+        lnum = 0
         for i in range(len(files_faces)):
             for j in range(len(files_faces[i]['faces'])):
                 if files_faces[i]['faces'][j]['name'] == '':
-                    files_faces[i]['faces'][j]['name'] = f'unknown_{labels[l]}'
-                l += 1
+                    files_faces[i]['faces'][j]['name'] = \
+                        f'unknown_{labels[lnum]}'
+                lnum += 1
 
             if debug_out_folder:
                 filename = files_faces[i]['filename']
@@ -165,7 +167,7 @@ class Recognizer(object):
     def recognize_folder(self, folder, db, debug_out_folder):
         filenames = self.__get_images_from_folders(folder)
 
-        if debug_out_folder == None:
+        if debug_out_folder is None:
             debug_out_folder = os.path.join(folder, 'tags')
 
         self.recognize_files(filenames, db, debug_out_folder)
