@@ -12,13 +12,13 @@ class Config(object):
             'num_jitters': 1,
             'threshold': 0.5,
             'max_size': 1000,
-            'db': '/mnt/multimedia/recdb/face_rec_patt/rec.db',
+            'db': '/mnt/multimedia/recdb/rec.db',
+            'patterns': '/mnt/multimedia/recdb/face_rec_patt/',
         },
         'server': {
             'port': 8081,
             'web_path': 'web',
             'face_cache_path': '/tmp/facereccache/',
-            'patterns': '/mnt/multimedia/recdb/face_rec_patt/',
             'log_file': 'face-rec-server.log',
         }
     }

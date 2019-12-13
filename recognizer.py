@@ -13,6 +13,7 @@ import face_recognition
 import log
 import recdb
 import tools
+import config
 import patterns
 
 
@@ -20,8 +21,8 @@ class Recognizer(object):
     def __init__(self, patterns, model='hog', num_jitters=1, threshold=0.5):
         self.__patterns = patterns
         self.__model = model
-        self.__num_jitters = num_jitters
-        self.__threshold = threshold
+        self.__num_jitters = int(num_jitters)
+        self.__threshold = float(threshold)
         self.__max_size = 1000
 
     def recognize_image(self, filename, debug_out_folder=None):
@@ -149,7 +150,7 @@ class Recognizer(object):
                         f"changed '{face['oldname']}' -> '{face['name']}'")
         logging.info(f'match_all: {cnt_all}, changed: {cnt_changed}')
 
-    def save_faces(self, db, folder, debug_out_folder):
+    def save_faces(self, folder, db, debug_out_folder):
         filenames = self.__get_images_from_folders(folder)
 
         for filename in filenames:
@@ -163,6 +164,7 @@ class Recognizer(object):
             self.__save_debug_images(
                 files_faces[0]['faces'], image,
                 debug_out_folder, debug_out_file_name)
+            logging.info(f"face: {debug_out_file_name}")
 
     def recognize_folder(self, folder, db, debug_out_folder):
         filenames = self.__get_images_from_folders(folder)
@@ -234,6 +236,7 @@ def args_parse():
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-i', '--input', help='Input file or folder')
     parser.add_argument('-o', '--output', help='Output folder for faces')
+    parser.add_argument('-c', '--config', help='Config file')
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
     return parser.parse_args()
@@ -249,12 +252,17 @@ def main():
     else:
         logfile = cfg['server']['log_file']
 
+    if args.patterns:
+        patterns_dir = args.patterns
+    else:
+        patterns_dir = cfg['main']['patterns']
+
     log.initLogger(logfile)
 
     if args.output and os.path.exists(args.output):
         shutil.rmtree(args.output)
 
-    patt = patterns.Patterns(args.patterns, cfg['main']['model'])
+    patt = patterns.Patterns(patterns_dir, cfg['main']['model'])
 
     rec = Recognizer(patt,
                      cfg['main']['model'],
@@ -279,7 +287,7 @@ def main():
         rec.clusterize_unmatched(db, args.output)
     elif args.action == 'save_faces':
         patt.load()
-        rec.save_faces(db, args.input, args.output)
+        rec.save_faces(args.input, db, args.output)
 
 
 if __name__ == '__main__':
