@@ -57,6 +57,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 cont = 'text/html'
             elif ext == '.js':
                 cont = 'text/script'
+            elif ext == '.css':
+                cont = 'text/css'
             elif ext == '.png':
                 cont = 'image/png'
             else:
@@ -94,7 +96,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
     def __add_to_pattern_request(self, params):
         cache_path = self.server.face_cache_path()
         filename = os.path.join(cache_path, params['file'][0])
-        self.server.patterns().add_files(params['name'][0], filename, False)
+        self.server.patterns().add_files(params['name'][0], filename, True)
         self.__ok_response('')
 
     def do_GET(self):
@@ -118,7 +120,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             ext = os.path.splitext(path)[1]
-            if ext in ('.html', '.js', '.png', '.jpg'):
+            if ext in ('.html', '.js', '.css', '.png', '.jpg'):
                 self.__file_request(path)
                 return
 
