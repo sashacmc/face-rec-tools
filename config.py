@@ -12,6 +12,7 @@ class Config(object):
             'num_jitters': 1,
             'threshold': 0.5,
             'max_size': 1000,
+            'db': '/mnt/multimedia/recdb/face_rec_patt/rec.db',
         },
         'server': {
             'port': 8081,

@@ -241,15 +241,27 @@ def args_parse():
 
 def main():
     args = args_parse()
-    log.initLogger(args.logfile)
+
+    cfg = config.Config(args.config)
+
+    if args.logfile:
+        logfile = args.logfile
+    else:
+        logfile = cfg['server']['log_file']
+
+    log.initLogger(logfile)
 
     if args.output and os.path.exists(args.output):
         shutil.rmtree(args.output)
 
-    patt = patterns.Patterns(args.patterns)
+    patt = patterns.Patterns(args.patterns, cfg['main']['model'])
 
-    rec = Recognizer(patt, 'cnn')
-    db = recdb.RecDB('rec.db', args.dry_run)
+    rec = Recognizer(patt,
+                     cfg['main']['model'],
+                     cfg['main']['num_jitters'],
+                     cfg['main']['threshold'])
+
+    db = recdb.RecDB(cfg['main']['db'], args.dry_run)
 
     if args.action == 'recognize_image':
         print(rec.recognize_image(args.input, args.output))
