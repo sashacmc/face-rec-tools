@@ -3,6 +3,7 @@
 import os
 import cgi
 import json
+import shutil
 import logging
 import imutils
 import argparse
@@ -10,6 +11,7 @@ import http.server
 import collections
 
 import log
+import recdb
 import config
 import patterns
 import recognizer
@@ -99,6 +101,14 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.server.patterns().add_files(params['name'][0], filename, True)
         self.__ok_response('')
 
+    def __add_images_request(self, params):
+        self.server.recognize_folder(params['path'][0])
+        self.__ok_response('')
+
+    def __generate_faces_request(self, params):
+        self.server.save_faces(params['path'][0])
+        self.__ok_response('')
+
     def do_GET(self):
         logging.debug('do_GET: ' + self.path)
         try:
@@ -139,6 +149,14 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__add_to_pattern_request(params)
                 return
 
+            if path == '/add_images':
+                self.__add_images_request(params)
+                return
+
+            if path == '/generate_faces':
+                self.__generate_faces_request(params)
+                return
+
         except Exception as ex:
             self.__server_error_response(str(ex))
             logging.exception(ex)
@@ -147,8 +165,16 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 class FaceRecServer(http.server.HTTPServer):
     def __init__(self, cfg):
         self.__cfg = cfg
-        self.__patterns = patterns.Patterns(cfg['server']['patterns'])
+        self.__patterns = patterns.Patterns(cfg['main']['patterns'])
         self.__patterns.load()
+        self.__recognizer = recognizer.Recognizer(
+            self.__patterns,
+            cfg['main']['model'],
+            cfg['main']['num_jitters'],
+            cfg['main']['threshold'])
+
+        self.__db = recdb.RecDB(cfg['main']['db'])
+
         port = int(cfg['server']['port'])
         self.__web_path = cfg['server']['web_path']
         self.__face_cache_path = cfg['server']['face_cache_path']
@@ -162,6 +188,35 @@ class FaceRecServer(http.server.HTTPServer):
 
     def patterns(self):
         return self.__patterns
+
+    def __clean_cache(self):
+        if os.path.exists(self.__face_cache_path):
+            shutil.rmtree(self.__face_cache_path)
+
+    def recognize_folder(self, path):
+        self.__clean_cache()
+        self.__recognizer.recognize_folder(
+            path, self.__db, self.__face_cache_path)
+
+    def match_unmatched(self):
+        self.__clean_cache()
+        self.__recognizer.match_unmatched(
+            self.__db, self.__face_cache_path)
+
+    def match_all(self):
+        self.__clean_cache()
+        self.__recognizer.match_all(
+            self.__db, self.__face_cache_path)
+
+    def clusterize_unmatched(self):
+        self.__clean_cache()
+        self.__recognizer.clusterize_unmatched(
+            self.__db, self.__face_cache_path)
+
+    def save_faces(self, path):
+        self.__clean_cache()
+        self.__recognizer.save_faces(
+            path, self.__db, self.__face_cache_path)
 
 
 def args_parse():
