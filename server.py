@@ -93,7 +93,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.__ok_response(result)
 
     def __get_names(self):
-        self.__ok_response(list(set(self.server.patterns().names())))
+        self.__ok_response(sorted(list(set(self.server.patterns().names()))))
 
     def __add_to_pattern_request(self, params):
         cache_path = self.server.face_cache_path()
