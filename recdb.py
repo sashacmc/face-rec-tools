@@ -4,6 +4,7 @@ import io
 import json
 import numpy
 import sqlite3
+import argparse
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS images (
@@ -174,5 +175,29 @@ class RecDB(object):
         pass
 
 
+def args_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-a', '--action', help='Action', required=True,
+        choices=['get_names',
+                 'get_faces',
+                 'print_details'])
+    parser.add_argument('-d', '--database', help='Database file')
+    parser.add_argument('-f', '--file', help='File')
+    return parser.parse_args()
+
+
+def main():
+    args = args_parse()
+    db = RecDB(args.database)
+
+    if args.action == 'get_names':
+        print(db.get_names(args.file))
+    elif args.action == 'get_faces':
+        print(db.get_faces(args.file))
+    elif args.action == 'print_details':
+        db.print_details(args.file)
+
+
 if __name__ == '__main__':
-    db = RecDB('tt.db')
+    main()
