@@ -131,6 +131,13 @@ class Recognizer(object):
                     logging.info(
                         f"face {face['face_id']} in file '{ff['filename']}' " +
                         f"matched to '{face['name']}'")
+                    if debug_out_folder:
+                        filename = ff['filename']
+                        image = tools.read_image(filename, self.__max_size)
+                        debug_out_file_name = self.__extract_filename(filename)
+                        self.__save_debug_images(
+                            (face,), image,
+                            debug_out_folder, debug_out_file_name)
         logging.info(f'match_unmatched: {cnt_all}, changed: {cnt_changed}')
 
     def match_all(self, db, debug_out_folder):
