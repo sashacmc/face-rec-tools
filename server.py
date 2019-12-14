@@ -189,7 +189,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 class FaceRecServer(http.server.HTTPServer):
     def __init__(self, cfg):
         self.__cfg = cfg
-        self.__patterns = patterns.Patterns(cfg['main']['patterns'])
+        self.__patterns = patterns.Patterns(cfg['main']['patterns'],
+                                            cfg['main']['model'])
         self.__patterns.load()
         self.__recognizer = recognizer.Recognizer(
             self.__patterns,
