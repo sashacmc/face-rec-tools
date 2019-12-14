@@ -44,6 +44,12 @@ class Config(object):
     def __getitem__(self, sect):
         return self.__config[sect]
 
+    def get_def(self, sect, name, default):
+        if default is not None:
+            return default
+
+        return self.__config[sect][name]
+
 
 if __name__ == "__main__":
     Config(create=True)

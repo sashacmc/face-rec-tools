@@ -54,6 +54,9 @@ class Recognizer(object):
         return res
 
     def match(self, encoded_faces):
+        if len(self.__patterns.encodings()) == 0:
+            logging.warning('Empty patterns')
+
         for i in range(len(encoded_faces)):
             distances = face_recognition.face_distance(
                 self.__patterns.encodings(), encoded_faces[i]['encoding'])
@@ -86,7 +89,7 @@ class Recognizer(object):
                 encs.append(dlib.vector(
                     files_faces[i]['faces'][j]['encoding']))
 
-        labels = dlib.chinese_whispers_clustering(encs, 0.5)
+        labels = dlib.chinese_whispers_clustering(encs, self.__threshold)
 
         lnum = 0
         for i in range(len(files_faces)):
@@ -155,6 +158,13 @@ class Recognizer(object):
                     logging.info(
                         f"face {face['face_id']} in file '{ff['filename']}' " +
                         f"changed '{face['oldname']}' -> '{face['name']}'")
+                    if debug_out_folder:
+                        filename = ff['filename']
+                        image = tools.read_image(filename, self.__max_size)
+                        debug_out_file_name = self.__extract_filename(filename)
+                        self.__save_debug_images(
+                            (face,), image,
+                            debug_out_folder, debug_out_file_name)
         logging.info(f'match_all: {cnt_all}, changed: {cnt_changed}')
 
     def save_faces(self, folder, db, debug_out_folder):
@@ -244,6 +254,7 @@ def args_parse():
     parser.add_argument('-i', '--input', help='Input file or folder')
     parser.add_argument('-o', '--output', help='Output folder for faces')
     parser.add_argument('-c', '--config', help='Config file')
+    parser.add_argument('--threshold', help='Match threshold', default=0.5)
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
     return parser.parse_args()
@@ -254,46 +265,33 @@ def main():
 
     cfg = config.Config(args.config)
 
-    if args.logfile:
-        logfile = args.logfile
-    else:
-        logfile = cfg['server']['log_file']
-
-    if args.patterns:
-        patterns_dir = args.patterns
-    else:
-        patterns_dir = cfg['main']['patterns']
-
-    log.initLogger(logfile)
+    log.initLogger(args.logfile)
 
     if args.output and os.path.exists(args.output):
         shutil.rmtree(args.output)
 
-    patt = patterns.Patterns(patterns_dir, cfg['main']['model'])
+    patt = patterns.Patterns(cfg.get_def('main', 'patterns', args.patterns),
+                             cfg['main']['model'])
+    patt.load()
 
     rec = Recognizer(patt,
                      cfg['main']['model'],
                      cfg['main']['num_jitters'],
-                     cfg['main']['threshold'])
+                     cfg.get_def('main', 'patterns', args.threshold))
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
 
     if args.action == 'recognize_image':
         print(rec.recognize_image(args.input, args.output))
     elif args.action == 'recognize_folder':
-        patt.load()
         rec.recognize_folder(args.input, db, args.output)
     elif args.action == 'match_unmatched':
-        patt.load()
         rec.match_unmatched(db, args.output)
     elif args.action == 'match_all':
-        patt.load()
         rec.match_all(db, args.output)
     elif args.action == 'clusterize_unmatched':
-        patt.load()
         rec.clusterize_unmatched(db, args.output)
     elif args.action == 'save_faces':
-        patt.load()
         rec.save_faces(args.input, db, args.output)
 
 
