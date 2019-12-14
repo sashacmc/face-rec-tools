@@ -61,19 +61,14 @@ class Recognizer(object):
             distances = face_recognition.face_distance(
                 self.__patterns.encodings(), encoded_faces[i]['encoding'])
 
-            names = collections.defaultdict(lambda: [0, 0.])
-            for j, name in enumerate(self.__patterns.names()):
-                if distances[j] <= self.__threshold:
-                    names[name][0] += 1
-                    names[name][1] += distances[j]
+            names = []
+            for dist, name in zip(distances, self.__patterns.names()):
+                if dist <= self.__threshold:
+                    names.append((dist, name))
 
-            names_mid = []
-            for name in names:
-                names_mid.append((names[name][1] / names[name][0], name))
-
-            if len(names_mid) != 0:
-                names_mid.sort()
-                dist, name = names_mid[0]
+            if len(names) != 0:
+                names.sort()
+                dist, name = names[0]
                 logging.info(f'found: {name}: dist: {dist}')
             else:
                 name = ''
