@@ -23,7 +23,7 @@ class Patterns(object):
         self.__model = model
         self.__max_size = max_size
 
-    def generate(self, regenerate):
+    def generate(self, regenerate=False):
         import face_recognition
 
         logging.info(f'Patterns generation: {self.__folder} ({regenerate})')

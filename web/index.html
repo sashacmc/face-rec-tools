@@ -25,7 +25,18 @@
                     <li class="nav-item">
                         <a class="nav-link" href="#" id="liGenerate">Generate faces</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="liRematch">Rematch all</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="liMatchUnmatched">Match unmatched</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="liClusterizeUnmatched">Clusterize unmatched</a>
+                    </li>
                 </ul>
+            </div>
+            <div id="mainSpinner">
             </div>
         </nav>
     </header>
@@ -149,7 +160,7 @@
                 '</tr>' +
             '</table>'
 
-            $('#facePropModalSubmit').on('click', function(e){
+            $('#facePropModalSubmit').one('click', function(e){
                 e.preventDefault();
                 var newname = $('input[name="names"]:checked').val();
                 if (name == newname) {
@@ -198,15 +209,45 @@
             $("#addGenModalSubmit").html(html);
         }
 
+        function mainSpinner(enable)
+        {
+            var html = '';
+            if (enable) {
+                html = '<span class="spinner-border text-light" role="status" aria-hidden="true"></span>';
+            } else {
+                html = '';
+            }
+            $("#mainSpinner").html(html);
+        }
+
+        function runCommand(cmd)
+        {
+            mainSpinner(true);
+            $.ajax({
+                url: cmd,
+                type: 'POST',
+                timeout: 0,
+                success: function(data) {
+                    init();
+                },
+                error: function(request, status, error) {
+                    mainSpinner(false);
+                    alert(request.responseText);
+                }
+            });
+        }
+
         function init()
         {
+            mainSpinner(true);
+
             $.ajax({  
                 url: "list_cache",
                 cache: false,  
                 success: function(json) {  
                     var data = eval(json);
-                    
                     setFacesList(data);
+                    mainSpinner(false);
                 }  
             });
 
@@ -229,7 +270,7 @@
                 $("#addGenModalLabel").html('Add images path');
                 $("#addGenModalPath").val(addGenPath);
                 addGenModalSpinner(false);
-                $('#addGenModalSubmit').on('click', function(e) {
+                $('#addGenModalSubmit').one('click', function(e) {
                     e.preventDefault();
                     addGenModalSpinner(true);
                     addGenPath = $("#addGenModalPath").val()
@@ -255,7 +296,7 @@
                 $("#addGenModalLabel").html('Generate faces path');
                 $("#addGenModalPath").val(addGenPath);
                 addGenModalSpinner(false);
-                $('#addGenModalSubmit').on('click', function(e) {
+                $('#addGenModalSubmit').one('click', function(e) {
                     e.preventDefault();
                     addGenModalSpinner(true);
                     addGenPath = $("#addGenModalPath").val()
@@ -274,6 +315,21 @@
                     });
                 });
                 $("#addGenModal").modal("show");
+            });
+
+            $("#liRematch").click(function(e) {
+                e.preventDefault();
+                runCommand('/rematch')
+            });
+
+            $("#liMatchUnmatched").click(function(e) {
+                e.preventDefault();
+                runCommand('/match_unmatched')
+            });
+
+            $("#liClusterizeUnmatched").click(function(e) {
+                e.preventDefault();
+                runCommand('/clusterize_unmatched')
             });
 
             init();

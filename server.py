@@ -109,6 +109,18 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.server.save_faces(params['path'][0])
         self.__ok_response('')
 
+    def __rematch_request(self, params):
+        self.server.match_all()
+        self.__ok_response('')
+
+    def __match_unmatched_request(self, params):
+        self.server.match_unmatched()
+        self.__ok_response('')
+
+    def __clusterize_unmatched_request(self, params):
+        self.server.clusterize_unmatched()
+        self.__ok_response('')
+
     def do_GET(self):
         logging.debug('do_GET: ' + self.path)
         try:
@@ -157,6 +169,18 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__generate_faces_request(params)
                 return
 
+            if path == '/rematch':
+                self.__rematch_request(params)
+                return
+
+            if path == '/match_unmatched':
+                self.__match_unmatched_request(params)
+                return
+
+            if path == '/clusterize_unmatched':
+                self.__clusterize_unmatched_request(params)
+                return
+
         except Exception as ex:
             self.__server_error_response(str(ex))
             logging.exception(ex)
@@ -200,16 +224,19 @@ class FaceRecServer(http.server.HTTPServer):
 
     def match_unmatched(self):
         self.__clean_cache()
+        self.__patterns.generate()
         self.__recognizer.match_unmatched(
             self.__db, self.__face_cache_path)
 
     def match_all(self):
         self.__clean_cache()
+        self.__patterns.generate()
         self.__recognizer.match_all(
             self.__db, self.__face_cache_path)
 
     def clusterize_unmatched(self):
         self.__clean_cache()
+        self.__patterns.generate()
         self.__recognizer.clusterize_unmatched(
             self.__db, self.__face_cache_path)
 
