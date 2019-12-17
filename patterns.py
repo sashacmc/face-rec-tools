@@ -3,11 +3,17 @@
 import os
 import re
 import glob
+import numpy
 import shutil
 import pickle
 import logging
 import argparse
 from imutils import paths
+
+from sklearn import svm
+from sklearn import metrics
+from sklearn import preprocessing
+from sklearn import model_selection
 
 import log
 import tools
@@ -54,11 +60,16 @@ class Patterns(object):
             self.__names.append(name)
             self.__files.append(os.path.split(image_file)[1])
 
+        logging.info('Classification training')
+        self.train_classifer()
+
         logging.info('Patterns saving')
         data = {
             'names': self.__names,
             'encodings': self.__encodings,
-            'files': self.__files}
+            'files': self.__files,
+            'classifer': self.__classifer,
+            'classes': self.__classes}
         dump = pickle.dumps(data)
 
         with open(self.__pickle_file, 'wb') as f:
@@ -89,6 +100,61 @@ class Patterns(object):
         self.__encodings = data['encodings']
         self.__names = data['names']
         self.__files = data['files']
+        self.__classifer = data['classifer']
+        self.__classes = data['classes']
+
+    def train_classifer(self):
+        RANDOM_SEED = 42
+
+        data = numpy.array(self.__encodings)
+        le = preprocessing.LabelEncoder()
+        labels = le.fit_transform(self.__names)
+
+        (x_train, x_test, y_train, y_test) = model_selection.train_test_split(
+            data,
+            labels,
+            test_size=0.20,
+            random_state=RANDOM_SEED)
+
+        skf = model_selection.StratifiedKFold(n_splits=5)
+        cv = skf.split(x_train, y_train)
+
+        Cs = [0.001, 0.01, 0.1, 1, 10, 100]
+        gammas = [0.001, 0.01, 0.1, 1, 10, 100]
+        param_grid = [
+            {'C': Cs, 'kernel': ['linear']},
+            {'C': Cs, 'gamma': gammas, 'kernel': ['rbf']}]
+
+        init_est = svm.SVC(
+            probability=True,
+            class_weight='balanced',
+            random_state=RANDOM_SEED)
+
+        grid_search = model_selection.GridSearchCV(
+            estimator=init_est,
+            param_grid=param_grid,
+            n_jobs=4,
+            cv=cv)
+
+        grid_search.fit(x_train, y_train)
+
+        self.__classifer = grid_search.best_estimator_
+        self.__classes = list(le.classes_)
+
+        y_pred = self.__classifer.predict(x_test)
+
+        logging.info('Confusion matrix \n' +
+                     str(metrics.confusion_matrix(y_test, y_pred)))
+
+        logging.info('Classification report \n' +
+                     str(metrics.classification_report(
+                         y_test, y_pred, target_names=self.__classes)))
+
+    def classifer(self):
+        return self.__classifer
+
+    def classes(self):
+        return self.__classes
 
     def encodings(self):
         return self.__encodings

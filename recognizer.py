@@ -4,6 +4,7 @@ import os
 import cv2
 import sys
 import dlib
+import numpy
 import shutil
 import logging
 import argparse
@@ -18,12 +19,15 @@ import patterns
 
 
 class Recognizer(object):
-    def __init__(self, patterns, model='hog', num_jitters=1, threshold=0.5):
+    def __init__(self, patterns, model='hog', num_jitters=1, threshold=0.5,
+                 nearest_match=False):
+
         self.__patterns = patterns
         self.__model = model
         self.__num_jitters = int(num_jitters)
         self.__threshold = float(threshold)
         self.__max_size = 1000
+        self.__nearest_match = nearest_match
 
     def recognize_image(self, filename, debug_out_folder=None):
         logging.info(f'recognize image: {filename}')
@@ -53,25 +57,46 @@ class Recognizer(object):
 
         return res
 
+    def __match_face_by_nearest(self, encoding):
+        distances = face_recognition.face_distance(
+            self.__patterns.encodings(), encoding)
+
+        names = []
+        for dist, name in zip(distances, self.__patterns.names()):
+            if dist <= self.__threshold:
+                names.append((dist, name))
+
+        if len(names) != 0:
+            names.sort()
+            dist, name = names[0]
+        else:
+            name = ''
+
+        return name
+
+    def __match_face_by_class(self, encoding):
+        proba = self.__patterns.classifer().predict_proba(
+            encoding.reshape(1, -1))[0]
+
+        j = numpy.argmax(proba)
+        if proba[j] >= 1 - self.__threshold:
+            name = self.__patterns.classes()[j]
+            logging.debug(f'matched: {name}: {proba[j]}')
+        else:
+            name = ''
+
+        return name
+
     def match(self, encoded_faces):
         if len(self.__patterns.encodings()) == 0:
             logging.warning('Empty patterns')
 
         for i in range(len(encoded_faces)):
-            distances = face_recognition.face_distance(
-                self.__patterns.encodings(), encoded_faces[i]['encoding'])
-
-            names = []
-            for dist, name in zip(distances, self.__patterns.names()):
-                if dist <= self.__threshold:
-                    names.append((dist, name))
-
-            if len(names) != 0:
-                names.sort()
-                dist, name = names[0]
-                logging.info(f'found: {name}: dist: {dist}')
+            encoding = encoded_faces[i]['encoding']
+            if self.__nearest_match:
+                name = self.__match_face_by_nearest(encoding)
             else:
-                name = ''
+                name = self.__match_face_by_class(encoding)
 
             if 'name' in encoded_faces[i] and encoded_faces[i]['name']:
                 encoded_faces[i]['oldname'] = encoded_faces[i]['name']
@@ -252,6 +277,9 @@ def args_parse():
     parser.add_argument('--threshold', help='Match threshold', default=0.5)
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
+    parser.add_argument('-n', '--nearest-match',
+                        help='Use nearest match (otherwise by classifier)',
+                        action='store_true')
     return parser.parse_args()
 
 
@@ -272,7 +300,8 @@ def main():
     rec = Recognizer(patt,
                      cfg['main']['model'],
                      cfg['main']['num_jitters'],
-                     cfg.get_def('main', 'patterns', args.threshold))
+                     cfg.get_def('main', 'threshold', args.threshold),
+                     args.nearest_match)
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
 
