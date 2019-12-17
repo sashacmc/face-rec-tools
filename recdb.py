@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import io
+import os
 import json
 import numpy
 import sqlite3
@@ -121,6 +122,16 @@ class RecDB(object):
             print(f'\tBox: {r[1]}')
             print(f'\tName: {r[2]}')
 
+    def get_folders(self):
+        c = self.__conn.cursor()
+        res = c.execute('SELECT filename FROM images')
+
+        fset = set()
+        for r in res.fetchall():
+            fset.add(os.path.split(r[0])[0])
+
+        return list(fset)
+
     def get_unmatched(self):
         c = self.__conn.cursor()
         res = c.execute(
@@ -181,7 +192,8 @@ def args_parse():
         '-a', '--action', help='Action', required=True,
         choices=['get_names',
                  'get_faces',
-                 'print_details'])
+                 'print_details',
+                 'get_folders'])
     parser.add_argument('-d', '--database', help='Database file')
     parser.add_argument('-f', '--file', help='File')
     return parser.parse_args()
@@ -197,6 +209,10 @@ def main():
         print(db.get_faces(args.file))
     elif args.action == 'print_details':
         db.print_details(args.file)
+    elif args.action == 'get_folders':
+        folders = db.get_folders()
+        for f in folders:
+            print(f)
 
 
 if __name__ == '__main__':
