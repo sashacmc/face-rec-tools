@@ -88,9 +88,9 @@ class Patterns(object):
         for filename in glob.glob(filepatt):
             out_filename = os.path.split(filename)[1]
             for n in self.__names:
-                out_filename = out_filename.replace('_' + n, '')
+                out_filename = re.sub(n + '_\d+_', '', out_filename)
                 out_filename = out_filename.replace(n, '')
-            out_filename = re.sub('_unknown_\d+', '', out_filename)
+            out_filename = re.sub('unknown_\d+_\d+_', '', out_filename)
             out_filename = os.path.join(out_folder, out_filename)
             logging.info(f'adding {filename} to {out_filename}')
             shutil.copyfile(filename, out_filename)

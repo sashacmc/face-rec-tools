@@ -90,6 +90,9 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             name = image_file.split(os.path.sep)[-2]
             result[name].append(os.path.relpath(image_file, cache_path))
 
+        for r in result:
+            result[r].sort()
+
         self.__ok_response(result)
 
     def __get_names(self):

@@ -86,24 +86,20 @@ class Recognizer(object):
 
         if len(names) != 0:
             names.sort()
-            dist, name = names[0]
+            return names[0]
         else:
-            name = ''
-
-        return name
+            return 1, ''
 
     def __match_face_by_class(self, encoding):
         proba = self.__patterns.classifer().predict_proba(
             encoding.reshape(1, -1))[0]
 
         j = numpy.argmax(proba)
-        if proba[j] >= 1 - self.__threshold:
-            name = self.__patterns.classes()[j]
-            logging.debug(f'matched: {name}: {proba[j]}')
+        dist = 1 - proba[j]
+        if dist <= self.__threshold:
+            return dist, self.__patterns.classes()[j]
         else:
-            name = ''
-
-        return name
+            return 1, ''
 
     def match(self, encoded_faces):
         if len(self.__patterns.encodings()) == 0:
@@ -112,13 +108,15 @@ class Recognizer(object):
         for i in range(len(encoded_faces)):
             encoding = encoded_faces[i]['encoding']
             if self.__nearest_match:
-                name = self.__match_face_by_nearest(encoding)
+                dist, name = self.__match_face_by_nearest(encoding)
             else:
-                name = self.__match_face_by_class(encoding)
+                dist, name = self.__match_face_by_class(encoding)
 
+            logging.debug(f'matched: {name}: {dist}')
             if 'name' in encoded_faces[i]:
                 encoded_faces[i]['oldname'] = encoded_faces[i]['name']
             encoded_faces[i]['name'] = name
+            encoded_faces[i]['dist'] = dist
 
     def clusterize(self, files_faces, debug_out_folder=None):
         encs = []
@@ -134,7 +132,7 @@ class Recognizer(object):
             for j in range(len(files_faces[i]['faces'])):
                 if files_faces[i]['faces'][j]['name'] == '':
                     files_faces[i]['faces'][j]['name'] = \
-                        f'unknown_{labels[lnum]}'
+                        'unknown_{:03d}'.format(labels[lnum])
                 lnum += 1
 
             if debug_out_folder:
@@ -167,7 +165,7 @@ class Recognizer(object):
             for face in ff['faces']:
                 cnt_all += 1
                 if face['name']:
-                    db.set_name(face['face_id'], face['name'])
+                    db.set_name(face['face_id'], face['name'], face['dist'])
                     cnt_changed += 1
                     logging.info(
                         f"face {face['face_id']} in file '{ff['filename']}' " +
@@ -191,7 +189,7 @@ class Recognizer(object):
             for face in ff['faces']:
                 cnt_all += 1
                 if 'oldname' in face and face['oldname'] != face['name']:
-                    db.set_name(face['face_id'], face['name'])
+                    db.set_name(face['face_id'], face['name'], face['dist'])
                     cnt_changed += 1
                     logging.info(
                         f"face {face['face_id']} in file '{ff['filename']}' " +
@@ -259,7 +257,7 @@ class Recognizer(object):
         for i, enc in enumerate(encoded_faces):
             name = enc['name']
             if name == '':
-                name = 'unknown_0'
+                name = 'unknown_000'
             out_folder = os.path.join(debug_out_folder, name)
             self.__make_debug_out_folder(out_folder)
 
@@ -270,8 +268,9 @@ class Recognizer(object):
                 max(0, left - d):right + d]
             out_image = cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB)
 
+            prefix = '{}_{:03d}'.format(name, int(enc['dist'] * 100))
             out_filename = os.path.join(
-                out_folder, f'{debug_out_file_name}_{i}_{name}.jpg')
+                out_folder, f'{prefix}_{debug_out_file_name}_{i}.jpg')
 
             cv2.imwrite(out_filename, out_image)
             logging.debug(f'face saved to: {out_filename}')
@@ -292,7 +291,7 @@ def args_parse():
     parser.add_argument('-i', '--input', help='Input file or folder')
     parser.add_argument('-o', '--output', help='Output folder for faces')
     parser.add_argument('-c', '--config', help='Config file')
-    parser.add_argument('--threshold', help='Match threshold', default=0.5)
+    parser.add_argument('--threshold', help='Match threshold')
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
     parser.add_argument('-n', '--nearest-match',

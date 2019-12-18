@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS faces (
     "image_id" INTEGER,
     "box" TEXT,
     "encoding" array,
-    "name" TEXT
+    "name" TEXT,
+    "dist" FLOAT
 );
 
 CREATE TRIGGER IF NOT EXISTS faces_before_delete
@@ -58,6 +59,7 @@ class RecDB(object):
         #   [{'box': (l, b, r, t),
         #     'encoding': BLOB,
         #     'name': name
+        #     'dist': dist
         #    }, ...]
         if self.__readonly:
             return []
@@ -73,12 +75,13 @@ class RecDB(object):
         res = []
         for face in rec_result:
             face_id = c.execute(
-                'INSERT INTO faces (image_id, box, encoding, name) \
-                 VALUES (?, ?, ?, ?)',
+                'INSERT INTO faces (image_id, box, encoding, name, dist) \
+                 VALUES (?, ?, ?, ?, ?)',
                 (image_id,
                  json.dumps(face["box"]),
                  face['encoding'],
-                 face['name'])
+                 face['name'],
+                 face['dist'])
             ).lastrowid
 
             res.append(face_id)
@@ -94,11 +97,12 @@ class RecDB(object):
         return [{'id': r[0], 'box': json.loads(r[1]), 'encoding': [2]}
                 for r in res.fetchall()]
 
-    def set_name(self, face_id, name):
+    def set_name(self, face_id, name, dist):
         if self.__readonly:
             return
         c = self.__conn.cursor()
-        c.execute('UPDATE faces SET name=? WHERE id=?', (name, face_id))
+        c.execute('UPDATE faces SET name=?, dist=? WHERE id=?',
+                  (name, dist, face_id))
         self.__conn.commit()
 
     def get_names(self, filename):
@@ -135,7 +139,7 @@ class RecDB(object):
     def get_unmatched(self):
         c = self.__conn.cursor()
         res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name \
+            'SELECT filename, faces.id, box, encoding, name, dist \
              FROM images JOIN faces ON images.id=faces.image_id \
              WHERE name=""')
 
@@ -144,7 +148,7 @@ class RecDB(object):
     def get_all(self):
         c = self.__conn.cursor()
         res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name \
+            'SELECT filename, faces.id, box, encoding, name, dist \
              FROM images JOIN faces ON images.id=faces.image_id')
 
         return self.__build_files_faces(res.fetchall())
@@ -152,7 +156,7 @@ class RecDB(object):
     def get_faces(self, filename):
         c = self.__conn.cursor()
         res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name \
+            'SELECT filename, faces.id, box, encoding, name, dist \
              FROM images JOIN faces ON images.id=faces.image_id \
              WHERE filename=?', (filename,))
 
@@ -173,7 +177,8 @@ class RecDB(object):
                 'face_id': r[1],
                 'box': json.loads(r[2]),
                 'encoding': r[3],
-                'name': r[4]})
+                'name': r[4],
+                'dist': r[5]})
 
         if filename != '':
             files_faces.append({'filename': filename, 'faces': faces})
