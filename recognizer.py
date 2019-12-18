@@ -27,6 +27,7 @@ class Recognizer(object):
         self.__num_jitters = int(num_jitters)
         self.__threshold = float(threshold)
         self.__max_size = 1000
+        self.__min_size = 20
         self.__nearest_match = nearest_match
 
     def recognize_image(self, filename, debug_out_folder=None):
@@ -48,12 +49,29 @@ class Recognizer(object):
     def encode_faces(self, image):
 
         boxes = face_recognition.face_locations(image, model=self.__model)
+        if not boxes:
+            return []
+
+        filtered_boxes = []
+        for box in boxes:
+            (top, right, bottom, left) = box
+            face_image = image[top:bottom, left:right]
+            (height, width) = face_image.shape[:2]
+            if height < self.__min_size or width < self.__min_size:
+                logging.debug(f'Too small face: {height}x{width}')
+                continue
+            gray = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)
+            fm = cv2.Laplacian(gray, cv2.CV_64F).var()
+            if fm < 50:
+                logging.debug(f'Too blurry face: {fm}')
+                continue
+            filtered_boxes.append(box)
 
         encodings = face_recognition.face_encodings(
-            image, boxes, self.__num_jitters)
+            image, filtered_boxes, self.__num_jitters)
 
         res = [{'encoding': e, 'box': b}
-               for e, b in zip(encodings, boxes)]
+               for e, b in zip(encodings, filtered_boxes)]
 
         return res
 
@@ -98,7 +116,7 @@ class Recognizer(object):
             else:
                 name = self.__match_face_by_class(encoding)
 
-            if 'name' in encoded_faces[i] and encoded_faces[i]['name']:
+            if 'name' in encoded_faces[i]:
                 encoded_faces[i]['oldname'] = encoded_faces[i]['name']
             encoded_faces[i]['name'] = name
 
