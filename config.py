@@ -9,8 +9,8 @@ class Config(object):
     DEFAULTS = {
         'main': {
             'model': 'cnn',
-            'num_jitters': 1,
-            'threshold': 0.5,
+            'num_jitters': 10,
+            'threshold': 0.3,
             'max_size': 1000,
             'db': '/mnt/multimedia/recdb/rec.db',
             'patterns': '/mnt/multimedia/recdb/face_rec_patt/',
