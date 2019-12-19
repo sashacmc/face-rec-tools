@@ -26,6 +26,8 @@ class Recognizer(object):
         self.__model = model
         self.__num_jitters = int(num_jitters)
         self.__threshold = float(threshold)
+        self.__threshold_weak = 0.5
+        self.__threshold_clusterize = 0.5
         self.__max_size = 1000
         self.__min_size = 20
         self.__nearest_match = nearest_match
@@ -79,16 +81,10 @@ class Recognizer(object):
         distances = face_recognition.face_distance(
             self.__patterns.encodings(), encoding)
 
-        names = []
-        for dist, name in zip(distances, self.__patterns.names()):
-            if dist <= self.__threshold:
-                names.append((dist, name))
-
-        if len(names) != 0:
-            names.sort()
-            return names[0]
-        else:
-            return 1, ''
+        names = [(dist, name)
+                 for dist, name in zip(distances, self.__patterns.names())]
+        names.sort()
+        return names[0]
 
     def __match_face_by_class(self, encoding):
         proba = self.__patterns.classifer().predict_proba(
@@ -96,10 +92,7 @@ class Recognizer(object):
 
         j = numpy.argmax(proba)
         dist = 1 - proba[j]
-        if dist <= self.__threshold:
-            return dist, self.__patterns.classes()[j]
-        else:
-            return 1, ''
+        return dist, self.__patterns.classes()[j]
 
     def match(self, encoded_faces):
         if len(self.__patterns.encodings()) == 0:
@@ -115,6 +108,15 @@ class Recognizer(object):
             logging.debug(f'matched: {name}: {dist}')
             if 'name' in encoded_faces[i]:
                 encoded_faces[i]['oldname'] = encoded_faces[i]['name']
+
+            if dist < self.__threshold:
+                pass
+            elif dist < self.__threshold_weak:
+                name += '_weak'
+            else:
+                name = ''
+                dist = 1
+
             encoded_faces[i]['name'] = name
             encoded_faces[i]['dist'] = dist
 
@@ -125,7 +127,8 @@ class Recognizer(object):
                 encs.append(dlib.vector(
                     files_faces[i]['faces'][j]['encoding']))
 
-        labels = dlib.chinese_whispers_clustering(encs, self.__threshold)
+        labels = dlib.chinese_whispers_clustering(
+            encs, self.__threshold_clusterize)
 
         lnum = 0
         for i in range(len(files_faces)):
