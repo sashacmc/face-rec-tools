@@ -178,7 +178,7 @@ def args_parse():
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-n', '--name', help='Person name')
-    parser.add_argument('files', nargs='+', help='Files with one face')
+    parser.add_argument('files', nargs='*', help='Files with one face')
     parser.add_argument('-r', '--regenerate', help='Regenerate all',
                         action='store_true')
     return parser.parse_args()
