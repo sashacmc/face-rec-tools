@@ -90,18 +90,18 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             name = image_file.split(os.path.sep)[-2]
             result[name].append(os.path.relpath(image_file, cache_path))
 
-        for r in result:
-            result[r].sort()
+        res_list = [(k, sorted(r)) for k, r in result.items()]
+        res_list.sort()
 
-        self.__ok_response(result)
+        self.__ok_response(res_list)
 
     def __get_names(self):
         self.__ok_response(sorted(list(set(self.server.patterns().names()))))
 
     def __add_to_pattern_request(self, params):
         cache_path = self.server.face_cache_path()
-        filename = os.path.join(cache_path, params['file'][0])
-        self.server.patterns().add_files(params['name'][0], filename, True)
+        filenames = [os.path.join(cache_path, f) for f in params['file']]
+        self.server.patterns().add_files(params['name'][0], filenames, True)
         self.__ok_response('')
 
     def __add_images_request(self, params):

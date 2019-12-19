@@ -28,3 +28,6 @@ body > .container {
 code {
   font-size: 80%;
 }
+
+.img_container { position: relative; width: 100px; height: 100px; float: left;}
+.img_checkbox { position: absolute; bottom: 0px; right: 0px; }

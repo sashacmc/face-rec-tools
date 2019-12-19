@@ -115,9 +115,29 @@
         {
             var html = '';
             for (var i in images) {
-                html += '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\')"/>';
+                html += '<div class="img_container">' +
+                            '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\')"/>' +
+                            '<input type="checkbox" class="img_checkbox" imgname="' + images[i] + '"/>' +
+                        '</div>';
             }
             return html;
+        }
+
+        function getSelectedImages()
+        {
+            var images = []; 
+            $("input:checkbox[class=img_checkbox]:checked").each(function(){
+                images.push($(this).attr('imgname'));
+            });
+
+            return images;
+        }
+
+        function unselectedImages()
+        {
+            $("input:checkbox[class=img_checkbox]:checked").each(function(){
+                $(this).prop("checked", false);
+            });
         }
 
         function showImageProps(name, image)
@@ -131,7 +151,7 @@
                 inputs +=
                 '<div class="form-check">' +
                     '<input class="form-check-input" type="radio" name="names" id="radio' + names[i] + '" value="' + names[i] + '" ' + checked + '>' +
-                    '<label class="form-check-label" for="radio' + name[i] + '">' + 
+                    '<label class="form-check-label" for="radio' + names[i] + '">' + 
                         names[i] + 
                     '</label>' +
                 '</div>';
@@ -148,11 +168,24 @@
                 inputs +
             '</div>';
 
+            var images = getSelectedImages();
+            images.push(image);
+            
+            var images_html = '';
+            var images_names = '';
+            var images_files = '';
+
+            for (var i in images) {
+                images_html += '<img src="cache/' + images[i] + '" height="100" width="100">';
+                images_names += images[i] + '<br/>';
+                images_files += '&file=' + images[i];
+            }
+
             var table =
             '<table>' +
                 '<tr>' +
                     '<td>' +
-                        '<img src="cache/' + image + '" height="100" width="100">' +
+                        images_html +
                     '</td>' +
                     '<td>' +
                         selector +
@@ -163,19 +196,22 @@
             $('#facePropModalSubmit').one('click', function(e){
                 e.preventDefault();
                 var newname = $('input[name="names"]:checked').val();
-                if (name == newname) {
+                if (name == newname || name === undefined) {
                     return;
                 }
                 if (newname == "new_name_value") {
                     newname = $("#inputNew").val();
                 }
                 $.ajax({
-                    url: '/add_to_pattern?name=' + newname + '&file=' + image,
+                    url: '/add_to_pattern?name=' + newname + images_files,
                     type: 'POST',
                     success: function(data) {
                         $("#facePropModal").modal("hide");
-                        var img = $("img[src='cache/" + image + "']");
-                        img.css("opacity", 0.2);
+                        unselectedImages();
+                        for (var i in images) {
+                            var img = $("img[src='cache/" + images[i] + "']");
+                            img.css("opacity", 0.2);
+                        }
                     },
                     error: function(request, status, error) {
                         alert(request.responseText);
@@ -184,15 +220,16 @@
             });
 
             $("#facePropModalLabel").html('Face properties');
-            $("#facePropModalBody").html('<p>Select persone for the face: <code>' + image + '</code></p>'  + table);
+            $("#facePropModalBody").html('<p>Select persone for the face: <code>' + images_names + '</code></p>'  + table);
             $("#facePropModal").modal("show");
         }
 
         function setFacesList(data)
         {
             var html = '' 
-            for (var name in data) {
-                var faces = data[name];
+            for (var i in data) {
+                var name = data[i][0]
+                var faces = data[i][1];
                 html += genCard('Person: ' + name, genImagesList(name, faces), name);
             }
             $("#accordionFaces").html(html)
