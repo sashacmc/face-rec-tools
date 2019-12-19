@@ -2,7 +2,6 @@
 
 import os
 import re
-import glob
 import numpy
 import shutil
 import pickle
@@ -78,17 +77,18 @@ class Patterns(object):
         logging.info(
             f'Patterns done: {self.__pickle_file} ({len(dump)} bytes)')
 
-    def add_files(self, name, filepatt, new=False):
+    def add_files(self, name, filenames, new=False):
         out_folder = os.path.join(self.__folder, name)
         if new:
             os.makedirs(out_folder, exist_ok=True)
         else:
             if not os.path.exists(out_folder):
                 raise Exception(f"Name {name} not exists")
-        for filename in glob.glob(filepatt):
+        for filename in filenames:
             out_filename = os.path.split(filename)[1]
             for n in self.__names:
                 out_filename = re.sub(n + '_\d+_', '', out_filename)
+                out_filename = re.sub(n + '_weak_\d+_', '', out_filename)
                 out_filename = out_filename.replace(n, '')
             out_filename = re.sub('unknown_\d+_\d+_', '', out_filename)
             out_filename = os.path.join(out_folder, out_filename)
@@ -178,7 +178,7 @@ def args_parse():
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-n', '--name', help='Person name')
-    parser.add_argument('-f', '--file', help='Files with one face')
+    parser.add_argument('files', nargs='+', help='Files with one face')
     parser.add_argument('-r', '--regenerate', help='Regenerate all',
                         action='store_true')
     return parser.parse_args()
@@ -194,13 +194,13 @@ def main():
         patt.generate(args.regenerate)
     elif args.action == 'add':
         patt.load()
-        patt.add_files(args.name, args.file)
+        patt.add_files(args.name, args.files)
     elif args.action == 'add_new':
         patt.load()
-        patt.add_files(args.name, args.file, True)
+        patt.add_files(args.name, args.files, True)
     elif args.action == 'add_gen':
         patt.load()
-        patt.add_files(args.name, args.file)
+        patt.add_files(args.name, args.files)
         patt.generate(args.regenerate)
     elif args.action == 'list':
         patt.load()
