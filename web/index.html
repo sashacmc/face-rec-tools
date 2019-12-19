@@ -97,8 +97,9 @@
                 '<div class="card-header" id="heading' + num + '">' +
                     '<h2 class="mb-0">' +
                         '<button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse' + num + '" aria-expanded="false" aria-controls="collapse' + num + '">' +
-                            name +
+                            'Person: ' + name +
                         '</button>' +
+                        '<input type="checkbox" class="person_checkbox" personname="' + name + '" onclick="javascript:checkAllImages(\'' + name + '\')"/>' +
                     '</h2>' +
                 '</div>' +
                 '<div id="collapse' + num + '" class="collapse" aria-labelledby="heading' + num + '" data-parent="#accordionFaces">' +
@@ -117,7 +118,7 @@
             for (var i in images) {
                 html += '<div class="img_container">' +
                             '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\')"/>' +
-                            '<input type="checkbox" class="img_checkbox" imgname="' + images[i] + '"/>' +
+                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '"/>' +
                         '</div>';
             }
             return html;
@@ -137,6 +138,14 @@
         {
             $("input:checkbox[class=img_checkbox]:checked").each(function(){
                 $(this).prop("checked", false);
+            });
+        }
+
+        function checkAllImages(name)
+        {
+            var checked = $('input:checkbox[class=person_checkbox][personname="' + name + '"]').is(':checked');
+            $('input:checkbox[class=img_checkbox][personname="' + name + '"]').each(function(){
+                $(this).prop("checked", checked);
             });
         }
 
@@ -230,7 +239,7 @@
             for (var i in data) {
                 var name = data[i][0]
                 var faces = data[i][1];
-                html += genCard('Person: ' + name, genImagesList(name, faces), name);
+                html += genCard(name, genImagesList(name, faces), name);
             }
             $("#accordionFaces").html(html)
         }
