@@ -178,7 +178,9 @@
             '</div>';
 
             var images = getSelectedImages();
-            images.push(image);
+            if (images.indexOf(image) == -1) {
+                images.push(image);
+            }
             
             var images_html = '';
             var images_names = '';
@@ -202,7 +204,7 @@
                 '</tr>' +
             '</table>'
 
-            $('#facePropModalSubmit').one('click', function(e){
+            $('#facePropModalSubmit').off('click').one('click', function(e){
                 e.preventDefault();
                 var newname = $('input[name="names"]:checked').val();
                 if (name == newname || name === undefined) {
@@ -316,10 +318,10 @@
                 $("#addGenModalLabel").html('Add images path');
                 $("#addGenModalPath").val(addGenPath);
                 addGenModalSpinner(false);
-                $('#addGenModalSubmit').one('click', function(e) {
+                $('#addGenModalSubmit').off('click').one('click', function(e) {
                     e.preventDefault();
                     addGenModalSpinner(true);
-                    addGenPath = $("#addGenModalPath").val()
+                    addGenPath = $("#addGenModalPath").val();
                     $.ajax({
                         url: '/add_images?path=' + addGenPath,
                         type: 'POST',
@@ -342,10 +344,10 @@
                 $("#addGenModalLabel").html('Generate faces path');
                 $("#addGenModalPath").val(addGenPath);
                 addGenModalSpinner(false);
-                $('#addGenModalSubmit').one('click', function(e) {
+                $('#addGenModalSubmit').off('click').one('click', function(e) {
                     e.preventDefault();
                     addGenModalSpinner(true);
-                    addGenPath = $("#addGenModalPath").val()
+                    addGenPath = $("#addGenModalPath").val();
                     $.ajax({
                         url: '/generate_faces?path=' + addGenPath,
                         type: 'POST',
