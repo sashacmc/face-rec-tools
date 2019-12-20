@@ -136,7 +136,7 @@
 
         function unselectedImages()
         {
-            $("input:checkbox[class=img_checkbox]:checked").each(function(){
+            $("input:checkbox[class$=_checkbox]:checked").each(function(){
                 $(this).prop("checked", false);
             });
         }
