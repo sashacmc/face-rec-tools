@@ -98,6 +98,9 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
     def __get_names(self):
         self.__ok_response(sorted(list(set(self.server.patterns().names()))))
 
+    def __get_folders(self):
+        self.__ok_response(sorted(self.server.db().get_folders()))
+
     def __add_to_pattern_request(self, params):
         cache_path = self.server.face_cache_path()
         filenames = [os.path.join(cache_path, f) for f in params['file']]
@@ -134,6 +137,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
             if path == '/get_names':
                 self.__get_names()
+                return
+
+            if path == '/get_folders':
+                self.__get_folders()
                 return
 
             if path == '/':
@@ -216,6 +223,9 @@ class FaceRecServer(http.server.HTTPServer):
 
     def patterns(self):
         return self.__patterns
+
+    def db(self):
+        return self.__db
 
     def __clean_cache(self):
         if os.path.exists(self.__face_cache_path):
