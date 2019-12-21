@@ -10,11 +10,6 @@ import logging
 import argparse
 from imutils import paths
 
-from sklearn import svm
-from sklearn import metrics
-from sklearn import preprocessing
-from sklearn import model_selection
-
 import log
 import tools
 
@@ -25,7 +20,7 @@ class Patterns(object):
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
         self.__encodings = []
         self.__names = []
-        self.__files = []
+        self.__files = {}
         self.__model = model
         self.__max_size = max_size
 
@@ -33,14 +28,19 @@ class Patterns(object):
         import face_recognition
 
         logging.info(f'Patterns generation: {self.__folder} ({regenerate})')
-        image_files = list(paths.list_images(self.__folder))
+
+        image_files = {}
+        for image_file in list(paths.list_images(self.__folder)):
+            image_files[image_file] = os.stat(image_file).st_mtime
 
         if not regenerate:
             self.load()
-            filtered = []
+            filtered = {}
             for image_file in image_files:
-                if os.path.split(image_file)[1] not in self.__files:
-                    filtered.append(image_file)
+                filename = os.path.split(image_file)[1]
+                if filename not in self.__files or \
+                        self.__files[filename] != image_files[image_file]:
+                    filtered[image_file] = image_files[image_file]
             image_files = filtered
 
         for (i, image_file) in enumerate(image_files):
@@ -68,9 +68,14 @@ class Patterns(object):
                 encodings = face_recognition.face_encodings(image, boxes)
                 encoding = encodings[0]
 
+            filename = os.path.split(image_file)[1]
+            if filename in self.__files:
+                logging.warning('Duplicate pattern file: ' + image_file)
+                continue
+
             self.__encodings.append(encoding)
             self.__names.append(name)
-            self.__files.append(os.path.split(image_file)[1])
+            self.__files[filename] = image_files[image_file]
 
         logging.info('Classification training')
         self.train_classifer()
@@ -117,6 +122,11 @@ class Patterns(object):
         self.__classes = data['classes']
 
     def train_classifer(self):
+        from sklearn import svm
+        from sklearn import metrics
+        from sklearn import preprocessing
+        from sklearn import model_selection
+
         RANDOM_SEED = 42
 
         data = numpy.array(self.__encodings)
