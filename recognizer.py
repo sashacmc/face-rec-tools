@@ -164,30 +164,17 @@ class Recognizer(object):
 
     def match_unmatched(self, db, debug_out_folder):
         files_faces = db.get_unmatched()
-        cnt_all = 0
-        cnt_changed = 0
-        for ff in files_faces:
-            logging.info(f"match image: {ff['filename']}")
-            self.match(ff['faces'])
-            for face in ff['faces']:
-                cnt_all += 1
-                if face['name']:
-                    db.set_name(face['face_id'], face['name'], face['dist'])
-                    cnt_changed += 1
-                    logging.info(
-                        f"face {face['face_id']} in file '{ff['filename']}' " +
-                        f"matched to '{face['name']}'")
-                    if debug_out_folder:
-                        filename = ff['filename']
-                        image = tools.read_image(filename, self.__max_size)
-                        debug_out_file_name = self.__extract_filename(filename)
-                        self.__save_debug_images(
-                            (face,), image,
-                            debug_out_folder, debug_out_file_name)
-        logging.info(f'match_unmatched: {cnt_all}, changed: {cnt_changed}')
+        self.__match_files_faces(files_faces, db, debug_out_folder)
 
     def match_all(self, db, debug_out_folder):
         files_faces = db.get_all()
+        self.__match_files_faces(files_faces, db, debug_out_folder)
+
+    def match_folder(self, folder, db, debug_out_folder):
+        files_faces = db.get_folder(folder)
+        self.__match_files_faces(files_faces, db, debug_out_folder)
+
+    def __match_files_faces(self, files_faces, db, debug_out_folder):
         cnt_all = 0
         cnt_changed = 0
         for ff in files_faces:
@@ -208,7 +195,7 @@ class Recognizer(object):
                         self.__save_debug_images(
                             (face,), image,
                             debug_out_folder, debug_out_file_name)
-        logging.info(f'match_all: {cnt_all}, changed: {cnt_changed}')
+        logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
     def save_faces(self, folder, db, debug_out_folder):
         filenames = self.__get_images_from_folders(folder)

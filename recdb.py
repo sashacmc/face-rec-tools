@@ -153,6 +153,15 @@ class RecDB(object):
 
         return self.__build_files_faces(res.fetchall())
 
+    def get_folder(self, folder):
+        c = self.__conn.cursor()
+        res = c.execute(
+            'SELECT filename, faces.id, box, encoding, name, dist \
+             FROM images JOIN faces ON images.id=faces.image_id \
+             WHERE filename LIKE ?', (folder + '%',))
+
+        return self.__build_files_faces(res.fetchall())
+
     def get_faces(self, filename):
         c = self.__conn.cursor()
         res = c.execute(

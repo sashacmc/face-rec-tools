@@ -33,6 +33,9 @@
                         <a class="nav-link" href="#" id="liMatchUnmatched">Match unmatched</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#" id="liMatchFolder">Match folder</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#" id="liClusterizeUnmatched">Clusterize unmatched</a>
                     </li>
                 </ul>
@@ -287,6 +290,32 @@
             $("#mainSpinner").html(html);
         }
 
+        function runPathCommand(caption, cmd)
+        {
+            $("#addGenModalLabel").html(caption);
+            $("#addGenModalPath").val(addGenPath);
+            addGenModalSpinner(false);
+            $('#addGenModalSubmit').off('click').one('click', function(e) {
+                e.preventDefault();
+                addGenModalSpinner(true);
+                addGenPath = $("#addGenModalPath").val();
+                $.ajax({
+                    url: cmd + '?path=' + addGenPath,
+                    type: 'POST',
+                    timeout: 0,
+                    success: function(data) {
+                        init();
+                        $("#addGenModal").modal("hide");
+                    },
+                    error: function(request, status, error) {
+                        addGenModalSpinner(false);
+                        alert(request.responseText);
+                    }
+                });
+            });
+            $("#addGenModal").modal("show");
+        }
+
         function runCommand(cmd)
         {
             mainSpinner(true);
@@ -343,54 +372,12 @@
 
             $("#liAdd").click(function(e) {
                 e.preventDefault();
-                $("#addGenModalLabel").html('Add images path');
-                $("#addGenModalPath").val(addGenPath);
-                addGenModalSpinner(false);
-                $('#addGenModalSubmit').off('click').one('click', function(e) {
-                    e.preventDefault();
-                    addGenModalSpinner(true);
-                    addGenPath = $("#addGenModalPath").val();
-                    $.ajax({
-                        url: '/add_images?path=' + addGenPath,
-                        type: 'POST',
-                        timeout: 0,
-                        success: function(data) {
-                            init();
-                            $("#addGenModal").modal("hide");
-                        },
-                        error: function(request, status, error) {
-                            addGenModalSpinner(false);
-                            alert(request.responseText);
-                        }
-                    });
-                });
-                $("#addGenModal").modal("show");
+                runPathCommand('Add images path', '/add_images')
             });
 
             $("#liGenerate").click(function(e) {
                 e.preventDefault();
-                $("#addGenModalLabel").html('Generate faces path');
-                $("#addGenModalPath").val(addGenPath);
-                addGenModalSpinner(false);
-                $('#addGenModalSubmit').off('click').one('click', function(e) {
-                    e.preventDefault();
-                    addGenModalSpinner(true);
-                    addGenPath = $("#addGenModalPath").val();
-                    $.ajax({
-                        url: '/generate_faces?path=' + addGenPath,
-                        type: 'POST',
-                        timeout: 0,
-                        success: function(data) {
-                            init();
-                            $("#addGenModal").modal("hide");
-                        },
-                        error: function(request, status, error) {
-                            addGenModalSpinner(false);
-                            alert(request.responseText);
-                        }
-                    });
-                });
-                $("#addGenModal").modal("show");
+                runPathCommand('Generate faces path', '/generate_faces')
             });
 
             $("#liRematch").click(function(e) {
@@ -401,6 +388,11 @@
             $("#liMatchUnmatched").click(function(e) {
                 e.preventDefault();
                 runCommand('/match_unmatched')
+            });
+
+            $("#liMatchFolder").click(function(e) {
+                e.preventDefault();
+                runPathCommand('Match folder path', '/match_folder')
             });
 
             $("#liClusterizeUnmatched").click(function(e) {

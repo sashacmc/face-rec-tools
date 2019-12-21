@@ -123,6 +123,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.server.match_unmatched()
         self.__ok_response('')
 
+    def __match_folder_request(self, params):
+        self.server.match_folder(params['path'][0])
+        self.__ok_response('')
+
     def __clusterize_unmatched_request(self, params):
         self.server.clusterize_unmatched()
         self.__ok_response('')
@@ -187,6 +191,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__match_unmatched_request(params)
                 return
 
+            if path == '/match_folder':
+                self.__match_folder_request(params)
+                return
+
             if path == '/clusterize_unmatched':
                 self.__clusterize_unmatched_request(params)
                 return
@@ -241,6 +249,12 @@ class FaceRecServer(http.server.HTTPServer):
         self.__patterns.generate()
         self.__recognizer.match_unmatched(
             self.__db, self.__face_cache_path)
+
+    def match_folder(self, path):
+        self.__clean_cache()
+        self.__patterns.generate()
+        self.__recognizer.match_folder(path,
+                                       self.__db, self.__face_cache_path)
 
     def match_all(self):
         self.__clean_cache()
