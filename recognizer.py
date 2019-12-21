@@ -278,7 +278,7 @@ class Recognizer(object):
             out_filename = os.path.join(
                 out_folder, f'{prefix}_{debug_out_file_name}_{i}.jpg')
 
-            encd = pickle.dumps(enc['encoding'])
+            encd = pickle.dumps(enc['encoding'], protocol=0)
             exif = piexif.dump(
                 {"0th": {piexif.ImageIFD.ImageDescription: encd}})
             im = Image.fromarray(out_image)
