@@ -248,7 +248,7 @@ class Recognizer(object):
     def __save_debug_images(
             self, encoded_faces, image, debug_out_folder, debug_out_file_name):
 
-        for i, enc in enumerate(encoded_faces):
+        for enc in encoded_faces:
             name = enc['name']
             if name == '':
                 name = 'unknown_000'
@@ -263,7 +263,7 @@ class Recognizer(object):
 
             prefix = '{}_{:03d}'.format(name, int(enc['dist'] * 100))
             out_filename = os.path.join(
-                out_folder, f'{prefix}_{debug_out_file_name}_{i}.jpg')
+                out_folder, f'{prefix}_{debug_out_file_name}_{left}_{top}.jpg')
 
             encd = pickle.dumps(enc['encoding'], protocol=0)
             exif = piexif.dump(
