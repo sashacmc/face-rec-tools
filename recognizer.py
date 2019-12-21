@@ -6,10 +6,14 @@ import sys
 import dlib
 import numpy
 import shutil
+import piexif
+import pickle
 import logging
 import argparse
 import collections
 import face_recognition
+
+from PIL import Image
 
 import log
 import recdb
@@ -269,13 +273,17 @@ class Recognizer(object):
             out_image = image[
                 max(0, top - d):bottom + d,
                 max(0, left - d):right + d]
-            out_image = cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB)
 
             prefix = '{}_{:03d}'.format(name, int(enc['dist'] * 100))
             out_filename = os.path.join(
                 out_folder, f'{prefix}_{debug_out_file_name}_{i}.jpg')
 
-            cv2.imwrite(out_filename, out_image)
+            encd = pickle.dumps(enc['encoding'])
+            exif = piexif.dump(
+                {"0th": {piexif.ImageIFD.ImageDescription: encd}})
+            im = Image.fromarray(out_image)
+            im.save(out_filename, exif=exif)
+
             logging.debug(f'face saved to: {out_filename}')
 
 

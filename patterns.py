@@ -5,6 +5,7 @@ import re
 import numpy
 import shutil
 import pickle
+import piexif
 import logging
 import argparse
 from imutils import paths
@@ -46,16 +47,28 @@ class Patterns(object):
             name = image_file.split(os.path.sep)[-2]
             logging.info(f'{i + 1}/{len(image_files)} file: {image_file}')
 
-            image = tools.read_image(image_file, self.__max_size)
+            exif = piexif.load(image_file)
+            encoding = None
+            try:
+                encd = exif["0th"][piexif.ImageIFD.ImageDescription]
+                encoding = pickle.loads(encd)
+                logging.debug(f'Loaded from Exif: {len(encoding)}')
+            except Exception:
+                pass
 
-            boxes = face_recognition.face_locations(image, model=self.__model)
-            if len(boxes) != 1:
-                logging.warning(
-                    f'{len(boxes)} faces detected in {image_file}. Skip.')
-                continue
-            encodings = face_recognition.face_encodings(image, boxes)
+            if encoding is None:
+                image = tools.read_image(image_file, self.__max_size)
 
-            self.__encodings.append(encodings[0])
+                boxes = face_recognition.face_locations(
+                    image, model=self.__model)
+                if len(boxes) != 1:
+                    logging.warning(
+                        f'{len(boxes)} faces detected in {image_file}. Skip.')
+                    continue
+                encodings = face_recognition.face_encodings(image, boxes)
+                encoding = encodings[0]
+
+            self.__encodings.append(encoding)
             self.__names.append(name)
             self.__files.append(os.path.split(image_file)[1])
 
