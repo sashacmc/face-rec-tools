@@ -104,10 +104,25 @@ class Recognizer(object):
 
         for i in range(len(encoded_faces)):
             encoding = encoded_faces[i]['encoding']
-            if self.__nearest_match:
-                dist, name = self.__match_face_by_nearest(encoding)
+            dist_n, name_n = self.__match_face_by_nearest(encoding)
+            dist_c, name_c = self.__match_face_by_class(encoding)
+
+            if dist_n < self.__threshold:
+                dist = dist_n
+                name = name_n
+            elif dist_c < self.__threshold:
+                dist = dist_c
+                name = name_c
+            elif name_n == name_c:
+                name = name_n
+                dist = (dist_n + dist_c) / 2
             else:
-                dist, name = self.__match_face_by_class(encoding)
+                if self.__nearest_match:
+                    name = name_n
+                    dist = dist_n
+                else:
+                    name = name_c
+                    dist = dist_c
 
             logging.debug(f'matched: {name}: {dist}')
             if 'name' in encoded_faces[i]:
