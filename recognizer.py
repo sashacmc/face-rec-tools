@@ -110,19 +110,24 @@ class Recognizer(object):
             if dist_n < self.__threshold:
                 dist = dist_n
                 name = name_n
+                alg = 'n'
             elif dist_c < self.__threshold:
                 dist = dist_c
                 name = name_c
+                alg = 'c'
             elif name_n == name_c:
                 name = name_n
                 dist = (dist_n + dist_c) / 2
+                alg = 'b'
             else:
                 if self.__nearest_match:
                     name = name_n
                     dist = dist_n
+                    alg = 'n'
                 else:
                     name = name_c
                     dist = dist_c
+                    alg = 'c'
 
             logging.debug(f'matched: {name}: {dist}')
             if 'name' in encoded_faces[i]:
@@ -138,6 +143,7 @@ class Recognizer(object):
 
             encoded_faces[i]['name'] = name
             encoded_faces[i]['dist'] = dist
+            encoded_faces[i]['alg'] = alg 
 
     def clusterize(self, files_faces, debug_out_folder=None):
         encs = []
@@ -267,6 +273,7 @@ class Recognizer(object):
             name = enc['name']
             if name == '':
                 name = 'unknown_000'
+            alg = '_' + enc['alg'] if 'alg' in enc else ''
             out_folder = os.path.join(debug_out_folder, name)
             self.__make_debug_out_folder(out_folder)
 
@@ -278,7 +285,8 @@ class Recognizer(object):
 
             prefix = '{}_{:03d}'.format(name, int(enc['dist'] * 100))
             out_filename = os.path.join(
-                out_folder, f'{prefix}_{debug_out_file_name}_{left}_{top}.jpg')
+                out_folder,
+                f'{prefix}_{debug_out_file_name}_{left}x{top}{alg}.jpg')
 
             encd = pickle.dumps(enc['encoding'], protocol=0)
             exif = piexif.dump(
