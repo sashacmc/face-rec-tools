@@ -196,7 +196,7 @@
 
             for (var i in images) {
                 images_html += '<img src="cache/' + images[i] + '" height="100" width="100">';
-                images_names += images[i] + '<br/>';
+                images_names += images[i].split('/')[1] + '<br/>';
                 images_files += '&file=' + images[i];
             }
 
@@ -229,7 +229,11 @@
                         unselectedImages();
                         for (var i in images) {
                             var img = $("img[src='cache/" + images[i] + "']");
-                            img.css("opacity", 0.2);
+                            img.css('opacity', 0.2);
+                            img.attr('onclick', '');
+                            var chb = $('input:checkbox[class=img_checkbox][imgname="' + images[i] + '"]')
+                            chb.attr("disabled", true);
+                            chb.attr('personname', '');
                         }
                     },
                     error: function(request, status, error) {
