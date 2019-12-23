@@ -351,6 +351,8 @@ def main():
         rec.match_unmatched(db, args.output)
     elif args.action == 'match_all':
         rec.match_all(db, args.output)
+    elif args.action == 'match_folder':
+        rec.match_folder(args.input, db, args.output)
     elif args.action == 'clusterize_unmatched':
         rec.clusterize_unmatched(db, args.output)
     elif args.action == 'save_faces':
