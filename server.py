@@ -107,9 +107,13 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
     def __get_folders(self):
         self.__ok_response(sorted(self.server.db().get_folders()))
 
-    def __add_to_pattern_request(self, params):
+    def __get_status(self):
+        self.__ok_response(self.server.status())
+
+    def __add_to_pattern_request(self, params, data):
         cache_path = self.server.face_cache_path()
-        filenames = [os.path.join(cache_path, f) for f in params['file']]
+        files = data['files'][0].split('|')
+        filenames = [os.path.join(cache_path, f) for f in files]
         self.server.patterns().add_files(params['name'][0], filenames, True)
         self.__ok_response('')
 
@@ -151,6 +155,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
             if path == '/get_folders':
                 self.__get_folders()
+                return
+
+            if path == '/get_status':
+                self.__get_status()
                 return
 
             if path == '/':
@@ -212,22 +220,33 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
 class FaceRecServer(http.server.HTTPServer):
     def __init__(self, cfg):
+        self.__status = {'state': ''}
+        self.__recognizer = None
         self.__cfg = cfg
         self.__patterns = patterns.Patterns(cfg['main']['patterns'],
                                             cfg['main']['model'])
         self.__patterns.load()
-        self.__recognizer = recognizer.Recognizer(
-            self.__patterns,
-            cfg['main']['model'],
-            cfg['main']['num_jitters'],
-            cfg['main']['threshold'])
-
         self.__db = recdb.RecDB(cfg['main']['db'])
 
         port = int(cfg['server']['port'])
         self.__web_path = cfg['server']['web_path']
         self.__face_cache_path = cfg['server']['face_cache_path']
         super().__init__(('', port), FaceRecHandler)
+
+    def __start_recognizer(self, method, *args):
+        if not self.__recognizer is None:
+            logging.warning('Trying to create second recognizer')
+            raise Exception('Recognizer already started')
+
+        self.__clean_cache()
+
+        self.__recognizer = recognizer.Recognizer(
+            self.__patterns,
+            self.__cfg['main']['model'],
+            self.__cfg['main']['num_jitters'],
+            self.__cfg['main']['threshold'])
+
+        self.__recognizer.start_method(method, *args)
 
     def web_path(self):
         return self.__web_path
@@ -241,43 +260,47 @@ class FaceRecServer(http.server.HTTPServer):
     def db(self):
         return self.__db
 
+    def status(self):
+        if self.__recognizer:
+            self.__status = self.__recognizer.status()
+            if self.__status['state'] in ('done', 'error'):
+                self.__recognizer.join()
+                self.__recognizer = None
+
+        return self.__status
+
     def __clean_cache(self):
         if os.path.exists(self.__face_cache_path):
             shutil.rmtree(self.__face_cache_path)
 
     def recognize_folder(self, path):
-        self.__clean_cache()
-        self.__recognizer.recognize_folder(
-            path, self.__db, self.__face_cache_path)
+        self.__patterns.generate()
+        self.__start_recognizer('recognize_folder',
+                                path, self.__db, self.__face_cache_path)
 
     def match_unmatched(self):
-        self.__clean_cache()
         self.__patterns.generate()
-        self.__recognizer.match_unmatched(
-            self.__db, self.__face_cache_path)
+        self.__start_recognizer('match_unmatched',
+                                self.__db, self.__face_cache_path)
 
     def match_folder(self, path):
-        self.__clean_cache()
         self.__patterns.generate()
-        self.__recognizer.match_folder(path,
-                                       self.__db, self.__face_cache_path)
+        self.__start_recognizer('match_folder',
+                                path, self.__db, self.__face_cache_path)
 
     def match_all(self):
-        self.__clean_cache()
         self.__patterns.generate()
-        self.__recognizer.match_all(
-            self.__db, self.__face_cache_path)
+        self.__start_recognizer('match_all',
+                                self.__db, self.__face_cache_path)
 
     def clusterize_unmatched(self):
-        self.__clean_cache()
         self.__patterns.generate()
-        self.__recognizer.clusterize_unmatched(
-            self.__db, self.__face_cache_path)
+        self.__start_recognizer('clusterize_unmatched',
+                                self.__db, self.__face_cache_path)
 
     def save_faces(self, path):
-        self.__clean_cache()
-        self.__recognizer.save_faces(
-            path, self.__db, self.__face_cache_path)
+        self.__start_recognizer('save_faces',
+                                path, self.__db, self.__face_cache_path)
 
 
 def args_parse():

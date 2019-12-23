@@ -69,25 +69,55 @@
         </div>
     </div>
 
-    <div class="modal fade" id="addGenModal" tabindex="-1" role="dialog" aria-labelledby="facePropModalLabel" aria-hidden="true">
+    <div class="modal fade" id="runPathModal" tabindex="-1" role="dialog" aria-labelledby="facePropModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addGenModalLabel"></h5>
+                    <h5 class="modal-title" id="runPathModalLabel"></h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <div class="modal-body" id="addGenModalBody">
-                    <input class="form-control" type="text" id="addGenModalPath">
+                <div class="modal-body" id="runPathModalBody">
+                    New path
+                    <input class="form-control" type="text" id="runPathModalPath">
                     <br/>
-                    <select class="combobox input-large form-control" id="addGenModalPathCombo">
+                    Existing path search
+                    <select class="combobox input-large form-control" id="runPathModalPathCombo">
                     </select>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button id="addGenModalSubmit" type="button" class="btn btn-primary">
+                    <button id="runPathModalSubmit" type="button" class="btn btn-primary">
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="progressModal" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="progressModalLabel"></h5>
+                </div>
+                <div class="modal-body">
+                    <div class="progress progress-popup">
+                        <div class="progress-bar" id="progressModalBar" style="width: 0%">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="errorModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Error</h5>
+                </div>
+                <div class="modal-body" id="errorModalBody">
                 </div>
             </div>
         </div>
@@ -192,12 +222,10 @@
             
             var images_html = '';
             var images_names = '';
-            var images_files = '';
 
             for (var i in images) {
                 images_html += '<img src="cache/' + images[i] + '" height="100" width="100">';
                 images_names += images[i].split('/')[1] + '<br/>';
-                images_files += '&file=' + images[i];
             }
 
             var table =
@@ -238,7 +266,8 @@
                         }
                     },
                     error: function(request, status, error) {
-                        alert(request.responseText);
+                        $("#facePropModal").modal("hide");
+                        showError(request.responseText);
                     }
                 });
             });
@@ -266,14 +295,14 @@
                 var folder = data[i];
                 html += '<option value="' + folder + '">' + folder + '</option>';
             }
-            $("#addGenModalPathCombo").html(html);
-            $("#addGenModalPathCombo").combobox({bsVersion: '4'});
-            $("#addGenModalPathCombo").on("change", function(e) {
-                $("#addGenModalPath").val($("#addGenModalPathCombo").val());
+            $("#runPathModalPathCombo").html(html);
+            $("#runPathModalPathCombo").combobox({bsVersion: '4'});
+            $("#runPathModalPathCombo").on("change", function(e) {
+                $("#runPathModalPath").val($("#runPathModalPathCombo").val());
             });
         }
 
-        function addGenModalSpinner(enable)
+        function runPathModalSpinner(enable)
         {
             var html = '';
             if (enable) {
@@ -281,7 +310,7 @@
             } else {
                 html = 'Run';
             }
-            $("#addGenModalSubmit").html(html);
+            $("#runPathModalSubmit").html(html);
         }
 
         function mainSpinner(enable)
@@ -297,31 +326,36 @@
 
         function runPathCommand(caption, cmd)
         {
-            $("#addGenModalLabel").html(caption);
-            $("#addGenModalPath").val(addGenPath);
-            addGenModalSpinner(false);
-            $('#addGenModalSubmit').off('click').one('click', function(e) {
+            $("#runPathModalLabel").html(caption);
+            $("#runPathModalPath").val(addGenPath);
+            runPathModalSpinner(false);
+            $('#runPathModalSubmit').off('click').on('click', function(e) {
                 e.preventDefault();
-                addGenModalSpinner(true);
-                addGenPath = $("#addGenModalPath").val();
+                addGenPath = $("#runPathModalPath").val();
+                if (addGenPath === undefined || addGenPath == '') {
+                    showError('Path not specified');
+                    return;
+                }
+                runPathModalSpinner(true);
                 $.ajax({
                     url: cmd + '?path=' + addGenPath,
                     type: 'POST',
                     timeout: 0,
                     success: function(data) {
-                        init();
-                        $("#addGenModal").modal("hide");
+                        $("#runPathModal").modal("hide");
+                        showProgress(caption);
                     },
                     error: function(request, status, error) {
-                        addGenModalSpinner(false);
-                        alert(request.responseText);
+                        runPathModalSpinner(false);
+                        $("#runPathModal").modal("hide");
+                        showError(request.responseText);
                     }
                 });
             });
-            $("#addGenModal").modal("show");
+            $("#runPathModal").modal("show");
         }
 
-        function runCommand(cmd)
+        function runCommand(caption, cmd)
         {
             mainSpinner(true);
             $.ajax({
@@ -329,13 +363,53 @@
                 type: 'POST',
                 timeout: 0,
                 success: function(data) {
-                    init();
+                    showProgress(caption);
                 },
                 error: function(request, status, error) {
                     mainSpinner(false);
-                    alert(request.responseText);
+                    showError(request.responseText);
                 }
             });
+        }
+
+        function updateProgress() {
+            $.ajax({  
+                url: 'get_status',
+                cache: false,  
+                success: function(json) {  
+                    var st = eval(json);
+                    if (st['state'] == 'done' || st['state'] == 'error') {
+                        $('#progressModal').modal('hide');
+                        clearInterval(updateProgressInterval);
+                        init();
+                    } else {
+                        var w = st['current'] / st['count'] * 100;
+                        $('#progressModalBar').css('width', w + '%');
+                        $('#progressModalBar').html(st['current'] + '/' + st['count']);
+                    }
+                },  
+                error: function(request, status, error) {
+                    $('#progressModal').modal('hide');
+                    clearInterval(updateProgressInterval);
+                    showError(request.responseText);
+                }
+            });
+        }
+
+        function showProgress(caption)
+        {
+            $('#progressModalLabel').html(caption);
+            $('#progressModalBar').css('width', '0%');
+            $('#progressModal').modal('show').on('shown', function() { 
+                updateProgress();
+            });
+            updateProgressInterval = setInterval(updateProgress, 500);
+        }
+
+        function showError(html)
+        {
+            $('#errorModalBody').html(html);
+            $('#errorModal').modal('show');
         }
 
         function init()
@@ -377,32 +451,32 @@
 
             $("#liAdd").click(function(e) {
                 e.preventDefault();
-                runPathCommand('Add images path', '/add_images')
+                runPathCommand('Add images', '/add_images')
             });
 
             $("#liGenerate").click(function(e) {
                 e.preventDefault();
-                runPathCommand('Generate faces path', '/generate_faces')
+                runPathCommand('Generate faces', '/generate_faces')
             });
 
             $("#liRematch").click(function(e) {
                 e.preventDefault();
-                runCommand('/rematch')
+                runCommand('Rematch all', '/rematch')
             });
 
             $("#liMatchUnmatched").click(function(e) {
                 e.preventDefault();
-                runCommand('/match_unmatched')
+                runCommand('Match unmatched', '/match_unmatched')
             });
 
             $("#liMatchFolder").click(function(e) {
                 e.preventDefault();
-                runPathCommand('Reatch folder path', '/match_folder')
+                runPathCommand('Rematch folder', '/match_folder')
             });
 
             $("#liClusterizeUnmatched").click(function(e) {
                 e.preventDefault();
-                runCommand('/clusterize_unmatched')
+                runCommand('Clusterize unmatched', '/clusterize_unmatched')
             });
 
             init();
