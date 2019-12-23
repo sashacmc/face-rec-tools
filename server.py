@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 
 import os
-import cgi
 import json
 import shutil
+import urllib 
 import logging
 import imutils
 import argparse
@@ -74,10 +74,16 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             self.__not_found_response()
             logging.exception(ex)
 
+    def __data(self):
+        datalen = int(self.headers['Content-Length'])
+        data_raw = self.rfile.read(datalen)
+        data = data_raw.decode('utf-8')
+        return urllib.parse.parse_qs(data)
+
     def __path_params(self):
         path_params = self.path.split('?')
         if len(path_params) > 1:
-            return path_params[0], cgi.parse_qs(path_params[1])
+            return path_params[0], urllib.parse.parse_qs(path_params[1])
         else:
             return path_params[0], {}
 
@@ -172,7 +178,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             path, params = self.__path_params()
 
             if path == '/add_to_pattern':
-                self.__add_to_pattern_request(params)
+                self.__add_to_pattern_request(params, self.__data())
                 return
 
             if path == '/add_images':

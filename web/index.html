@@ -212,18 +212,19 @@
                 '</tr>' +
             '</table>'
 
-            $('#facePropModalSubmit').off('click').one('click', function(e){
+            $('#facePropModalSubmit').off('click').on('click', function(e){
                 e.preventDefault();
                 var newname = $('input[name="names"]:checked').val();
-                if (name == newname || name === undefined) {
+                if (name == newname || newname === undefined) {
                     return;
                 }
                 if (newname == "new_name_value") {
                     newname = $("#inputNew").val();
                 }
                 $.ajax({
-                    url: '/add_to_pattern?name=' + newname + images_files,
+                    url: '/add_to_pattern?name=' + newname,
                     type: 'POST',
+                    data: {'files': images.join('|')},
                     success: function(data) {
                         $("#facePropModal").modal("hide");
                         unselectedImages();
