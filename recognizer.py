@@ -10,10 +10,12 @@ import piexif
 import pickle
 import logging
 import argparse
+import threading
 import collections
 import face_recognition
 
 from PIL import Image
+from imutils import paths
 
 import log
 import recdb
@@ -243,11 +245,7 @@ class Recognizer(object):
         self.recognize_files(filenames, db, debug_out_folder)
 
     def __get_images_from_folders(self, folder):
-        filenames = []
-        for filename in os.listdir(folder):
-            if os.path.splitext(filename)[1].lower() == '.jpg':
-                filenames.append(os.path.join(folder, filename))
-        return filenames
+        return list(paths.list_images(folder))
 
     def __make_debug_out_folder(self, debug_out_folder):
         if debug_out_folder:
