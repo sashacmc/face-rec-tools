@@ -21,6 +21,8 @@ class Patterns(object):
         self.__encodings = []
         self.__names = []
         self.__files = {}
+        self.__classifer = None
+        self.__classes = []
         self.__model = model
         self.__max_size = max_size
 
@@ -41,6 +43,11 @@ class Patterns(object):
                 if filename not in self.__files or \
                         self.__files[filename] != image_files[image_file]:
                     filtered[image_file] = image_files[image_file]
+
+            if len(filtered) == 0:
+                logging.info('Nothing changed')
+                return
+
             image_files = filtered
 
         for (i, image_file) in enumerate(image_files):
