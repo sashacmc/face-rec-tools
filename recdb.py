@@ -50,7 +50,10 @@ class RecDB(object):
         sqlite3.register_converter('array', convert_array)
 
         self.__conn = sqlite3.connect(
-            filename, detect_types=sqlite3.PARSE_DECLTYPES)
+            filename,
+            detect_types=sqlite3.PARSE_DECLTYPES,
+            check_same_thread=False)
+
         self.__conn.executescript(SCHEMA)
         self.__readonly = readonly
 
