@@ -3,7 +3,7 @@
 import os
 import json
 import shutil
-import urllib 
+import urllib
 import logging
 import imutils
 import argparse
@@ -243,9 +243,14 @@ class FaceRecServer(http.server.HTTPServer):
 
         self.__recognizer = recognizer.Recognizer(
             self.__patterns,
-            self.__cfg['main']['model'],
-            self.__cfg['main']['num_jitters'],
-            self.__cfg['main']['threshold'])
+            model=self.__cfg['main']['model'],
+            num_jitters=self.__cfg['main']['num_jitters'],
+            threshold=self.__cfg['main']['threshold'],
+            threshold_weak=self.__cfg['main']['threshold_weak'],
+            threshold_clusterize=self.__cfg['main']['threshold_clusterize'],
+            max_image_size=self.__cfg['main']['max_image_size'],
+            min_face_size=self.__cfg['main']['min_face_size'],
+            debug_out_image_size=self.__cfg['main']['debug_out_image_size'])
 
         self.__recognizer.start_method(method, *args)
 

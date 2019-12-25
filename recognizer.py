@@ -25,17 +25,28 @@ import patterns
 
 
 class Recognizer((threading.Thread)):
-    def __init__(self, patterns, model='hog', num_jitters=1, threshold=0.5,
+    def __init__(self,
+                 patterns,
+                 model='hog',
+                 num_jitters=1,
+                 threshold=0.3,
+                 threshold_weak=0.5,
+                 threshold_clusterize=0.5,
+                 max_image_size=1000,
+                 min_face_size=20,
+                 debug_out_image_size=100,
                  nearest_match=False):
+
         threading.Thread.__init__(self)
         self.__patterns = patterns
         self.__model = model
         self.__num_jitters = int(num_jitters)
         self.__threshold = float(threshold)
-        self.__threshold_weak = 0.5
-        self.__threshold_clusterize = 0.5
-        self.__max_size = 1000
-        self.__min_size = 20
+        self.__threshold_weak = float(threshold_weak)
+        self.__threshold_clusterize = float(threshold_clusterize)
+        self.__max_size = int(max_image_size)
+        self.__min_size = int(min_face_size)
+        self.__debug_out_image_size = int(debug_out_image_size)
         self.__nearest_match = nearest_match
         self.__status = {'state': '', 'count': 0, 'current': 0}
         self.__status_lock = threading.Lock()
@@ -331,6 +342,8 @@ class Recognizer((threading.Thread)):
             exif = piexif.dump(
                 {"0th": {piexif.ImageIFD.ImageDescription: encd}})
             im = Image.fromarray(out_image)
+            im.thumbnail((self.__debug_out_image_size,
+                          self.__debug_out_image_size))
             im.save(out_filename, exif=exif)
 
             logging.debug(f'face saved to: {out_filename}')
@@ -392,10 +405,16 @@ def main():
     patt.load()
 
     rec = Recognizer(patt,
-                     cfg['main']['model'],
-                     cfg['main']['num_jitters'],
-                     cfg.get_def('main', 'threshold', args.threshold),
-                     args.nearest_match)
+                     model=cfg['main']['model'],
+                     num_jitters=cfg['main']['num_jitters'],
+                     threshold=cfg.get_def(
+                         'main', 'threshold', args.threshold),
+                     threshold_weak=cfg['main']['threshold_weak'],
+                     threshold_clusterize=cfg['main']['threshold_clusterize'],
+                     max_image_size=cfg['main']['max_image_size'],
+                     min_face_size=cfg['main']['min_face_size'],
+                     debug_out_image_size=cfg['main']['debug_out_image_size'],
+                     nearest_match=args.nearest_match)
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
 
