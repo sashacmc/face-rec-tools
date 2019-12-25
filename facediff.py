@@ -1,28 +1,37 @@
 #!/usr/bin/python3
 
 import sys
+import pickle
+import piexif
 import face_recognition
 
 import tools
 
+def get_face(fname):
+    try:
+        encoding = pickle.loads(
+            piexif.load(fname)["0th"][piexif.ImageIFD.ImageDescription])
+        print('Use cached: ' + fname)
+        return encoding
+    except Exception:
+        pass
+
+    image = tools.read_image(fname, 1000)
+    boxes = face_recognition.face_locations(image, model='cnn')
+    return face_recognition.face_encodings(image, boxes, 1)[0]
 
 def main():
-    file1 = sys.argv[1]
-    file2 = sys.argv[2]
+    encoding_base = get_face(sys.argv[1])
+    fnames = sys.argv[2:]
+    encodings = [get_face(fname) for fname in fnames]
 
-    image1 = tools.read_image(file1, 1000)
-    image2 = tools.read_image(file2, 1000)
+    distances = face_recognition.face_distance(encodings, encoding_base)
 
-    boxes1 = face_recognition.face_locations(image1, model='cnn')
-    encodings1 = face_recognition.face_encodings(image1, boxes1, 1)
+    dist_name = [(distances[i], fname) for i, fname in enumerate(fnames)]
+    dist_name.sort()
 
-    boxes2 = face_recognition.face_locations(image2, model='cnn')
-    encodings2 = face_recognition.face_encodings(image2, boxes2, 1)
-
-    distances = face_recognition.face_distance(encodings1, encodings2[0])
-
-    print(distances)
-
+    for d, n in dist_name:
+        print(d, '\t', n)
 
 if __name__ == '__main__':
     main()
