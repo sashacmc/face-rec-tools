@@ -156,7 +156,7 @@
             for (var i in images) {
                 html += '<div class="img_container">' +
                             '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\')"/>' +
-                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '"/>' +
+                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclick="javascript:checkAllPrevImages(this)" order="' + i + '"/>' +
                         '</div>';
             }
             return html;
@@ -183,8 +183,30 @@
         {
             var checked = $('input:checkbox[class=person_checkbox][personname="' + name + '"]').is(':checked');
             $('input:checkbox[class=img_checkbox][personname="' + name + '"]').each(function(){
-                $(this).prop("checked", checked);
+                if (!$(this).prop('disabled')) {
+                    $(this).prop('checked', checked);
+                }
             });
+        }
+
+        function checkAllPrevImages(el)
+        {
+            if (!shiftKeyDown || !el.checked) {
+                return;
+            }
+            var num = el.attributes.order.value;
+            var name = el.attributes.personname.value;
+            
+            while (num) {
+                num--;
+                var prev = $('input:checkbox[class=img_checkbox][personname="' + name + '"][order="' + num + '"]')
+                if (prev.is(':checked')) {
+                    break;
+                }
+                if (!prev.prop('disabled')) {
+                    prev.prop('checked', true);
+                }
+            }
         }
 
         function showImageProps(name, image)
@@ -216,8 +238,10 @@
             '</div>';
 
             var images = getSelectedImages();
+            var multiply_images = true;
             if (images.indexOf(image) == -1) {
-                images.push(image);
+                images = [image];
+                multiply_images = false;
             }
             
             var images_html = '';
@@ -242,12 +266,15 @@
 
             $('#facePropModalSubmit').off('click').on('click', function(e){
                 e.preventDefault();
+                shiftKeyDown = false;
                 var newname = $('input[name="names"]:checked').val();
+                var add_new = false;
                 if (name == newname || newname === undefined) {
                     return;
                 }
                 if (newname == "new_name_value") {
                     newname = $("#inputNew").val();
+                    add_new = true;
                 }
                 $.ajax({
                     url: '/add_to_pattern?name=' + newname,
@@ -255,14 +282,20 @@
                     data: {'files': images.join('|')},
                     success: function(data) {
                         $("#facePropModal").modal("hide");
-                        unselectedImages();
+                        if (add_new) {
+                            names.push(newname);
+                        }
+                        if (multiply_images) {
+                            unselectedImages();
+                        }
                         for (var i in images) {
                             var img = $("img[src='cache/" + images[i] + "']");
                             img.css('opacity', 0.2);
-                            img.attr('onclick', '');
+                            img.prop('onclick', '');
                             var chb = $('input:checkbox[class=img_checkbox][imgname="' + images[i] + '"]')
-                            chb.attr("disabled", true);
-                            chb.attr('personname', '');
+                            chb.prop('checked', false);
+                            chb.prop('disabled', true);
+                            chb.prop('personname', '');
                         }
                     },
                     error: function(request, status, error) {
@@ -446,6 +479,11 @@
 
         $(document).ready(function() 
         {
+            shiftKeyDown = false;
+            $(document).on('keyup keydown', function(e) {
+                shiftKeyDown = e.shiftKey
+            });
+
             names = [];
             addGenPath = '';
 
