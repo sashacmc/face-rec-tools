@@ -234,6 +234,7 @@ class FaceRecServer(http.server.HTTPServer):
         super().__init__(('', port), FaceRecHandler)
 
     def __start_recognizer(self, method, *args):
+        self.status()
         if not self.__recognizer is None:
             logging.warning('Trying to create second recognizer')
             raise Exception('Recognizer already started')
