@@ -128,21 +128,22 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-combobox/1.2.0/js/bootstrap-combobox.min.js"></script>
     <script type="text/javascript">
-        function genCard(name, images_html, num)
+        function genCard(name, faces, num)
         {
             var html = 
             '<div class="card">' +
                 '<div class="card-header" id="heading' + num + '">' +
                     '<h2 class="mb-0">' +
+                        '<img src="cache/' + faces[0] + '" height="40" width="40"/>' +
                         '<button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse' + num + '" aria-expanded="false" aria-controls="collapse' + num + '">' +
-                            'Person: ' + name +
+                            'Person: ' + name + ' (' + faces.length + ')' +
                         '</button>' +
                         '<input type="checkbox" class="person_checkbox" personname="' + name + '" onclick="javascript:checkAllImages(\'' + name + '\')"/>' +
                     '</h2>' +
                 '</div>' +
                 '<div id="collapse' + num + '" class="collapse" aria-labelledby="heading' + num + '" data-parent="#accordionFaces">' +
                     '<div class="card-body">' +
-                        images_html +
+                        genImagesList(name, faces) +
                     '</div>' +
                 '</div>' +
             '</div>'
@@ -316,7 +317,7 @@
             for (var i in data) {
                 var name = data[i][0];
                 var faces = data[i][1];
-                html += genCard(name, genImagesList(name, faces), name);
+                html += genCard(name, faces, i);
             }
             $("#accordionFaces").html(html)
         }
