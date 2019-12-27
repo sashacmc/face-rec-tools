@@ -48,6 +48,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             if path[0] == '/':
                 path = path[1:]
 
+            path = urllib.parse.unquote(path)
+
             if path.startswith('cache/'):
                 fname = os.path.join(self.server.face_cache_path(), path[6:])
             else:
