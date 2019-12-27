@@ -12,10 +12,12 @@ from imutils import paths
 
 import log
 import tools
+import config
 
 
 class Patterns(object):
-    def __init__(self, folder, model='hog', max_size=1000):
+    def __init__(self, folder, model='hog', max_size=1000,
+                 num_jitters=1, train_classifer=False):
         self.__folder = folder
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
         self.__encodings = []
@@ -24,7 +26,9 @@ class Patterns(object):
         self.__classifer = None
         self.__classes = []
         self.__model = model
-        self.__max_size = max_size
+        self.__max_size = int(max_size)
+        self.__num_jitters = int(num_jitters)
+        self.__train_classifer = train_classifer
 
     def generate(self, regenerate=False):
         import face_recognition
@@ -84,8 +88,9 @@ class Patterns(object):
             self.__names.append(name)
             self.__files[filename] = image_files[image_file]
 
-        logging.info('Classification training')
-        self.train_classifer()
+        if self.__train_classifer:
+            logging.info('Classification training')
+            self.train_classifer()
 
         logging.info('Patterns saving')
         data = {
@@ -211,14 +216,19 @@ def args_parse():
     parser.add_argument('files', nargs='*', help='Files with one face')
     parser.add_argument('-r', '--regenerate', help='Regenerate all',
                         action='store_true')
+    parser.add_argument('-c', '--config', help='Config file')
     return parser.parse_args()
 
 
 def main():
     args = args_parse()
+    cfg = config.Config(args.config)
     log.initLogger(args.logfile)
 
-    patt = Patterns(args.patterns, 'cnn')
+    patt = Patterns(cfg.get_def('main', 'patterns', args.patterns),
+                    model=cfg['main']['model'],
+                    max_size=cfg['main']['max_image_size'],
+                    num_jitters=cfg['main']['num_jitters'])
 
     if args.action == 'gen':
         patt.generate(args.regenerate)

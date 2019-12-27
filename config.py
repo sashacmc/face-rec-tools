@@ -9,7 +9,7 @@ class Config(object):
     DEFAULTS = {
         'main': {
             'model': 'cnn',
-            'num_jitters': 10,
+            'num_jitters': 100,
             'threshold': 0.3,
             'threshold_weak': 0.35,
             'threshold_clusterize': 0.4,
