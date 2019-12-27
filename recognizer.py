@@ -265,19 +265,21 @@ class Recognizer((threading.Thread)):
             self.match(ff['faces'])
             for face in ff['faces']:
                 cnt_all += 1
+                changed = False
                 if 'oldname' in face and face['oldname'] != face['name']:
                     db.set_name(face['face_id'], face['name'], face['dist'])
                     cnt_changed += 1
+                    changed = True
                     logging.info(
                         f"face {face['face_id']} in file '{ff['filename']}' " +
                         f"changed '{face['oldname']}' -> '{face['name']}'")
-                    if debug_out_folder:
-                        filename = ff['filename']
-                        image = tools.read_image(filename, self.__max_size)
-                        debug_out_file_name = self.__extract_filename(filename)
-                        self.__save_debug_images(
-                            (face,), image,
-                            debug_out_folder, debug_out_file_name)
+                if debug_out_folder and (changed or save_all_faces):
+                    filename = ff['filename']
+                    image = tools.read_image(filename, self.__max_size)
+                    debug_out_file_name = self.__extract_filename(filename)
+                    self.__save_debug_images(
+                        (face,), image,
+                        debug_out_folder, debug_out_file_name)
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
     def save_faces(self, folder, db, debug_out_folder):
