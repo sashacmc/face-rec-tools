@@ -212,7 +212,7 @@ class Recognizer((threading.Thread)):
             for j in range(len(files_faces[i]['faces'])):
                 if files_faces[i]['faces'][j]['name'] == '':
                     files_faces[i]['faces'][j]['name'] = \
-                        'unknown_{:03d}'.format(labels[lnum])
+                        'unknown_{:04d}'.format(labels[lnum])
                 lnum += 1
 
             if debug_out_folder:
