@@ -183,7 +183,16 @@ class Recognizer((threading.Thread)):
 
             encoded_faces[i]['name'] = name
             encoded_faces[i]['dist'] = dist
-            encoded_faces[i]['alg'] = alg 
+
+    def __reassign_by_count(self, labels):
+        dct = collections.defaultdict(int)
+        for old_label in labels:
+            dct[old_label] += 1
+        lst = [(count, old_label) for old_label, count in dct.items()]
+        lst.sort(reverse=True)
+        trans = {count_old_label[1]: new_label for new_label,
+                 count_old_label in enumerate(lst)}
+        return [trans[old_label] for old_label in labels]
 
     def clusterize(self, files_faces, debug_out_folder=None):
         encs = []
@@ -195,6 +204,7 @@ class Recognizer((threading.Thread)):
         labels = dlib.chinese_whispers_clustering(
             encs, self.__threshold_clusterize)
 
+        labels = self.__reassign_by_count(labels)
         lnum = 0
         self.__status_count(len(files_faces))
         for i in range(len(files_faces)):
@@ -238,12 +248,14 @@ class Recognizer((threading.Thread)):
         files_faces = db.get_all()
         self.__match_files_faces(files_faces, db, debug_out_folder)
 
-    def match_folder(self, folder, db, debug_out_folder):
+    def match_folder(self, folder, db, debug_out_folder, save_all_faces=True):
         self.__status_state('match_folder')
         files_faces = db.get_folder(folder)
-        self.__match_files_faces(files_faces, db, debug_out_folder)
+        self.__match_files_faces(
+            files_faces, db, debug_out_folder, save_all_faces)
 
-    def __match_files_faces(self, files_faces, db, debug_out_folder):
+    def __match_files_faces(
+            self, files_faces, db, debug_out_folder, save_all_faces=False):
         cnt_all = 0
         cnt_changed = 0
         self.__status_count(len(files_faces))
