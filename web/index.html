@@ -157,7 +157,7 @@
             for (var i in images) {
                 html += '<div class="img_container">' +
                             '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\')"/>' +
-                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclick="javascript:checkAllPrevImages(this)" order="' + i + '"/>' +
+                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclick="javascript:checkAllPrevImages(event)" order="' + i + '"/>' +
                         '</div>';
             }
             return html;
@@ -190,13 +190,14 @@
             });
         }
 
-        function checkAllPrevImages(el)
+        function checkAllPrevImages(e)
         {
-            if (!shiftKeyDown || !el.checked) {
+            var target = $(e.target);
+            if (!e.shiftKey || !target.prop('checked')) {
                 return;
             }
-            var num = el.attributes.order.value;
-            var name = el.attributes.personname.value;
+            var num = target.attr("order");
+            var name = target.attr("personname");
             
             while (num) {
                 num--;
@@ -233,10 +234,22 @@
                 '<input class="form-control form-control-sm" type="text" id="inputNew">' + 
             '</div>';
 
-            var selector = 
-            '<div class="container">' +
-                inputs +
-            '</div>';
+            var table =
+            '<table>' +
+                '<tr>' +
+                    '<td>' +
+                        '<div id="images_html">' +
+                        '</div>' +
+                    '</td>' +
+                    '<td>' +
+                        '<div class="container">' +
+                            inputs +
+                        '</div>' +
+                    '</td>' +
+                '</tr>' +
+            '</table>';
+
+            $("#facePropModalBody").html(table);
 
             var images = getSelectedImages();
             var multiply_images = true;
@@ -245,32 +258,34 @@
                 multiply_images = false;
             }
             
-            var images_html = '';
-            var images_names = '';
+            function fillContent() {
+                var images_html = '';
+                var images_names = '';
 
-            for (var i in images) {
-                images_html += '<img src="cache/' + images[i] + '" height="100" width="100">';
-                images_names += images[i].split('/')[1] + '<br/>';
+                for (var i in images) {
+                    images_html +=
+                    '<div class="img_container">' + 
+                        '<a href="#" class="img_close" image="' + images[i] + '">&times;</a>' +
+                        '<img src="cache/' + images[i] + '" height="100" width="100" title="' + images[i] + '">' +
+                    '</div>'
+                    images_names += images[i].split('/')[1] + '<br/>';
+                }
+                $('#images_names').html(images_names);
+                $('#images_html').html(images_html);
+                $('.img_close').on('click', function(e){
+                    var img = $(this).attr('image');
+                    images.splice(images.indexOf(img), 1);
+                    fillContent();
+                });
             }
 
-            var table =
-            '<table>' +
-                '<tr>' +
-                    '<td>' +
-                        images_html +
-                    '</td>' +
-                    '<td>' +
-                        selector +
-                    '</td>' +
-                '</tr>' +
-            '</table>'
+            fillContent();
 
             $('#facePropModalSubmit').off('click').on('click', function(e){
                 e.preventDefault();
-                shiftKeyDown = false;
                 var newname = $('input[name="names"]:checked').val();
                 var add_new = false;
-                if (name == newname || newname === undefined) {
+                if (name == newname || newname === undefined || images.length == 0) {
                     return;
                 }
                 if (newname == "new_name_value") {
@@ -306,8 +321,7 @@
                 });
             });
 
-            $("#facePropModalLabel").html('Face properties');
-            $("#facePropModalBody").html('<p>Select persone for the face: <code>' + images_names + '</code></p>'  + table);
+            $("#facePropModalLabel").html('Select persone for the face');
             $("#facePropModal").modal("show");
         }
 
@@ -478,21 +492,8 @@
             });
         }
 
-        function onkey(e) {
-            shiftKeyDown = e.shiftKey;
-            if (shiftKeyDown) {
-                $("body").css("background-color", "lightgray");
-            } else {
-                $("body").css("background-color", "white");
-            }
-        }
-
         $(document).ready(function() 
         {
-            shiftKeyDown = false;
-            $(document).keyup(onkey);
-            $(document).keydown(onkey);
-
             names = [];
             addGenPath = '';
 

@@ -29,5 +29,16 @@ code {
   font-size: 80%;
 }
 
-.img_container { position: relative; width: 100px; height: 100px; float: left;}
+.img_container { position: relative; width: 100px; height: 100px; float: left; }
 .img_checkbox { position: absolute; bottom: 0px; right: 0px; }
+
+.img_close {
+    position: absolute;
+    top: -3px;
+    right: 3px;
+    color: black;
+    text-shadow:  1px  1px 1px white,
+                  1px -1px 1px white,
+                 -1px  1px 1px white,
+                 -1px -1px 1px white;
+}
