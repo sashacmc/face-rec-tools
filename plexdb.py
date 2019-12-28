@@ -8,6 +8,7 @@ import sqlite3
 class PlexDB(object):
     def __init__(self, filename):
         self.__conn = sqlite3.connect(filename)
+        self.__tag_cache = {}
 
     def set_tags(self, filename, tags):
         fid = self.__get_id(filename)
@@ -40,19 +41,22 @@ class PlexDB(object):
 
         return [r[0] for r in res.fetchall()]
 
-    def clean_tags(self, filename, tags):
+    def clean_tags(self, filename, tags=None, tag_prefix=None):
         fid = self.__get_id(filename)
         if fid is None:
             logging.warning(f'Filename not found: {filename}')
             return 0
 
         c = self.__conn.cursor()
-
         res = 0
-        for tag in tags:
-            tag_id = self.__get_tag_id(tag)
-            res += self.__clean_tag(fid, tag_id)
-
+        if tags is not None:
+            for tag in tags:
+                tag_id = self.__get_tag_id(tag)
+                res += self.__clean_tag(fid, tag_id)
+        if tag_prefix is not None:
+            tag_ids = self.__get_tag_ids(tag_prefix)
+            for tag_id in tag_ids:
+                res += self.__clean_tag(fid, tag_id)
         self.__conn.commit()
 
         logging.debug(f'Removed {res} tags for {filename}')
@@ -74,32 +78,40 @@ class PlexDB(object):
 
         return res
 
-    def create_tag(self, tag):
-        c = self.__conn.cursor()
+    def delete_tag(self, tag):
+        tag_id = self.__get_tag_id(tag)
+        if tag_id is None:
+            return 0
 
-        tm = self.__gen_time()
+        return self.__delete_tag(tag_id)
 
-        res = c.execute(
-            'INSERT INTO tags \
-             (tag, tag_type, created_at, updated_at) \
-             VALUES (?,0,?,?)',
-            (tag, tm, tm)).lastrowid
-
-        self.__conn.commit()
+    def delete_tags(self, tag_prefix, cleanup=False):
+        tag_ids = self.__get_tag_ids(tag_prefix)
+        res = 0
+        for tag_id in tag_ids:
+            res += self.__delete_tag(tag_id, cleanup)
 
         return res
 
-    def delete_tag(self, tag_id):
+    def __delete_tag(self, tag_id, cleanup=False):
         c = self.__conn.cursor()
 
-        res = c.execute(
-            'SELECT count(*) FROM taggings \
-             WHERE tag_id=?',
-            (tag_id, ))
+        if cleanup:
+            res = c.execute(
+                'DELETE FROM taggings \
+                 WHERE tag_id=?',
+                (tag_id, )).rowcount
+            if res != 0:
+                logging.debug(f'Removed {res} taggings for tag {tag_id}')
+        else:
+            res = c.execute(
+                'SELECT count(*) FROM taggings \
+                 WHERE tag_id=?',
+                (tag_id, ))
 
-        count = res.fetchone()[0]
-        if count != 0:
-            raise Exception(f'Found {count} taggings for tag {tag_id}')
+            count = res.fetchone()[0]
+            if count != 0:
+                raise Exception(f'Found {count} taggings for tag {tag_id}')
 
         res = c.execute(
             'DELETE FROM tags \
@@ -109,6 +121,9 @@ class PlexDB(object):
         self.__conn.commit()
 
         return res
+
+    def tag_exists(self, tag):
+        return not self.__get_tag_id(tag) is None
 
     def __set_tag(self, fid, tag_id):
         c = self.__conn.cursor()
@@ -136,14 +151,26 @@ class PlexDB(object):
         return res
 
     def __get_tag_id(self, tag):
+        if tag in self.__tag_cache:
+            return self.__tag_cache[tag]
+
         c = self.__conn.cursor()
         res = c.execute('SELECT id FROM tags WHERE tag=?', (tag,))
 
         row = res.fetchone()
         if row:
-            return row[0]
+            tag_id = row[0]
         else:
-            return None
+            tag_id = None
+
+        return tag_id
+
+    def __get_tag_ids(self, tag_prefix):
+        c = self.__conn.cursor()
+        res = c.execute('SELECT id FROM tags WHERE tag LIKE ?',
+                        (tag_prefix + '%',))
+
+        return [row[0] for row in res.fetchall()]
 
     def __get_id(self, filename):
         c = self.__conn.cursor()
