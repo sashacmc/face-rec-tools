@@ -7,6 +7,7 @@ import face_recognition
 
 import tools
 
+
 def get_face(fname):
     try:
         encoding = pickle.loads(
@@ -20,6 +21,7 @@ def get_face(fname):
     boxes = face_recognition.face_locations(image, model='cnn')
     return face_recognition.face_encodings(image, boxes, 1)[0]
 
+
 def main():
     encoding_base = get_face(sys.argv[1])
     fnames = sys.argv[2:]
@@ -32,6 +34,7 @@ def main():
 
     for d, n in dist_name:
         print(d, '\t', n)
+
 
 if __name__ == '__main__':
     main()
