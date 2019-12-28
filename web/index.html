@@ -478,12 +478,20 @@
             });
         }
 
+        function onkey(e) {
+            shiftKeyDown = e.shiftKey;
+            if (shiftKeyDown) {
+                $("body").css("background-color", "lightgray");
+            } else {
+                $("body").css("background-color", "white");
+            }
+        }
+
         $(document).ready(function() 
         {
             shiftKeyDown = false;
-            $(document).on('keyup keydown', function(e) {
-                shiftKeyDown = e.shiftKey
-            });
+            $(document).keyup(onkey);
+            $(document).keydown(onkey);
 
             names = [];
             addGenPath = '';
