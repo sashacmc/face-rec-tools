@@ -117,6 +117,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         files = data['files'][0].split('|')
         filenames = [os.path.join(cache_path, f) for f in files]
         self.server.patterns().add_files(params['name'][0], filenames, True)
+        for fn in filenames:
+            os.remove(fn)
         self.__ok_response('')
 
     def __add_images_request(self, params):

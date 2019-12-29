@@ -312,6 +312,7 @@
                             chb.prop('disabled', true);
                             chb.prop('personname', '');
                         }
+                        images = [];
                     },
                     error: function(request, status, error) {
                         $("#facePropModal").modal("hide");
@@ -324,7 +325,7 @@
                 e.preventDefault();
                 submitImageProps();
             });
-            $('#facePropModal').keypress(function(e) {
+            $('#facePropModal').off("keypress").keypress(function(e) {
                 if (e.which == 13) {
                     submitImageProps();
                 }
