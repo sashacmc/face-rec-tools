@@ -156,7 +156,7 @@
             var html = '';
             for (var i in images) {
                 html += '<div class="img_container">' +
-                            '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\')"/>' +
+                            '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\')" title="' + images[i] + '"/>' +
                             '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclick="javascript:checkAllPrevImages(event)" order="' + i + '"/>' +
                         '</div>';
             }
