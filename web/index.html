@@ -281,8 +281,7 @@
 
             fillContent();
 
-            $('#facePropModalSubmit').off('click').on('click', function(e){
-                e.preventDefault();
+            function submitImageProps() {
                 var newname = $('input[name="names"]:checked').val();
                 var add_new = false;
                 if (name == newname || newname === undefined || images.length == 0) {
@@ -319,6 +318,17 @@
                         showError(request.responseText);
                     }
                 });
+            };
+
+            $('#facePropModalSubmit').off('click').on('click', function(e) {
+                e.preventDefault();
+                submitImageProps();
+            });
+            $('#facePropModal').keypress(function(e) {
+                e.preventDefault();
+                if (e.which == 13) {
+                    submitImageProps();
+                }
             });
 
             $("#facePropModalLabel").html('Select persone for the face');
