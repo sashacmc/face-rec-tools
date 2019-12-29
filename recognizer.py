@@ -52,6 +52,7 @@ class Recognizer((threading.Thread)):
         self.__status_lock = threading.Lock()
 
     def start_method(self, method, *args):
+        self.__status_state(method)
         self.__method = method
         self.__args = args
         self.start()
@@ -239,7 +240,7 @@ class Recognizer((threading.Thread)):
         self.clusterize(files_faces, debug_out_folder)
 
     def match_unmatched(self, db, debug_out_folder):
-        self.__status_state('clusterize_unmatched')
+        self.__status_state('match_unmatched')
         files_faces = db.get_unmatched()
         self.__match_files_faces(files_faces, db, debug_out_folder)
 
