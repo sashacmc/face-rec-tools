@@ -382,9 +382,9 @@
             $("#mainSpinner").html(html);
         }
 
-        function runPathCommand(caption, cmd)
+        function runPathCommand(cmd)
         {
-            $("#runPathModalLabel").html(caption);
+            $("#runPathModalLabel").html(commandText[cmd]);
             $("#runPathModalPath").val(addGenPath);
             runPathModalSpinner(false);
             $('#runPathModalSubmit').off('click').on('click', function(e) {
@@ -396,7 +396,7 @@
                 }
                 runPathModalSpinner(true);
                 $.ajax({
-                    url: cmd + '?path=' + addGenPath,
+                    url: '/' + cmd + '?path=' + addGenPath,
                     type: 'POST',
                     timeout: 0,
                     success: function(data) {
@@ -413,15 +413,15 @@
             $("#runPathModal").modal("show");
         }
 
-        function runCommand(caption, cmd)
+        function runCommand(cmd)
         {
             mainSpinner(true);
             $.ajax({
-                url: cmd,
+                url: '/' + cmd,
                 type: 'POST',
                 timeout: 0,
                 success: function(data) {
-                    showProgress(caption);
+                    showProgress(commandText[cmd]);
                 },
                 error: function(request, status, error) {
                     mainSpinner(false);
@@ -470,6 +470,22 @@
             $('#errorModal').modal('show');
         }
 
+        function checkProgress() {
+            $.ajax({  
+                url: 'get_status',
+                cache: false,  
+                success: function(json) {  
+                    var st = eval(json);
+                    var state = st['state'];
+                    if (state == 'done' || state == 'error' || state == '') {
+                        init();
+                    } else {
+                        showProgress(commandText[state]);
+                    }
+                }  
+            });
+        }
+
         function init()
         {
             mainSpinner(true);
@@ -502,6 +518,15 @@
             });
         }
 
+        var commandText = {
+            add_images:             'Add images',
+            generate_faces:         'Generate faces',
+            rematch:                'Rematch all',
+            match_unmatched:        'Match unmatched',
+            match_folder:           'Rematch folder',
+            clusterize_unmatched:   'Clusterize unmatched'
+        }
+
         $(document).ready(function() 
         {
             names = [];
@@ -509,35 +534,35 @@
 
             $("#liAdd").click(function(e) {
                 e.preventDefault();
-                runPathCommand('Add images', '/add_images')
+                runPathCommand('add_images')
             });
 
             $("#liGenerate").click(function(e) {
                 e.preventDefault();
-                runPathCommand('Generate faces', '/generate_faces')
+                runPathCommand('generate_faces')
             });
 
             $("#liRematch").click(function(e) {
                 e.preventDefault();
-                runCommand('Rematch all', '/rematch')
+                runCommand('rematch')
             });
 
             $("#liMatchUnmatched").click(function(e) {
                 e.preventDefault();
-                runCommand('Match unmatched', '/match_unmatched')
+                runCommand('match_unmatched')
             });
 
             $("#liMatchFolder").click(function(e) {
                 e.preventDefault();
-                runPathCommand('Rematch folder', '/match_folder')
+                runPathCommand('match_folder')
             });
 
             $("#liClusterizeUnmatched").click(function(e) {
                 e.preventDefault();
-                runCommand('Clusterize unmatched', '/clusterize_unmatched')
+                runCommand('clusterize_unmatched')
             });
 
-            init();
+            checkProgress();
         });
     </script>
 </body>
