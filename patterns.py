@@ -8,6 +8,7 @@ import pickle
 import piexif
 import logging
 import argparse
+import collections
 from imutils import paths
 
 import log
@@ -22,7 +23,8 @@ class Patterns(object):
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
         self.__encodings = []
         self.__names = []
-        self.__files = {}
+        self.__files = []
+        self.__filetimes = {}
         self.__classifer = None
         self.__classes = []
         self.__model = model
@@ -44,8 +46,8 @@ class Patterns(object):
             filtered = {}
             for image_file in image_files:
                 filename = os.path.split(image_file)[1]
-                if filename not in self.__files or \
-                        self.__files[filename] != image_files[image_file]:
+                if filename not in self.__filetimes or \
+                        self.__filetimes[filename] != image_files[image_file]:
                     filtered[image_file] = image_files[image_file]
 
             if len(filtered) == 0:
@@ -80,23 +82,28 @@ class Patterns(object):
                 encoding = encodings[0]
 
             filename = os.path.split(image_file)[1]
-            if filename in self.__files:
+            if filename in self.__filetimes:
                 logging.warning('Duplicate pattern file: ' + image_file)
                 continue
 
             self.__encodings.append(encoding)
             self.__names.append(name)
-            self.__files[filename] = image_files[image_file]
+            self.__files.append(image_file)
+            self.__filetimes[filename] = image_files[image_file]
 
         if self.__train_classifer:
             logging.info('Classification training')
             self.train_classifer()
 
+        self.__persons = self.__calcPersons()
+
         logging.info('Patterns saving')
         data = {
             'names': self.__names,
-            'encodings': self.__encodings,
             'files': self.__files,
+            'encodings': self.__encodings,
+            'filetimes': self.__filetimes,
+            'persons': self.__persons,
             'classifer': self.__classifer,
             'classes': self.__classes}
         dump = pickle.dumps(data)
@@ -130,8 +137,20 @@ class Patterns(object):
         self.__encodings = data['encodings']
         self.__names = data['names']
         self.__files = data['files']
+        self.__filetimes = data['filetimes']
         self.__classifer = data['classifer']
         self.__classes = data['classes']
+        self.__persons = data['persons']
+
+    def __calcPersons(self):
+        dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
+        for i, name in enumerate(self.__names):
+            dct[name]['count'] += 1
+            dct[name]['image'] = min(dct[name]['image'], self.__files[i])
+        res = [{'name': k, 'count': v['count'], 'image': v['image']}
+               for k, v in dct.items()]
+        res.sort(key=lambda el: el['count'], reverse=True) 
+        return res
 
     def train_classifer(self):
         from sklearn import svm
@@ -200,6 +219,9 @@ class Patterns(object):
     def files(self):
         return self.__files
 
+    def persons(self):
+        return self.__persons
+
 
 def args_parse():
     parser = argparse.ArgumentParser()
@@ -209,7 +231,8 @@ def args_parse():
                  'add',
                  'add_new',
                  'add_gen',
-                 'list'])
+                 'list',
+                 'persons'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-n', '--name', help='Person name')
@@ -246,6 +269,10 @@ def main():
         patt.load()
         for name, filename in zip(patt.names(), patt.files()):
             print(name, filename)
+    elif args.action == 'persons':
+        patt.load()
+        for p in patt.persons():
+            print(p)
 
 
 if __name__ == '__main__':
