@@ -44,18 +44,21 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.send_error(500, 'Internal Server Error: %s' % err)
 
     def __file_request(self, path):
+        if path[0] == '/':
+            path = path[1:]
+
+        path = urllib.parse.unquote(path)
+
+        if path.startswith('cache/'):
+            fname = os.path.join(self.server.face_cache_path(), path[6:])
+        else:
+            fname = os.path.join(self.server.web_path(), path)
+
+        self.__send_file(fname)
+
+    def __send_file(self, fname):
         try:
-            if path[0] == '/':
-                path = path[1:]
-
-            path = urllib.parse.unquote(path)
-
-            if path.startswith('cache/'):
-                fname = os.path.join(self.server.face_cache_path(), path[6:])
-            else:
-                fname = os.path.join(self.server.web_path(), path)
-
-            ext = os.path.splitext(fname)[1]
+            ext = os.path.splitext(fname)[1].lower()
             cont = ''
             if ext == '.html':
                 cont = 'text/html'
@@ -65,6 +68,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 cont = 'text/css'
             elif ext == '.png':
                 cont = 'image/png'
+            elif ext == '.jpg':
+                cont = 'image/jpeg'
             else:
                 cont = 'text/none'
             with open(fname, 'rb') as f:
@@ -104,7 +109,11 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.__ok_response(res_list)
 
     def __get_names(self):
-        self.__ok_response(sorted(list(set(self.server.patterns().names()))))
+        self.__ok_response(self.server.names())
+
+    def __get_name_image(self, params):
+        name = params['name'][0]
+        self.__send_file(self.server.name_image(name))
 
     def __get_folders(self):
         self.__ok_response(sorted(self.server.db().get_folders()))
@@ -157,6 +166,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__get_names()
                 return
 
+            if path == '/get_name_image':
+                self.__get_name_image(params)
+                return
+
             if path == '/get_folders':
                 self.__get_folders()
                 return
@@ -173,7 +186,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__not_found_response()
                 return
 
-            ext = os.path.splitext(path)[1]
+            ext = os.path.splitext(path)[1].lower()
             if ext in ('.html', '.js', '.css', '.png', '.jpg'):
                 self.__file_request(path)
                 return
@@ -230,6 +243,12 @@ class FaceRecServer(http.server.HTTPServer):
         self.__patterns = patterns.Patterns(cfg['main']['patterns'],
                                             cfg['main']['model'])
         self.__patterns.load()
+        self.__names = [
+            p['name'] for p in self.__patterns.persons()
+        ]
+        self.__name_images = {
+            p['name']: p['image'] for p in self.__patterns.persons()
+        }
         self.__db = recdb.RecDB(cfg['main']['db'])
 
         port = int(cfg['server']['port'])
@@ -266,6 +285,12 @@ class FaceRecServer(http.server.HTTPServer):
 
     def patterns(self):
         return self.__patterns
+
+    def names(self):
+        return self.__names
+
+    def name_image(self, name):
+        return self.__name_images[name]
 
     def db(self):
         return self.__db
