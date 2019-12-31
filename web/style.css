@@ -42,3 +42,37 @@ code {
                  -1px  1px 1px white,
                  -1px -1px 1px white;
 }
+
+.form-check {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    float: left;
+}
+
+.form-check-input {
+    position: absolute;
+    top: -2px;
+    left: 23px;
+    z-index: 2;
+}
+
+.form-check img {
+    position: absolute;
+    bottom: -3px;
+    left: -5px;
+    z-index: -1;
+}
+
+.form-check-label {
+    position: absolute;
+    bottom: 3px;
+    left: 5px;
+    z-index: 1;
+    line-height: 1; 
+    font-size: 14px;
+    text-shadow:  1px  1px 1px white,
+                  1px -1px 1px white,
+                 -1px  1px 1px white,
+                 -1px -1px 1px white;
+}

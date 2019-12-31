@@ -223,7 +223,8 @@
                 '<div class="form-check">' +
                     '<input class="form-check-input" type="radio" name="names" id="radio' + names[i] + '" value="' + names[i] + '" ' + checked + '>' +
                     '<label class="form-check-label" for="radio' + names[i] + '">' + 
-                        names[i] + 
+                        '<img src="get_name_image?name=' + names[i] + '" height="100" width="100"/>' +
+                        names[i].replace('_', ' ') + 
                     '</label>' +
                 '</div>';
             }
