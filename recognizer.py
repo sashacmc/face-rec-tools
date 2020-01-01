@@ -24,7 +24,7 @@ import config
 import patterns
 
 
-class Recognizer((threading.Thread)):
+class Recognizer(threading.Thread):
     def __init__(self,
                  patterns,
                  model='hog',
@@ -35,7 +35,7 @@ class Recognizer((threading.Thread)):
                  max_image_size=1000,
                  min_face_size=20,
                  debug_out_image_size=100,
-                 nearest_match=False):
+                 nearest_match=True):
 
         threading.Thread.__init__(self)
         self.__patterns = patterns
@@ -145,30 +145,10 @@ class Recognizer((threading.Thread)):
 
         for i in range(len(encoded_faces)):
             encoding = encoded_faces[i]['encoding']
-            dist_n, name_n = self.__match_face_by_nearest(encoding)
-            dist_c, name_c = self.__match_face_by_class(encoding)
-
-            if dist_n < self.__threshold:
-                dist = dist_n
-                name = name_n
-                alg = 'n'
-            elif dist_c < self.__threshold:
-                dist = dist_c
-                name = name_c
-                alg = 'c'
-            elif name_n == name_c:
-                name = name_n
-                dist = (dist_n + dist_c) / 2
-                alg = 'b'
+            if self.__nearest_match:
+                dist, name = self.__match_face_by_nearest(encoding)
             else:
-                if self.__nearest_match:
-                    name = name_n
-                    dist = dist_n
-                    alg = 'n'
-                else:
-                    name = name_c
-                    dist = dist_c
-                    alg = 'c'
+                dist, name = self.__match_face_by_class(encoding)
 
             logging.debug(f'matched: {name}: {dist}')
             if 'name' in encoded_faces[i]:
@@ -399,9 +379,6 @@ def args_parse():
     parser.add_argument('--threshold', help='Match threshold')
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
-    parser.add_argument('-n', '--nearest-match',
-                        help='Use nearest match (otherwise by classifier)',
-                        action='store_true')
     return parser.parse_args()
 
 
@@ -428,8 +405,7 @@ def main():
                      threshold_clusterize=cfg['main']['threshold_clusterize'],
                      max_image_size=cfg['main']['max_image_size'],
                      min_face_size=cfg['main']['min_face_size'],
-                     debug_out_image_size=cfg['main']['debug_out_image_size'],
-                     nearest_match=args.nearest_match)
+                     debug_out_image_size=cfg['main']['debug_out_image_size'])
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
 
