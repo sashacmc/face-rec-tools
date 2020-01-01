@@ -43,34 +43,36 @@ code {
                  -1px -1px 1px white;
 }
 
-.form-check {
+.form-check-img {
     position: relative;
-    width: 100px;
-    height: 100px;
+    width: 66px;
+    height: 66px;
     float: left;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
-.form-check-input {
+.form-check-input-img {
     position: absolute;
-    top: -2px;
-    left: 23px;
+    top: -4px;
+    left: 21px;
     z-index: 2;
 }
 
 .form-check img {
     position: absolute;
-    bottom: -3px;
-    left: -5px;
+    bottom: -2px;
+    left: -2px;
     z-index: -1;
 }
 
-.form-check-label {
+.form-check-label-img {
     position: absolute;
-    bottom: 3px;
-    left: 5px;
+    bottom: 2px;
+    left: 2px;
     z-index: 1;
     line-height: 1; 
-    font-size: 14px;
+    font-size: 12px;
     text-shadow:  1px  1px 1px white,
                   1px -1px 1px white,
                  -1px  1px 1px white,

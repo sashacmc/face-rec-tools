@@ -211,40 +211,68 @@
             }
         }
 
+        function filterNames(name_part)
+        {
+            if (name_part == '') {
+                return [];
+            }
+            var filtered = [];
+            name_part = name_part.toLowerCase();
+            for (var i in names) {
+                var lname = names[i].toLowerCase();
+                if (lname == name_part) {
+                    return [lname];
+                } else if (lname.indexOf(name_part) != -1) {
+                    filtered.push(lname);
+                }
+            }
+            return filtered;
+        }
+
         function showImageProps(name, image)
         {
-            var inputs = ''
+            facePropModalSpinner(false);
+            var inputs = '';
             for (var i in names) {
                 var checked = '';
                 if (name == names[i]) {
                     checked = 'checked=""';
                 }
                 inputs +=
-                '<div class="form-check">' +
-                    '<input class="form-check-input" type="radio" name="names" id="radio' + names[i] + '" value="' + names[i] + '" ' + checked + '>' +
-                    '<label class="form-check-label" for="radio' + names[i] + '">' + 
-                        '<img src="get_name_image?name=' + names[i] + '" height="100" width="100"/>' +
+                '<div class="form-check form-check-img">' +
+                    '<input class="form-check-input form-check-input-img" type="radio" name="names" id="radio' + names[i] + '" value="' + names[i] + '" ' + checked + '>' +
+                    '<label class="form-check-label form-check-label-img" for="radio' + names[i] + '">' + 
+                        '<img src="get_name_image?name=' + names[i] + '" height="66" width="66" id="radioImg' + names[i] + '"/>' +
                         names[i].replace('_', ' ') + 
                     '</label>' +
                 '</div>';
             }
 
-            inputs +=
-            '<div class="form-check">' +
-                '<input class="form-check-input" type="radio" name="names" value="new_name_value" id="radioNew">' +
-                '<input class="form-control form-control-sm" type="text" id="inputNew">' + 
-            '</div>';
-
             var table =
             '<table>' +
                 '<tr>' +
                     '<td>' +
-                        '<div id="images_html">' +
+                        'Faces' +
+                        '<div class="container" id="images_html">' +
                         '</div>' +
                     '</td>' +
+                '<tr>' +
+                '</tr>' +
                     '<td>' +
+                        'Persons' +
                         '<div class="container">' +
                             inputs +
+                        '</div>' +
+                    '</td>' +
+                '</tr>' +
+                '<tr>' +
+                    '<td>' +
+                        '<div class="form-check">' +
+                            '<input class="form-check-input" type="radio" name="names" value="new_name_value" id="radioNew">' +
+                            '<label class="form-check-label" for="radioNew">' + 
+                                'New person' +
+                                '<input class="form-control form-control-sm" type="text" id="inputNew">' + 
+                            '</label>' +
                         '</div>' +
                     '</td>' +
                 '</tr>' +
@@ -292,6 +320,7 @@
                     newname = $("#inputNew").val();
                     add_new = true;
                 }
+                facePropModalSpinner(true);
                 $.ajax({
                     url: '/add_to_pattern?name=' + newname,
                     type: 'POST',
@@ -326,13 +355,58 @@
                 e.preventDefault();
                 submitImageProps();
             });
-            $('#facePropModal').off("keypress").keypress(function(e) {
-                if (e.which == 13) {
+
+            var text_buff = '';
+            var filtered = [];
+            var last_scroll = 0;
+
+            $('#facePropModal').off("keydown").keydown(function(e) {
+                if (e.which == 13) { // Enter
                     submitImageProps();
+                    return;
+                }
+
+                if ($('#inputNew').is(':focus')) {
+                    return;
+                }
+
+                e.preventDefault();
+                if (e.which == 8) { // Backspace
+                    text_buff = text_buff.slice(0,-1);
+                } else if (e.which == 32) { // Space
+                    if (filtered.length != 0) {
+                        $('#radio' + filtered[0]).trigger('click');
+                    }
+                    return;
+                } else {
+                    text_buff += String.fromCharCode(e.which);
+                }
+                filtered = filterNames(text_buff);
+                if (filtered.length != 0) {
+                    if (filtered.length == 1) {
+                        $('#radio' + filtered[0]).trigger('click');
+                    }
+                    var scroll = $('#radio' + filtered[0]).offset().top;
+                    if (scroll != last_scroll) {
+                        $('#facePropModal').scrollTop(scroll);
+                        last_scroll = scroll;
+                    }
+                }
+                for (var i in names) {
+                    if (filtered.includes(names[i])) {
+                        $('#radioImg' + names[i]).css('border', '4px solid red');
+                    } else {
+                        $('#radioImg' + names[i]).css('border', 'none');
+                        $('#radio' + names[i]).prop('checked', false);
+                    }
                 }
             });
 
-            $("#facePropModalLabel").html('Select persone for the face');
+            $('#inputNew').off('click').on('click', function(e) {
+                $('#radioNew').trigger('click');
+            });
+
+            $("#facePropModalLabel").html('Select persone for the faces');
             $("#facePropModal").modal("show");
         }
 
@@ -370,6 +444,17 @@
                 html = 'Run';
             }
             $("#runPathModalSubmit").html(html);
+        }
+
+        function facePropModalSpinner(enable)
+        {
+            var html = '';
+            if (enable) {
+                html = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Wait...';
+            } else {
+                html = 'Save changes';
+            }
+            $("#facePropModalSubmit").html(html);
         }
 
         function mainSpinner(enable)
