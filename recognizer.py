@@ -229,6 +229,11 @@ class Recognizer(threading.Thread):
         files_faces = db.get_all()
         self.__match_files_faces(files_faces, db, debug_out_folder)
 
+    def match_weak(self, db, debug_out_folder):
+        self.__status_state('match_weak')
+        files_faces = db.get_weak()
+        self.__match_files_faces(files_faces, db, debug_out_folder)
+
     def match_folder(self, folder, db, debug_out_folder, save_all_faces=True):
         self.__status_state('match_folder')
         files_faces = db.get_folder(folder)
@@ -282,9 +287,12 @@ class Recognizer(threading.Thread):
                 debug_out_folder, debug_out_file_name)
             logging.info(f"face: {debug_out_file_name}")
 
-    def recognize_folder(self, folder, db, debug_out_folder):
+    def recognize_folder(self, folder, db, debug_out_folder, reencode=False):
         self.__status_state('recognize_folder')
         filenames = self.__get_images_from_folders(folder)
+
+        if not reencode:
+            filenames = set(filenames) - set(db.get_files(folder))
 
         if debug_out_folder is None:
             debug_out_folder = os.path.join(folder, 'tags')
@@ -379,6 +387,8 @@ def args_parse():
     parser.add_argument('--threshold', help='Match threshold')
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
+    parser.add_argument('-r', '--reencode', help='Reencode existing files',
+                        action=store_true)
     return parser.parse_args()
 
 
@@ -412,7 +422,7 @@ def main():
     if args.action == 'recognize_image':
         print(rec.recognize_image(args.input, args.output))
     elif args.action == 'recognize_folder':
-        rec.recognize_folder(args.input, db, args.output)
+        rec.recognize_folder(args.input, db, args.output, args.reencode)
     elif args.action == 'match_unmatched':
         rec.match_unmatched(db, args.output)
     elif args.action == 'match_all':

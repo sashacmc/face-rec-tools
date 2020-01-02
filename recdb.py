@@ -172,6 +172,15 @@ class RecDB(object):
 
         return self.__build_files_faces(res.fetchall())
 
+    def get_weak(self):
+        c = self.__conn.cursor()
+        res = c.execute(
+            'SELECT filename, faces.id, box, encoding, name, dist \
+             FROM images JOIN faces ON images.id=faces.image_id \
+             WHERE name LIKE "%_weak"')
+
+        return self.__build_files_faces(res.fetchall())
+
     def get_folder(self, folder):
         c = self.__conn.cursor()
         res = c.execute(

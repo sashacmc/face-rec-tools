@@ -131,19 +131,27 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.__ok_response('')
 
     def __add_images_request(self, params):
-        self.server.recognize_folder(params['path'][0])
+        self.server.recognize_folder(params['path'][0], False)
+        self.__ok_response('')
+
+    def __reencode_images_request(self, params):
+        self.server.recognize_folder(params['path'][0], True)
         self.__ok_response('')
 
     def __generate_faces_request(self, params):
         self.server.save_faces(params['path'][0])
         self.__ok_response('')
 
-    def __rematch_request(self, params):
+    def __match_all_request(self, params):
         self.server.match_all()
         self.__ok_response('')
 
     def __match_unmatched_request(self, params):
         self.server.match_unmatched()
+        self.__ok_response('')
+
+    def __match_weak_request(self, params):
+        self.server.match_weak()
         self.__ok_response('')
 
     def __match_folder_request(self, params):
@@ -214,12 +222,16 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__generate_faces_request(params)
                 return
 
-            if path == '/rematch':
-                self.__rematch_request(params)
+            if path == '/match_all':
+                self.__match_all_request(params)
                 return
 
             if path == '/match_unmatched':
                 self.__match_unmatched_request(params)
+                return
+
+            if path == '/match_weak':
+                self.__match_weak_request(params)
                 return
 
             if path == '/match_folder':
@@ -228,6 +240,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
             if path == '/clusterize_unmatched':
                 self.__clusterize_unmatched_request(params)
+                return
+
+            if path == '/reencode_images':
+                self.__reencode_images_request(params)
                 return
 
         except Exception as ex:
@@ -308,14 +324,20 @@ class FaceRecServer(http.server.HTTPServer):
         if os.path.exists(self.__face_cache_path):
             shutil.rmtree(self.__face_cache_path)
 
-    def recognize_folder(self, path):
+    def recognize_folder(self, path, reencode):
         self.__patterns.generate()
         self.__start_recognizer('recognize_folder',
-                                path, self.__db, self.__face_cache_path)
+                                path, self.__db, self.__face_cache_path,
+                                reencode)
 
     def match_unmatched(self):
         self.__patterns.generate()
         self.__start_recognizer('match_unmatched',
+                                self.__db, self.__face_cache_path)
+
+    def match_weak(self):
+        self.__patterns.generate()
+        self.__start_recognizer('match_weak',
                                 self.__db, self.__face_cache_path)
 
     def match_folder(self, path):

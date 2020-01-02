@@ -24,6 +24,9 @@
                         <a class="nav-link" href="#" id="liAdd">Add images</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="#" id="liReencode">Reencode images</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="#" id="liGenerate">Generate faces</a>
                     </li>
                     <li class="nav-item">
@@ -31,6 +34,9 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" id="liMatchUnmatched">Match unmatched</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" id="liMatchWeak">Match weak</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#" id="liMatchFolder">Rematch folder</a>
@@ -609,10 +615,13 @@
         }
 
         var commandText = {
-            add_images:             'Add images',
+            add_images:             'Recognize folder',
+            reencode_images:        'Recognize folder',
+            recognize_folder:       'Recognize folder',
             generate_faces:         'Generate faces',
-            rematch:                'Rematch all',
+            match_all:              'Rematch all',
             match_unmatched:        'Match unmatched',
+            match_weak:             'Match weak',
             match_folder:           'Rematch folder',
             clusterize_unmatched:   'Clusterize unmatched'
         }
@@ -627,6 +636,11 @@
                 runPathCommand('add_images')
             });
 
+            $("#liReencode").click(function(e) {
+                e.preventDefault();
+                runPathCommand('reencode_images')
+            });
+
             $("#liGenerate").click(function(e) {
                 e.preventDefault();
                 runPathCommand('generate_faces')
@@ -634,12 +648,17 @@
 
             $("#liRematch").click(function(e) {
                 e.preventDefault();
-                runCommand('rematch')
+                runCommand('match_all')
             });
 
             $("#liMatchUnmatched").click(function(e) {
                 e.preventDefault();
                 runCommand('match_unmatched')
+            });
+
+            $("#liMatchWeak").click(function(e) {
+                e.preventDefault();
+                runCommand('match_weak')
             });
 
             $("#liMatchFolder").click(function(e) {
