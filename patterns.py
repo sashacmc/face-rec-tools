@@ -142,6 +142,28 @@ class Patterns(object):
         self.__classes = data['classes']
         self.__persons = data['persons']
 
+    def optimize(self):
+        import dlib
+
+        encs = [dlib.vector(enc) for enc in self.__encodings]
+        labels = dlib.chinese_whispers_clustering(encs, 0.1)
+        uniq = {}
+        to_remove = []
+        for fname, label in zip(self.__files, labels):
+            if label not in uniq:
+                uniq[label] = fname
+            else:
+                name1 = fname.split(os.path.sep)[-2]
+                name2 = uniq[label].split(os.path.sep)[-2]
+                if name1 != name2:
+                    logging.warning(
+                        f'Different person {fname} {uniq[label]}')
+                else:
+                    logging.debug(f'Removing {fname} ({uniq[label]})')
+                    os.remove(fname)
+
+        logging.info(f'Optimized from {len(encs)} to {len(uniq)}.')
+
     def __calcPersons(self):
         dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
         for i, name in enumerate(self.__names):
@@ -149,7 +171,7 @@ class Patterns(object):
             dct[name]['image'] = min(dct[name]['image'], self.__files[i])
         res = [{'name': k, 'count': v['count'], 'image': v['image']}
                for k, v in dct.items()]
-        res.sort(key=lambda el: el['count'], reverse=True) 
+        res.sort(key=lambda el: el['count'], reverse=True)
         return res
 
     def train_classifer(self):
@@ -232,7 +254,8 @@ def args_parse():
                  'add_new',
                  'add_gen',
                  'list',
-                 'persons'])
+                 'persons',
+                 'optimize'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-n', '--name', help='Person name')
@@ -273,6 +296,9 @@ def main():
         patt.load()
         for p in patt.persons():
             print(p)
+    elif args.action == 'optimize':
+        patt.load()
+        patt.optimize()
 
 
 if __name__ == '__main__':
