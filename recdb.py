@@ -28,6 +28,12 @@ BEFORE DELETE ON images
 BEGIN
     DELETE FROM faces WHERE image_id=OLD.id;
 END;
+
+CREATE TRIGGER IF NOT EXISTS set_images_unsync
+AFTER UPDATE ON faces
+BEGIN
+    UPDATE images SET synced=0 WHERE id=OLD.image_id;
+END;
 '''
 
 
@@ -139,6 +145,16 @@ class RecDB(object):
 
         return list(fset)
 
+    def get_files(self, folder):
+        if folder is None:
+            folder = ''
+        c = self.__conn.cursor()
+        res = c.execute(
+            'SELECT filename FROM images \
+             WHERE filename LIKE ?', (folder + '%',))
+
+        return [r[0] for r in res.fetchall()]
+
     def get_unmatched(self):
         c = self.__conn.cursor()
         res = c.execute(
@@ -174,6 +190,15 @@ class RecDB(object):
 
         return self.__build_files_faces(res.fetchall())
 
+    def get_unsynced(self):
+        c = self.__conn.cursor()
+        res = c.execute(
+            'SELECT filename, faces.id, box, encoding, name, dist \
+             FROM images JOIN faces ON images.id=faces.image_id \
+             WHERE synced=0')
+
+        return self.__build_files_faces(res.fetchall())
+
     def __build_files_faces(self, res):
         files_faces = []
         filename = ''
@@ -200,7 +225,9 @@ class RecDB(object):
     def mark_as_synced(self, filename):
         if self.__readonly:
             return
-        pass
+        c = self.__conn.cursor()
+        c.execute('UPDATE images SET synced=1 WHERE filename=?', (filename,))
+        self.__conn.commit()
 
 
 def args_parse():
@@ -210,7 +237,8 @@ def args_parse():
         choices=['get_names',
                  'get_faces',
                  'print_details',
-                 'get_folders'])
+                 'get_folders',
+                 'get_files'])
     parser.add_argument('-d', '--database', help='Database file')
     parser.add_argument('-f', '--file', help='File')
     return parser.parse_args()
@@ -229,6 +257,10 @@ def main():
     elif args.action == 'get_folders':
         folders = db.get_folders()
         for f in folders:
+            print(f)
+    elif args.action == 'get_files':
+        files = db.get_files(args.file)
+        for f in files:
             print(f)
 
 

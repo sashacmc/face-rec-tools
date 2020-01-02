@@ -27,9 +27,17 @@ class PlexSync(object):
             self.__plexdb.create_tag(tag)
             logging.info(f'Tag "{tag}" added to plex db')
 
-    def set_tags(self):
+    def set_tags(self, resync=False):
+        logging.info(f'Set tags started ({resync})')
         self.__create_tags()
-        files_faces = self.__recdb.get_all()
+
+        if resync:
+            files_faces = self.__recdb.get_all()
+        else:
+            files_faces = self.__recdb.get_unsynced()
+
+        images_count = 0
+        faces_count = 0
         for ff in files_faces:
             filename = ff['filename']
             self.__plexdb.clean_tags(filename, tag_prefix=TAG_PREFIX)
@@ -39,12 +47,20 @@ class PlexSync(object):
                 if name in self.__names:
                     tags.append(TAG_PREFIX + name)
 
-            logging.info(f"sync tags for image: {filename}: " + str(tags))
+            logging.debug(f"sync tags for image: {filename}: " + str(tags))
             if len(tags) != 0:
                 self.__plexdb.set_tags(filename, tags)
+            self.__recdb.mark_as_synced(filename)
+            images_count += 1
+            faces_count += len(tags)
+
+        logging.info(
+            f'Set tags done: images={images_count} faces={faces_count}')
 
     def remove_tags(self):
+        logging.info(f'Remove tags started')
         self.__plexdb.delete_tags(TAG_PREFIX, cleanup=True)
+        logging.info(f'Remove tags done')
 
 
 def args_parse():
@@ -55,6 +71,8 @@ def args_parse():
                  'remove_tags'])
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-c', '--config', help='Config file')
+    parser.add_argument('-r', '--resync', help='Resync all',
+                        action='store_true')
     return parser.parse_args()
 
 
@@ -77,7 +95,7 @@ def main():
     pls = PlexSync(names, rdb, pdb)
 
     if args.action == 'set_tags':
-        pls.set_tags()
+        pls.set_tags(resync=args.resync)
     elif args.action == 'remove_tags':
         pls.remove_tags()
 
