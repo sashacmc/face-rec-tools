@@ -224,12 +224,12 @@
             }
             var filtered = [];
             name_part = name_part.toLowerCase();
-            for (var i in names) {
-                var lname = names[i].toLowerCase();
+            for (var i in g_names) {
+                var lname = g_names[i].toLowerCase();
                 if (lname == name_part) {
-                    return [names[i]];
+                    return [g_names[i]];
                 } else if (lname.indexOf(name_part) != -1) {
-                    filtered.push(names[i]);
+                    filtered.push(g_names[i]);
                 }
             }
             return filtered;
@@ -239,17 +239,17 @@
         {
             facePropModalSpinner(false);
             var inputs = '';
-            for (var i in names) {
+            for (var i in g_names) {
                 var checked = '';
-                if (name == names[i]) {
+                if (name == g_names[i]) {
                     checked = 'checked=""';
                 }
                 inputs +=
                 '<div class="form-check form-check-img">' +
-                    '<input class="form-check-input form-check-input-img" type="radio" name="names" id="radio' + names[i] + '" value="' + names[i] + '" ' + checked + '>' +
-                    '<label class="form-check-label form-check-label-img" for="radio' + names[i] + '">' + 
-                        '<img src="get_name_image?name=' + names[i] + '" height="66" width="66" id="radioImg' + names[i] + '"/>' +
-                        names[i].replace('_', ' ') + 
+                    '<input class="form-check-input form-check-input-img" type="radio" name="names" id="radio' + g_names[i] + '" value="' + g_names[i] + '" ' + checked + '>' +
+                    '<label class="form-check-label form-check-label-img" for="radio' + g_names[i] + '">' + 
+                        '<img src="get_name_image?name=' + g_names[i] + '" height="66" width="66" id="radioImg' + g_names[i] + '"/>' +
+                        g_names[i].replace('_', ' ') + 
                     '</label>' +
                 '</div>';
             }
@@ -334,7 +334,7 @@
                     success: function(data) {
                         $("#facePropModal").modal("hide");
                         if (add_new) {
-                            names.push(newname);
+                            g_names.push(newname);
                         }
                         if (multiply_images) {
                             unselectedImages();
@@ -398,12 +398,12 @@
                         last_scroll = scroll;
                     }
                 }
-                for (var i in names) {
-                    if (filtered.includes(names[i])) {
-                        $('#radioImg' + names[i]).css('border', '4px solid red');
+                for (var i in g_names) {
+                    if (filtered.includes(g_names[i])) {
+                        $('#radioImg' + g_names[i]).css('border', '4px solid red');
                     } else {
-                        $('#radioImg' + names[i]).css('border', 'none');
-                        $('#radio' + names[i]).prop('checked', false);
+                        $('#radioImg' + g_names[i]).css('border', 'none');
+                        $('#radio' + g_names[i]).prop('checked', false);
                     }
                 }
             });
@@ -474,21 +474,21 @@
             $("#mainSpinner").html(html);
         }
 
-        function runPathCommand(cmd)
+        function runPathCommand(cmd, opts)
         {
             $("#runPathModalLabel").html(commandText[cmd]);
-            $("#runPathModalPath").val(addGenPath);
+            $("#runPathModalPath").val(g_addGenPath);
             runPathModalSpinner(false);
             $('#runPathModalSubmit').off('click').on('click', function(e) {
                 e.preventDefault();
-                addGenPath = $("#runPathModalPath").val();
-                if (addGenPath === undefined || addGenPath == '') {
+                g_addGenPath = $("#runPathModalPath").val();
+                if (g_addGenPath === undefined || g_addGenPath == '') {
                     showError('Path not specified');
                     return;
                 }
                 runPathModalSpinner(true);
                 $.ajax({
-                    url: '/' + cmd + '?path=' + addGenPath,
+                    url: '/' + cmd + '?path=' + g_addGenPath,
                     type: 'POST',
                     timeout: 0,
                     success: function(data) {
@@ -600,7 +600,7 @@
                 url: "get_names",
                 cache: false,  
                 success: function(json) {  
-                    names = eval(json);
+                    g_names = eval(json);
                 }  
             });
 
@@ -628,8 +628,8 @@
 
         $(document).ready(function() 
         {
-            names = [];
-            addGenPath = '';
+            g_names = [];
+            g_addGenPath = '';
 
             $("#liAdd").click(function(e) {
                 e.preventDefault();
