@@ -521,6 +521,7 @@
                 url: 'get_status',
                 cache: false,  
                 success: function(json) {  
+                    hideError();
                     var st = eval(json);
                     if (st['state'] == 'done' || st['state'] == 'error') {
                         $('#progressModal').modal('hide');
@@ -533,8 +534,6 @@
                     }
                 },  
                 error: function(request, status, error) {
-                    $('#progressModal').modal('hide');
-                    clearInterval(updateProgressInterval);
                     showError(request.responseText);
                 }
             });
@@ -554,6 +553,11 @@
         {
             $('#errorModalBody').html(html);
             $('#errorModal').modal('show');
+        }
+
+        function hideError()
+        {
+            $('#errorModal').modal('hide');
         }
 
         function checkProgress() {
