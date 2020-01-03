@@ -6,15 +6,12 @@ import sys
 import dlib
 import numpy
 import shutil
-import piexif
-import pickle
 import logging
 import argparse
 import threading
 import collections
 import face_recognition
 
-from PIL import Image
 from imutils import paths
 
 import log
@@ -320,36 +317,41 @@ class Recognizer(threading.Thread):
         return os.path.splitext(os.path.split(filename)[1])[0]
 
     def __save_debug_images(
-            self, encoded_faces, image, debug_out_folder, debug_out_file_name):
+            self, encoded_faces, image, debug_out_folder, debug_out_file_name,
+            draw_landmarks=False):
+
+        if draw_landmarks:
+            self.__draw_landmarks(encoded_faces, image)
 
         for enc in encoded_faces:
             name = enc['name']
             if name == '':
                 name = 'unknown_000'
-            alg = '_' + enc['alg'] if 'alg' in enc else ''
             out_folder = os.path.join(debug_out_folder, name)
             self.__make_debug_out_folder(out_folder)
 
             top, right, bottom, left = enc['box']
-            d = (bottom - top) // 2
-            out_image = image[
-                max(0, top - d):bottom + d,
-                max(0, left - d):right + d]
 
             prefix = '{}_{:03d}'.format(name, int(enc['dist'] * 100))
             out_filename = os.path.join(
                 out_folder,
-                f'{prefix}_{debug_out_file_name}_{left}x{top}{alg}.jpg')
+                f'{prefix}_{debug_out_file_name}_{left}x{top}.jpg')
 
-            encd = pickle.dumps(enc['encoding'], protocol=0)
-            exif = piexif.dump(
-                {"0th": {piexif.ImageIFD.ImageDescription: encd}})
-            im = Image.fromarray(out_image)
-            im.thumbnail((self.__debug_out_image_size,
-                          self.__debug_out_image_size))
-            im.save(out_filename, exif=exif)
-
+            tools.save_face(out_filename, image, enc['box'], enc['encoding'],
+                            self.__debug_out_image_size)
             logging.debug(f'face saved to: {out_filename}')
+
+    def __draw_landmarks(self, encoded_faces, image):
+        boxes = [enc['box'] for enc in encoded_faces]
+        landmarks = face_recognition.face_landmarks(
+            image,
+            face_locations=boxes,
+            model=self.__encoding_model)
+
+        for landmark in landmarks:
+            for pts in landmark.values():
+                for pt in pts:
+                    cv2.circle(image, pt, 5, (0, 0, 255), -1)
 
     def status(self):
         with self.__status_lock:
