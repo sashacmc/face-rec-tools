@@ -99,7 +99,7 @@ class RecDB(object):
 
         return res
 
-    def get_faces(self):
+    def get_all_faces(self):
         c = self.__conn.cursor()
         res = c.execute('SELECT image_id, box, encoding FROM faces')
 
@@ -145,7 +145,7 @@ class RecDB(object):
 
         return list(fset)
 
-    def get_files(self, folder):
+    def get_files(self, folder=None):
         if folder is None:
             folder = ''
         c = self.__conn.cursor()
