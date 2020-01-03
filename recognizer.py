@@ -32,6 +32,7 @@ class Recognizer(threading.Thread):
                  max_image_size=1000,
                  min_face_size=20,
                  debug_out_image_size=100,
+                 encoding_model='large',
                  nearest_match=True):
 
         threading.Thread.__init__(self)
@@ -44,6 +45,7 @@ class Recognizer(threading.Thread):
         self.__max_size = int(max_image_size)
         self.__min_size = int(min_face_size)
         self.__debug_out_image_size = int(debug_out_image_size)
+        self.__encoding_model = encoding_model
         self.__nearest_match = nearest_match
         self.__status = {'state': '', 'count': 0, 'current': 0}
         self.__status_lock = threading.Lock()
@@ -112,7 +114,7 @@ class Recognizer(threading.Thread):
             filtered_boxes.append(box)
 
         encodings = face_recognition.face_encodings(
-            image, filtered_boxes, self.__num_jitters)
+            image, filtered_boxes, self.__num_jitters, self.__encoding_model)
 
         res = [{'encoding': e, 'box': b}
                for e, b in zip(encodings, filtered_boxes)]
@@ -405,7 +407,9 @@ def main():
         shutil.rmtree(args.output)
 
     patt = patterns.Patterns(cfg.get_def('main', 'patterns', args.patterns),
-                             cfg['main']['model'])
+                             model=cfg['main']['model'],
+                             num_jitters=cfg['main']['num_jitters'],
+                             encoding_model=cfg['main']['encoding_model'])
     patt.load()
 
     rec = Recognizer(patt,
@@ -417,7 +421,8 @@ def main():
                      threshold_clusterize=cfg['main']['threshold_clusterize'],
                      max_image_size=cfg['main']['max_image_size'],
                      min_face_size=cfg['main']['min_face_size'],
-                     debug_out_image_size=cfg['main']['debug_out_image_size'])
+                     debug_out_image_size=cfg['main']['debug_out_image_size'],
+                     encoding_model=cfg['main']['encoding_model'])
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
 

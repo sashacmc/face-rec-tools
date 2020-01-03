@@ -257,7 +257,11 @@ class FaceRecServer(http.server.HTTPServer):
         self.__recognizer = None
         self.__cfg = cfg
         self.__patterns = patterns.Patterns(cfg['main']['patterns'],
-                                            cfg['main']['model'])
+            model=cfg['main']['model'],
+            max_size=cfg['main']['max_image_size'],
+            num_jitters=cfg['main']['num_jitters'],
+            encoding_model=cfg['main']['encoding_model'])
+
         self.__patterns.load()
         self.__names = [
             p['name'] for p in self.__patterns.persons()

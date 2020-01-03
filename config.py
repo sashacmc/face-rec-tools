@@ -16,6 +16,7 @@ class Config(object):
             'max_image_size': 1000,
             'min_face_size': 20,
             'debug_out_image_size': 100,
+            'encoding_model': 'large',
             'db': '/mnt/multimedia/recdb/rec.db',
             'patterns': '/mnt/multimedia/recdb/face_rec_patt/',
         },

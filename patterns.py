@@ -18,7 +18,7 @@ import config
 
 class Patterns(object):
     def __init__(self, folder, model='hog', max_size=1000,
-                 num_jitters=1, train_classifer=False):
+                 num_jitters=1, encoding_model='large', train_classifer=False):
         self.__folder = folder
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
         self.__encodings = []
@@ -28,6 +28,7 @@ class Patterns(object):
         self.__classifer = None
         self.__classes = []
         self.__model = model
+        self.__encoding_model = encoding_model
         self.__max_size = int(max_size)
         self.__num_jitters = int(num_jitters)
         self.__train_classifer = train_classifer
@@ -64,7 +65,7 @@ class Patterns(object):
             encoding = None
             try:
                 encd = exif["0th"][piexif.ImageIFD.ImageDescription]
-                encoding = pickle.loads(encd)
+                encoding = pickle.loads(encd)['encoding']
                 logging.debug(f'Loaded from Exif: {len(encoding)}')
             except Exception:
                 pass
@@ -78,7 +79,9 @@ class Patterns(object):
                     logging.warning(
                         f'{len(boxes)} faces detected in {image_file}. Skip.')
                     continue
-                encodings = face_recognition.face_encodings(image, boxes)
+                encodings = face_recognition.face_encodings(
+                    image, boxes, self.__num_jitters,
+                    model=self.__encoding_model)
                 encoding = encodings[0]
 
             filename = os.path.split(image_file)[1]
@@ -274,7 +277,8 @@ def main():
     patt = Patterns(cfg.get_def('main', 'patterns', args.patterns),
                     model=cfg['main']['model'],
                     max_size=cfg['main']['max_image_size'],
-                    num_jitters=cfg['main']['num_jitters'])
+                    num_jitters=cfg['main']['num_jitters'],
+                    encoding_model=cfg['main']['encoding_model'])
 
     if args.action == 'gen':
         patt.generate(args.regenerate)
