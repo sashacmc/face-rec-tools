@@ -1,0 +1,89 @@
+#!/usr/bin/python3
+
+import re
+import os
+import cv2
+import sys
+import shutil
+import logging
+import argparse
+import face_recognition
+
+import log
+import recdb
+import tools
+import config
+import patterns
+
+
+def get_from_db(files_faces, db, filename):
+    fname = os.path.split(filename)[1]
+    try:
+        fname, fleft, ftop = re.search('(.*)_(\d+)x(\d+)\.jpg', fname).groups()
+        if fname[:2] == '0_':
+            fname = fname[2:]
+    except AttributeError:
+        return None, None
+    except IndexError:
+        return None, None
+
+    fleft = int(fleft)
+    ftop = int(ftop)
+
+    for ff in files_faces:
+        if fname in ff['filename']:
+            for face in ff['faces']:
+                top, right, bottom, left = face['box']
+                if ftop == top and fleft == left:
+                    return ff['filename'], face['box']
+
+    return None, None
+
+
+def update(patt, db, num_jitters, encoding_model, max_size, out_size):
+    files_faces = db.get_all()
+
+    for patt_fname in patt.files():
+        fname, box = get_from_db(files_faces, db, patt_fname)
+        if fname is None:
+            logging.warning(f'Not found in db: {patt_fname}')
+            continue
+
+        logging.debug(f'Found in db file: {fname} {box}')
+
+        image = tools.read_image(fname, max_size)
+        encodings = face_recognition.face_encodings(
+            image, (box,), num_jitters, encoding_model)
+        tools.save_face(patt_fname, image, box, encodings[0], out_size)
+        logging.info(f'Updated: {patt_fname}')
+
+
+def args_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-l', '--logfile', help='Log file')
+    parser.add_argument('-c', '--config', help='Config file')
+    parser.add_argument('files', nargs='*', help='Files with one face')
+    return parser.parse_args()
+
+
+def main():
+    args = args_parse()
+    cfg = config.Config(args.config)
+
+    log.initLogger(args.logfile)
+    logging.basicConfig(level=logging.DEBUG)
+
+    db = recdb.RecDB(cfg['main']['db'])
+    patt = patterns.Patterns(cfg['main']['patterns'],
+                             cfg['main']['model'])
+    patt.load()
+
+    update(patt, db,
+           int(cfg['main']['num_jitters']),
+           cfg['main']['encoding_model'],
+           int(cfg['main']['max_image_size']),
+           int(cfg['main']['debug_out_image_size']))
+
+
+if __name__ == '__main__':
+    main()
