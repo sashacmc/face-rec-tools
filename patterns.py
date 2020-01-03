@@ -47,9 +47,19 @@ class Patterns(object):
             filtered = {}
             for image_file in image_files:
                 filename = os.path.split(image_file)[1]
-                if filename not in self.__filetimes or \
+                filename_exsists = filename in self.__filetimes
+                if not filename_exsists or \
                         self.__filetimes[filename] != image_files[image_file]:
                     filtered[image_file] = image_files[image_file]
+                    if filename_exsists:
+                        del self.__filetimes[filename]
+                        for i, f in enumerate(self.__files):
+                            if f == image_file:
+                                del self.__files[i]
+                                del self.__names[i]
+                                del self.__encodings[i]
+                                logging.debug(f'File replaced: {image_file}')
+                                break
 
             if len(filtered) == 0:
                 logging.info('Nothing changed')
@@ -86,7 +96,7 @@ class Patterns(object):
 
             filename = os.path.split(image_file)[1]
             if filename in self.__filetimes:
-                logging.warning('Duplicate pattern file: ' + image_file)
+                logging.warning(f'Duplicate pattern file: {image_file}')
                 continue
 
             self.__encodings.append(encoding)
