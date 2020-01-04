@@ -297,6 +297,10 @@ class FaceRecServer(http.server.HTTPServer):
 
         self.__recognizer.start_method(method, *args)
 
+    def __generate_patterns(self):
+        self.__status = {'state': 'patterns_generation'}
+        self.__patterns.generate()
+
     def web_path(self):
         return self.__web_path
 
@@ -329,33 +333,33 @@ class FaceRecServer(http.server.HTTPServer):
             shutil.rmtree(self.__face_cache_path)
 
     def recognize_folder(self, path, reencode):
-        self.__patterns.generate()
+        self.__generate_patterns()
         self.__start_recognizer('recognize_folder',
                                 path, self.__db, self.__face_cache_path,
                                 reencode)
 
     def match_unmatched(self):
-        self.__patterns.generate()
+        self.__generate_patterns()
         self.__start_recognizer('match_unmatched',
                                 self.__db, self.__face_cache_path)
 
     def match_weak(self):
-        self.__patterns.generate()
+        self.__generate_patterns()
         self.__start_recognizer('match_weak',
                                 self.__db, self.__face_cache_path)
 
     def match_folder(self, path):
-        self.__patterns.generate()
+        self.__generate_patterns()
         self.__start_recognizer('match_folder',
                                 path, self.__db, self.__face_cache_path)
 
     def match_all(self):
-        self.__patterns.generate()
+        self.__generate_patterns()
         self.__start_recognizer('match_all',
                                 self.__db, self.__face_cache_path)
 
     def clusterize_unmatched(self):
-        self.__patterns.generate()
+        self.__generate_patterns()
         self.__start_recognizer('clusterize_unmatched',
                                 self.__db, self.__face_cache_path)
 

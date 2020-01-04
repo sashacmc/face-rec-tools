@@ -493,7 +493,7 @@
                     timeout: 0,
                     success: function(data) {
                         $("#runPathModal").modal("hide");
-                        showProgress(caption);
+                        showProgress(commandText[cmd]);
                     },
                     error: function(request, status, error) {
                         runPathModalSpinner(false);
