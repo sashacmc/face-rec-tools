@@ -162,8 +162,8 @@
             var html = '';
             for (var i in images) {
                 html += '<div class="img_container">' +
-                            '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\')" title="' + images[i] + '"/>' +
-                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclick="javascript:checkAllPrevImages(event)" order="' + i + '"/>' +
+                            '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\', event)" title="' + images[i] + '"/>' +
+                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclick="javascript:onImgCheckboxClick(event)" order="' + i + '"/>' +
                         '</div>';
             }
             return html;
@@ -196,12 +196,16 @@
             });
         }
 
-        function checkAllPrevImages(e)
+        function onImgCheckboxClick(e)
         {
             var target = $(e.target);
-            if (!e.shiftKey || !target.prop('checked')) {
-                return;
+            if (e.shiftKey && target.prop('checked')) {
+                checkAllPrevImages(target);
             }
+        }
+
+        function checkAllPrevImages(target)
+        {
             var num = target.attr("order");
             var name = target.attr("personname");
             
@@ -235,8 +239,14 @@
             return filtered;
         }
 
-        function showImageProps(name, image)
+        function showImageProps(name, image, e)
         {
+            if (e.shiftKey) {
+                var target = $('input:checkbox[class=img_checkbox][imgname="' + image + '"]');
+                target.prop('checked', true);
+                checkAllPrevImages(target);
+                return;
+            }
             facePropModalSpinner(false);
             var inputs = '';
             for (var i in g_names) {
