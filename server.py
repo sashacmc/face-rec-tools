@@ -128,6 +128,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.server.patterns().add_files(params['name'][0], filenames, True)
         for fn in filenames:
             os.remove(fn)
+        self.server.updete_persons(params['name'][0])
         self.__ok_response('')
 
     def __recognize_folder_request(self, params):
@@ -254,12 +255,8 @@ class FaceRecServer(http.server.HTTPServer):
             encoding_model=cfg['main']['encoding_model'])
 
         self.__patterns.load()
-        self.__names = [
-            p['name'] for p in self.__patterns.persons()
-        ]
-        self.__name_images = {
-            p['name']: p['image'] for p in self.__patterns.persons()
-        }
+        self.__load_patterns_persons()
+
         self.__db = recdb.RecDB(cfg['main']['db'])
 
         port = int(cfg['server']['port'])
@@ -291,6 +288,20 @@ class FaceRecServer(http.server.HTTPServer):
     def __generate_patterns(self):
         self.__status = {'state': 'patterns_generation'}
         self.__patterns.generate()
+        self.__load_patterns_persons()
+
+    def updete_persons(self, name):
+        if name not in self.__names:
+            self.__patterns.generate()
+            self.__load_patterns_persons()
+
+    def __load_patterns_persons(self):
+        self.__names = [
+            p['name'] for p in self.__patterns.persons()
+        ]
+        self.__name_images = {
+            p['name']: p['image'] for p in self.__patterns.persons()
+        }
 
     def web_path(self):
         return self.__web_path
