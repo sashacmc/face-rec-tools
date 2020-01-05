@@ -184,7 +184,7 @@ class RecDB(object):
 
     def get_by_name(self, folder, name):
         return self.get_files_faces(
-            'WHERE filename LIKE ? AND name=?', (folder + '%',), name)
+            'WHERE filename LIKE ? AND name=?', (folder + '%', name))
 
     def __build_files_faces(self, res):
         files_faces = []
