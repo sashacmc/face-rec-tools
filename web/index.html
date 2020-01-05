@@ -322,6 +322,8 @@
                 if (name == newname || newname === undefined || images.length == 0) {
                     return;
                 }
+                $('#facePropModalSubmit').off('click');
+                $('#facePropModal').off("keydown")
                 if (newname == "new_name_value") {
                     newname = $("#inputNew").val();
                     add_new = true;
