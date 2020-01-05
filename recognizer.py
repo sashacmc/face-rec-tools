@@ -392,7 +392,7 @@ def args_parse():
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
     parser.add_argument('-r', '--reencode', help='Reencode existing files',
-                        action=store_true)
+                        action='store_true')
     return parser.parse_args()
 
 
