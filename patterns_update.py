@@ -14,6 +14,7 @@ import recdb
 import tools
 import config
 import patterns
+import recognizer
 
 
 def get_from_db(files_faces, db, filename):
@@ -58,6 +59,13 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
         logging.info(f'Updated: {patt_fname}')
 
 
+def update_db(db, rec):
+    files_faces = db.get_all()
+    filenames = [ff['filename'] for ff in files_faces]
+    logging.info(f'Start recognize {len(filenames)} files')
+    rec.recognize_files(filenames, db, None)
+
+
 def args_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('-l', '--logfile', help='Log file')
@@ -83,6 +91,20 @@ def main():
            cfg['main']['encoding_model'],
            int(cfg['main']['max_image_size']),
            int(cfg['main']['debug_out_image_size']))
+
+    rec = recognizer.Recognizer(
+        patt,
+        model=cfg['main']['model'],
+        num_jitters=cfg['main']['num_jitters'],
+        threshold=cfg['main']['threshold'],
+        threshold_weak=cfg['main']['threshold_weak'],
+        threshold_clusterize=cfg['main']['threshold_clusterize'],
+        max_image_size=cfg['main']['max_image_size'],
+        min_face_size=cfg['main']['min_face_size'],
+        debug_out_image_size=cfg['main']['debug_out_image_size'],
+        encoding_model=cfg['main']['encoding_model'])
+
+    update_db(db, rec)
 
 
 if __name__ == '__main__':
