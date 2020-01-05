@@ -20,29 +20,41 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarCollapse">
                 <ul class="navbar-nav mr-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="liAdd">Add images</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Face recognition
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="#" id="liAdd">Add new images</a>
+                            <a class="dropdown-item" href="#" id="liReencode">Reencode images</a>
+                        </div>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="liReencode">Reencode images</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Face match
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="#" id="liRematch">Rematch all</a>
+                            <a class="dropdown-item" href="#" id="liMatchFolder">Rematch folder</a>
+                            <a class="dropdown-item" href="#" id="liMatchUnmatched">Match unmatched</a>
+                            <a class="dropdown-item" href="#" id="liMatchWeak">Match weak</a>
+                        </div>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="liGenerate">Generate faces</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Face images generation
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="#" id="liGenerate">Generate faces</a>
+                        </div>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="liRematch">Rematch all</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="liMatchUnmatched">Match unmatched</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="liMatchWeak">Match weak</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="liMatchFolder">Rematch folder</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" id="liClusterizeUnmatched">Clusterize unmatched</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Faces clustering
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="#" id="liClusterizeUnmatched">Clusterize unmatched</a>
+                        </div>
                     </li>
                 </ul>
             </div>
