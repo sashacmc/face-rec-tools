@@ -326,6 +326,7 @@
                 $('#facePropModal').off("keydown")
                 if (newname == "new_name_value") {
                     newname = $("#inputNew").val();
+                    newname = newname.replace(' ', '_');
                     add_new = true;
                 }
                 facePropModalSpinner(true);
