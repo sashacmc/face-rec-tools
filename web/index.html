@@ -345,6 +345,7 @@
                     type: 'POST',
                     data: {'files': images.join('|')},
                     success: function(data) {
+                        facePropModalSpinner(false);
                         $("#facePropModal").modal("hide");
                         if (add_new) {
                             g_names.push(newname);
@@ -364,6 +365,7 @@
                         images = [];
                     },
                     error: function(request, status, error) {
+                        facePropModalSpinner(false);
                         $("#facePropModal").modal("hide");
                         showError(request.responseText);
                     }
@@ -474,6 +476,7 @@
                 html = 'Save changes';
             }
             $("#facePropModalSubmit").html(html);
+            mainSpinner(enable);
         }
 
         function mainSpinner(enable)
