@@ -25,8 +25,8 @@
                             Face recognition
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="#" id="liAdd">Add new images</a>
-                            <a class="dropdown-item" href="#" id="liReencode">Reencode images</a>
+                            <a class="dropdown-item" href="#" id="liAdd">Add new images...</a>
+                            <a class="dropdown-item" href="#" id="liReencode">Reencode images...</a>
                         </div>
                     </li>
                     <li class="nav-item dropdown">
@@ -34,10 +34,10 @@
                             Face match
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="#" id="liRematch">Rematch all</a>
-                            <a class="dropdown-item" href="#" id="liMatchFolder">Rematch folder</a>
+                            <a class="dropdown-item" href="#" id="liMatchFolder">Rematch folder...</a>
                             <a class="dropdown-item" href="#" id="liMatchUnmatched">Match unmatched</a>
-                            <a class="dropdown-item" href="#" id="liMatchWeak">Match weak</a>
+                            <a class="dropdown-item" href="#" id="liMatchWeak">Rematch weak</a>
+                            <a class="dropdown-item" href="#" id="liRematch">Rematch all</a>
                         </div>
                     </li>
                     <li class="nav-item dropdown">
@@ -45,7 +45,8 @@
                             Face images generation
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="#" id="liGenerate">Generate faces</a>
+                            <a class="dropdown-item" href="#" id="liGenerate">Generate faces...</a>
+                            <a class="dropdown-item" href="#" id="liGenerateWeak">Generate weak faces</a>
                         </div>
                     </li>
                     <li class="nav-item dropdown">
@@ -54,6 +55,8 @@
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liClusterizeUnmatched">Clusterize unmatched</a>
+                            <a class="dropdown-item" href="#" id="liClusterizeWeak">Clusterize weak</a>
+                            <a class="dropdown-item" href="#" id="liClusterizeFolder">Clusterize folder...</a>
                         </div>
                     </li>
                 </ul>
@@ -97,12 +100,28 @@
                     </button>
                 </div>
                 <div class="modal-body" id="runPathModalBody">
-                    New path
-                    <input class="form-control" type="text" id="runPathModalPath">
-                    <br/>
-                    Existing path search
-                    <select class="combobox input-large form-control" id="runPathModalPathCombo">
-                    </select>
+                    <div>
+                        New path
+                        <input class="form-control" type="text" id="runPathModalPath">
+                        <br/>
+                        Existing path search
+                        <select class="combobox input-large form-control" id="runPathModalPathCombo">
+                        </select>
+                    </div>
+                    <div id="runPathModalSaveFacesDiv">
+                        <br/>
+                        <input type="checkbox" id="runPathModalSaveFacesCheck">
+                        </input>
+                        <label class="form-check-label" for="runPathModalSaveFacesCheck"> 
+                            Save all faces (not only changed)
+                        </label>
+                    </div>
+                    <div id="runPathModalNameDiv">
+                        <br/>
+                        Select person
+                        <select class="combobox input-large form-control" id="runPathModalNameCombo">
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
@@ -361,6 +380,7 @@
                         $("#facePropModal").modal("hide");
                         if (add_new) {
                             g_names.push(newname);
+                            setNamesList();
                         }
                         if (multiply_images) {
                             unselectedImages();
@@ -468,6 +488,16 @@
             });
         }
 
+        function setNamesList()
+        {
+            var html = '<option value=""></option>';
+            for (var i in g_names) {
+                html += '<option value="' + g_names[i] + '">' + g_names[i] + '</option>';
+            }
+            $("#runPathModalNameCombo").html(html);
+            $("#runPathModalNameCombo").combobox({bsVersion: '4'});
+        }
+
         function runPathModalSpinner(enable)
         {
             var html = '';
@@ -502,9 +532,11 @@
             $("#mainSpinner").html(html);
         }
 
-        function runPathCommand(cmd, opts)
+        function runPathCommand(cmd, opts, askSaveFaces, askName)
         {
             $("#runPathModalLabel").html(commandText[cmd]);
+            $("#runPathModalSaveFacesDiv").toggle(askSaveFaces);
+            $("#runPathModalNameDiv").toggle(askName);
             $("#runPathModalPath").val(g_addGenPath);
             runPathModalSpinner(false);
             $('#runPathModalSubmit').off('click').on('click', function(e) {
@@ -513,6 +545,12 @@
                 if (g_addGenPath === undefined || g_addGenPath == '') {
                     showError('Path not specified');
                     return;
+                }
+                if (askSaveFaces && $('#runPathModalSaveFacesCheck').prop('checked')) {
+                    opts = 'save_faces=1&' + opts;
+                }
+                if (askName) {
+                    opts = 'name=' + $('#runPathModalNameCombo').val() + '&' + opts;
                 }
                 runPathModalSpinner(true);
                 $.ajax({
@@ -629,7 +667,8 @@
                 cache: false,  
                 success: function(json) {  
                     g_names = eval(json);
-                }  
+                    setNamesList();
+                }
             });
 
             $.ajax({  
@@ -656,42 +695,57 @@
 
             $("#liAdd").click(function(e) {
                 e.preventDefault();
-                runPathCommand('recognize_folder', 'reencode=0')
+                runPathCommand('recognize_folder', 'reencode=0', false, false);
             });
 
             $("#liReencode").click(function(e) {
                 e.preventDefault();
-                runPathCommand('recognize_folder', 'reencode=1')
+                runPathCommand('recognize_folder', 'reencode=1', false, false);
             });
 
             $("#liGenerate").click(function(e) {
                 e.preventDefault();
-                runPathCommand('generate_faces', 'type=folder')
+                runPathCommand('generate_faces', 'type=name', false, true);
+            });
+
+            $("#liGenerateWeak").click(function(e) {
+                e.preventDefault();
+                runPathCommand('generate_faces', 'type=weak', false, false);
             });
 
             $("#liRematch").click(function(e) {
                 e.preventDefault();
-                runCommand('match', 'type=all')
+                runCommand('match', 'type=all');
             });
 
             $("#liMatchUnmatched").click(function(e) {
                 e.preventDefault();
-                runCommand('match', 'type=unmatched')
+                runCommand('match', 'type=unmatched');
             });
 
             $("#liMatchWeak").click(function(e) {
                 e.preventDefault();
-                runCommand('match', 'type=weak')
+                runCommand('match', 'type=weak');
             });
 
             $("#liMatchFolder").click(function(e) {
                 e.preventDefault();
-                runPathCommand('match', 'type=folder&save_faces=1')
+                runPathCommand('match', 'type=name', true, true);
             });
 
             $("#liClusterizeUnmatched").click(function(e) {
                 e.preventDefault();
-                runCommand('clusterize', 'type=unmatched')
+                runCommand('clusterize', 'type=unmatched');
+            });
+
+            $("#liClusterizeWeak").click(function(e) {
+                e.preventDefault();
+                runCommand('clusterize', 'type=weak');
+            });
+
+            $("#liClusterizeFolder").click(function(e) {
+                e.preventDefault();
+                runPathCommand('clusterize', 'type=folder', false, false);
             });
 
             checkProgress();
