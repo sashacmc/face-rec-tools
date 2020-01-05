@@ -234,7 +234,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 return
 
             if path == '/clusterize':
-                self.__clusterize_unmatched_request(params)
+                self.__clusterize_request(params)
                 return
 
         except Exception as ex:
