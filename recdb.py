@@ -155,58 +155,36 @@ class RecDB(object):
 
         return [r[0] for r in res.fetchall()]
 
-    def get_unmatched(self):
+    def get_files_faces(self, where_clause, args=()):
         c = self.__conn.cursor()
         res = c.execute(
             'SELECT filename, faces.id, box, encoding, name, dist \
-             FROM images JOIN faces ON images.id=faces.image_id \
-             WHERE name=""')
-
+             FROM images JOIN faces ON images.id=faces.image_id ' +
+            where_clause, args)
         return self.__build_files_faces(res.fetchall())
+
+    def get_unmatched(self):
+        return self.get_files_faces('WHERE name=""')
 
     def get_all(self):
-        c = self.__conn.cursor()
-        res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name, dist \
-             FROM images JOIN faces ON images.id=faces.image_id')
+        return self.get_files_faces('')
 
-        return self.__build_files_faces(res.fetchall())
-
-    def get_weak(self):
-        c = self.__conn.cursor()
-        res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name, dist \
-             FROM images JOIN faces ON images.id=faces.image_id \
-             WHERE name LIKE "%_weak"')
-
-        return self.__build_files_faces(res.fetchall())
+    def get_weak(self, folder):
+        return self.get_files_faces(
+            'WHERE filename LIKE ? AND name LIKE "%_weak"', (folder + '%',))
 
     def get_folder(self, folder):
-        c = self.__conn.cursor()
-        res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name, dist \
-             FROM images JOIN faces ON images.id=faces.image_id \
-             WHERE filename LIKE ?', (folder + '%',))
-
-        return self.__build_files_faces(res.fetchall())
+        return self.get_files_faces('WHERE filename LIKE ?', (folder + '%',))
 
     def get_faces(self, filename):
-        c = self.__conn.cursor()
-        res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name, dist \
-             FROM images JOIN faces ON images.id=faces.image_id \
-             WHERE filename=?', (filename,))
-
-        return self.__build_files_faces(res.fetchall())
+        return self.get_files_faces('WHERE filename=?', (filename,))
 
     def get_unsynced(self):
-        c = self.__conn.cursor()
-        res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name, dist \
-             FROM images JOIN faces ON images.id=faces.image_id \
-             WHERE synced=0')
+        return self.get_files_faces('WHERE synced=0')
 
-        return self.__build_files_faces(res.fetchall())
+    def get_by_name(self, folder, name):
+        return self.get_files_faces(
+            'WHERE filename LIKE ? AND name=?', (folder + '%',), name)
 
     def __build_files_faces(self, res):
         files_faces = []

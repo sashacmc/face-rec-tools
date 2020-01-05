@@ -61,14 +61,10 @@ class Recognizer(threading.Thread):
             logging.info(f'Run in thread: {self.__method}{self.__args}')
             if self.__method == 'recognize_folder':
                 self.recognize_folder(*self.__args)
-            elif self.__method == 'match_unmatched':
-                self.match_unmatched(*self.__args)
-            elif self.__method == 'match_all':
-                self.match_all(*self.__args)
-            elif self.__method == 'match_folder':
-                self.match_folder(*self.__args)
-            elif self.__method == 'clusterize_unmatched':
-                self.clusterize_unmatched(*self.__args)
+            elif self.__method == 'match':
+                self.match(*self.__args)
+            elif self.__method == 'clusterize':
+                self.clusterize(*self.__args)
             elif self.__method == 'save_faces':
                 self.save_faces(*self.__args)
             logging.info(f'Thread done: {self.__method}')
@@ -84,7 +80,7 @@ class Recognizer(threading.Thread):
 
         encoded_faces = self.encode_faces(image)
 
-        self.match(encoded_faces)
+        self.__match_faces(encoded_faces)
 
         if debug_out_folder:
             debug_out_file_name = self.__extract_filename(filename)
@@ -138,7 +134,7 @@ class Recognizer(threading.Thread):
         dist = 1 - proba[j]
         return dist, self.__patterns.classes()[j]
 
-    def match(self, encoded_faces):
+    def __match_faces(self, encoded_faces):
         if len(self.__patterns.encodings()) == 0:
             logging.warning('Empty patterns')
 
@@ -174,7 +170,7 @@ class Recognizer(threading.Thread):
                  count_old_label in enumerate(lst)}
         return [trans[old_label] for old_label in labels]
 
-    def clusterize(self, files_faces, debug_out_folder=None):
+    def __clusterize(self, files_faces, debug_out_folder=None):
         encs = []
         for i in range(len(files_faces)):
             for j in range(len(files_faces[i]['faces'])):
@@ -213,31 +209,36 @@ class Recognizer(threading.Thread):
             db.insert(f, res)
             db.print_details(f)
 
-    def clusterize_unmatched(self, db, debug_out_folder):
-        self.__status_state('clusterize_unmatched')
-        files_faces = db.get_unmatched()
-        self.clusterize(files_faces, debug_out_folder)
+    def __get_files_faces_by_filter(self, db, fltr):
+        tp = fltr['type']
+        if tp == 'unmatched':
+            return db.get_unmatched()
+        elif tp == 'all':
+            return db.get_all()
+        elif tp == 'weak':
+            return db.get_weak(fltr['path'])
+        elif tp == 'folder':
+            return db.get_folder(fltr['path'])
+        elif tp == 'name':
+            return db.get_by_name(fltr['path'], fltr['name'])
+        else:
+            raise Exception(f'Unknown filter type: {tp}')
 
-    def match_unmatched(self, db, debug_out_folder):
-        self.__status_state('match_unmatched')
-        files_faces = db.get_unmatched()
-        self.__match_files_faces(files_faces, db, debug_out_folder)
+    def clusterize(self, db, fltr, debug_out_folder):
+        self.__status_state('clusterize')
+        files_faces = self.__get_files_faces_by_filter(db, fltr)
+        self.__clusterize(files_faces, debug_out_folder)
 
-    def match_all(self, db, debug_out_folder):
-        self.__status_state('match_all')
-        files_faces = db.get_all()
-        self.__match_files_faces(files_faces, db, debug_out_folder)
+    def match(self, db, fltr, debug_out_folder, save_all_faces):
+        self.__status_state('match')
+        files_faces = self.__get_files_faces_by_filter(db, fltr)
+        self.__match_files_faces(files_faces, db,
+                                 debug_out_folder, save_all_faces)
 
-    def match_weak(self, db, debug_out_folder):
-        self.__status_state('match_weak')
-        files_faces = db.get_weak()
-        self.__match_files_faces(files_faces, db, debug_out_folder)
-
-    def match_folder(self, folder, db, debug_out_folder, save_all_faces=True):
-        self.__status_state('match_folder')
-        files_faces = db.get_folder(folder)
-        self.__match_files_faces(
-            files_faces, db, debug_out_folder, save_all_faces)
+    def save_faces(self, db, fltr, debug_out_folder):
+        self.__status_state('save_faces')
+        files_faces = self.__get_files_faces_by_filter(db, fltr)
+        self.__save_faces(files_faces, debug_out_folder)
 
     def __match_files_faces(
             self, files_faces, db, debug_out_folder, save_all_faces=False):
@@ -247,7 +248,7 @@ class Recognizer(threading.Thread):
         for ff in files_faces:
             self.__status_step()
             logging.info(f"match image: {ff['filename']}")
-            self.match(ff['faces'])
+            self.__match_faces(ff['faces'])
             for face in ff['faces']:
                 cnt_all += 1
                 changed = False
@@ -267,24 +268,18 @@ class Recognizer(threading.Thread):
                         debug_out_folder, debug_out_file_name)
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
-    def save_faces(self, folder, db, debug_out_folder):
+    def __save_faces(self, files_faces, debug_out_folder):
         self.__status_state('save_faces')
-        filenames = self.__get_images_from_folders(folder)
-
-        self.__status_count(len(filenames))
-        for filename in filenames:
+        self.__status_count(len(files_faces))
+        for ff in files_faces:
             self.__status_step()
+            filename = ff['filename']
             logging.info(f"save faces from image: {filename}")
-            files_faces = db.get_faces(filename)
-            if len(files_faces) == 0:
-                continue
-            filename = files_faces[0]['filename']
             image = tools.read_image(filename, self.__max_size)
             debug_out_file_name = self.__extract_filename(filename)
             self.__save_debug_images(
-                files_faces[0]['faces'], image,
+                ff['faces'], image,
                 debug_out_folder, debug_out_file_name)
-            logging.info(f"face: {debug_out_file_name}")
 
     def recognize_folder(self, folder, db, debug_out_folder, reencode=False):
         self.__status_state('recognize_folder')
@@ -431,15 +426,16 @@ def main():
     elif args.action == 'recognize_folder':
         rec.recognize_folder(args.input, db, args.output, args.reencode)
     elif args.action == 'match_unmatched':
-        rec.match_unmatched(db, args.output)
+        rec.match(db, {'type': 'unmatched'}, args.output, False)
     elif args.action == 'match_all':
-        rec.match_all(db, args.output)
+        rec.match(db, {'type': 'all'}, args.output, False)
     elif args.action == 'match_folder':
-        rec.match_folder(args.input, db, args.output)
+        rec.match(
+            db, {'type': 'folder', 'path': args.input}, args.output, True)
     elif args.action == 'clusterize_unmatched':
-        rec.clusterize_unmatched(db, args.output)
+        rec.clusterize(db, {'type': 'unmatched'}, args.output)
     elif args.action == 'save_faces':
-        rec.save_faces(args.input, db, args.output)
+        rec.save_faces(db, {'type': 'folder', 'path': args.input}, args.output)
 
 
 if __name__ == '__main__':

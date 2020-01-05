@@ -130,36 +130,42 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             os.remove(fn)
         self.__ok_response('')
 
-    def __add_images_request(self, params):
-        self.server.recognize_folder(params['path'][0], False)
+    def __recognize_folder_request(self, params):
+        try:
+            reencode = params['reencode'][0] == '1'
+        except Exception:
+            reencode = False
+        self.server.recognize_folder(params['path'][0], reencode)
         self.__ok_response('')
 
-    def __reencode_images_request(self, params):
-        self.server.recognize_folder(params['path'][0], True)
-        self.__ok_response('')
+    def __params_to_filter(self, params):
+        fltr = {}
+        for f in ('type', 'path', 'name'):
+            try:
+                fltr[f] = params[f][0]
+            except Exception:
+                fltr[f] = ''
+        if fltr['type'] == '':
+            raise Exception('Option type is missing')
+        return fltr
 
     def __generate_faces_request(self, params):
-        self.server.save_faces(params['path'][0])
+        fltr = self.__params_to_filter(params)
+        self.server.save_faces(fltr)
         self.__ok_response('')
 
-    def __match_all_request(self, params):
-        self.server.match_all()
+    def __match_request(self, params):
+        try:
+            save_faces = params['save_faces'][0] == '1'
+        except Exception:
+            save_faces = False
+        fltr = self.__params_to_filter(params)
+        self.server.match(fltr, save_faces)
         self.__ok_response('')
 
-    def __match_unmatched_request(self, params):
-        self.server.match_unmatched()
-        self.__ok_response('')
-
-    def __match_weak_request(self, params):
-        self.server.match_weak()
-        self.__ok_response('')
-
-    def __match_folder_request(self, params):
-        self.server.match_folder(params['path'][0])
-        self.__ok_response('')
-
-    def __clusterize_unmatched_request(self, params):
-        self.server.clusterize_unmatched()
+    def __clusterize_request(self, params):
+        fltr = self.__params_to_filter(params)
+        self.server.clusterize(fltr)
         self.__ok_response('')
 
     def do_GET(self):
@@ -214,36 +220,20 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__add_to_pattern_request(params, self.__data())
                 return
 
-            if path == '/add_images':
-                self.__add_images_request(params)
+            if path == '/recognize_folder':
+                self.__recognize_folder_request(params)
                 return
 
             if path == '/generate_faces':
                 self.__generate_faces_request(params)
                 return
 
-            if path == '/match_all':
-                self.__match_all_request(params)
+            if path == '/match':
+                self.__match_request(params)
                 return
 
-            if path == '/match_unmatched':
-                self.__match_unmatched_request(params)
-                return
-
-            if path == '/match_weak':
-                self.__match_weak_request(params)
-                return
-
-            if path == '/match_folder':
-                self.__match_folder_request(params)
-                return
-
-            if path == '/clusterize_unmatched':
+            if path == '/clusterize':
                 self.__clusterize_unmatched_request(params)
-                return
-
-            if path == '/reencode_images':
-                self.__reencode_images_request(params)
                 return
 
         except Exception as ex:
@@ -256,7 +246,8 @@ class FaceRecServer(http.server.HTTPServer):
         self.__status = {'state': ''}
         self.__recognizer = None
         self.__cfg = cfg
-        self.__patterns = patterns.Patterns(cfg['main']['patterns'],
+        self.__patterns = patterns.Patterns(
+            cfg['main']['patterns'],
             model=cfg['main']['model'],
             max_size=cfg['main']['max_image_size'],
             num_jitters=cfg['main']['num_jitters'],
@@ -338,34 +329,20 @@ class FaceRecServer(http.server.HTTPServer):
                                 path, self.__db, self.__face_cache_path,
                                 reencode)
 
-    def match_unmatched(self):
+    def match(self, fltr, save_faces):
         self.__generate_patterns()
-        self.__start_recognizer('match_unmatched',
-                                self.__db, self.__face_cache_path)
+        self.__start_recognizer('match',
+                                self.__db, fltr, self.__face_cache_path,
+                                save_faces)
 
-    def match_weak(self):
+    def clusterize(self, fltr):
         self.__generate_patterns()
-        self.__start_recognizer('match_weak',
-                                self.__db, self.__face_cache_path)
+        self.__start_recognizer('clusterize',
+                                self.__db, fltr, self.__face_cache_path)
 
-    def match_folder(self, path):
-        self.__generate_patterns()
-        self.__start_recognizer('match_folder',
-                                path, self.__db, self.__face_cache_path)
-
-    def match_all(self):
-        self.__generate_patterns()
-        self.__start_recognizer('match_all',
-                                self.__db, self.__face_cache_path)
-
-    def clusterize_unmatched(self):
-        self.__generate_patterns()
-        self.__start_recognizer('clusterize_unmatched',
-                                self.__db, self.__face_cache_path)
-
-    def save_faces(self, path):
+    def save_faces(self, fltr):
         self.__start_recognizer('save_faces',
-                                path, self.__db, self.__face_cache_path)
+                                self.__db, fltr, self.__face_cache_path)
 
 
 def args_parse():

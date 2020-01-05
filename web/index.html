@@ -488,7 +488,7 @@
                 }
                 runPathModalSpinner(true);
                 $.ajax({
-                    url: '/' + cmd + '?path=' + g_addGenPath,
+                    url: '/' + cmd + '?path=' + g_addGenPath + '&' + opts,
                     type: 'POST',
                     timeout: 0,
                     success: function(data) {
@@ -505,11 +505,11 @@
             $("#runPathModal").modal("show");
         }
 
-        function runCommand(cmd)
+        function runCommand(cmd, opts)
         {
             mainSpinner(true);
             $.ajax({
-                url: '/' + cmd,
+                url: '/' + cmd + '?' + opts,
                 type: 'POST',
                 timeout: 0,
                 success: function(data) {
@@ -615,15 +615,10 @@
         }
 
         var commandText = {
-            add_images:             'Recognize folder',
-            reencode_images:        'Recognize folder',
             recognize_folder:       'Recognize folder',
             generate_faces:         'Generate faces',
-            match_all:              'Rematch all',
-            match_unmatched:        'Match unmatched',
-            match_weak:             'Match weak',
-            match_folder:           'Rematch folder',
-            clusterize_unmatched:   'Clusterize unmatched'
+            match:                  'Match',
+            clusterize:             'Clusterize'
         }
 
         $(document).ready(function() 
@@ -633,42 +628,42 @@
 
             $("#liAdd").click(function(e) {
                 e.preventDefault();
-                runPathCommand('add_images')
+                runPathCommand('recognize_folder', 'reencode=0')
             });
 
             $("#liReencode").click(function(e) {
                 e.preventDefault();
-                runPathCommand('reencode_images')
+                runPathCommand('recognize_folder', 'reencode=1')
             });
 
             $("#liGenerate").click(function(e) {
                 e.preventDefault();
-                runPathCommand('generate_faces')
+                runPathCommand('generate_faces', 'type=folder')
             });
 
             $("#liRematch").click(function(e) {
                 e.preventDefault();
-                runCommand('match_all')
+                runCommand('match', 'type=all')
             });
 
             $("#liMatchUnmatched").click(function(e) {
                 e.preventDefault();
-                runCommand('match_unmatched')
+                runCommand('match', 'type=unmatched')
             });
 
             $("#liMatchWeak").click(function(e) {
                 e.preventDefault();
-                runCommand('match_weak')
+                runCommand('match', 'type=weak')
             });
 
             $("#liMatchFolder").click(function(e) {
                 e.preventDefault();
-                runPathCommand('match_folder')
+                runPathCommand('match', 'type=folder&save_faces=1')
             });
 
             $("#liClusterizeUnmatched").click(function(e) {
                 e.preventDefault();
-                runCommand('clusterize_unmatched')
+                runCommand('clusterize', 'type=unmatched')
             });
 
             checkProgress();
