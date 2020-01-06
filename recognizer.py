@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import io
 import os
 import cv2
 import sys
@@ -18,6 +19,7 @@ import log
 import recdb
 import tools
 import config
+import cachedb
 import patterns
 
 
@@ -33,6 +35,7 @@ class Recognizer(threading.Thread):
                  min_face_size=20,
                  debug_out_image_size=100,
                  encoding_model='large',
+                 cdb=None,
                  nearest_match=True):
 
         threading.Thread.__init__(self)
@@ -46,6 +49,7 @@ class Recognizer(threading.Thread):
         self.__min_size = int(min_face_size)
         self.__debug_out_image_size = int(debug_out_image_size)
         self.__encoding_model = encoding_model
+        self.__cdb = cdb
         self.__nearest_match = nearest_match
         self.__status = {'state': '', 'count': 0, 'current': 0}
         self.__status_lock = threading.Lock()
@@ -73,21 +77,20 @@ class Recognizer(threading.Thread):
             logging.exception(ex)
             self.__status_state('error')
 
-    def recognize_image(self, filename, debug_out_folder=None):
+    def recognize_image(self, filename,
+                        draw_landmarks=False):
         logging.info(f'recognize image: {filename}')
 
-        image = tools.read_image(filename, self.__max_size)
+        image = tools.LazyImage(filename, self.__max_size)
 
-        encoded_faces = self.encode_faces(image)
+        encoded_faces = self.encode_faces(image.get())
 
         self.__match_faces(encoded_faces)
 
-        if debug_out_folder:
-            debug_out_file_name = self.__extract_filename(filename)
-            self.__save_debug_images(
-                encoded_faces, image, debug_out_folder, debug_out_file_name)
+        if draw_landmarks:
+            self.__draw_landmarks(encoded_faces, image.get())
 
-        return encoded_faces
+        return encoded_faces, image
 
     def encode_faces(self, image):
         boxes = face_recognition.face_locations(image, model=self.__model)
@@ -193,7 +196,7 @@ class Recognizer(threading.Thread):
 
             if debug_out_folder:
                 filename = files_faces[i]['filename']
-                image = tools.read_image(filename, self.__max_size)
+                image = tools.LazyImage(filename, self.__max_size)
                 debug_out_file_name = self.__extract_filename(filename)
                 self.__save_debug_images(
                     files_faces[i]['faces'], image,
@@ -205,9 +208,16 @@ class Recognizer(threading.Thread):
         self.__status_count(len(filenames))
         for f in filenames:
             self.__status_step()
-            res = self.recognize_image(f, debug_out_folder)
-            db.insert(f, res)
+            encoded_faces, image = self.recognize_image(f)
+            db.insert(f, encoded_faces)
             db.print_details(f)
+            if debug_out_folder:
+                debug_out_file_name = self.__extract_filename(f)
+                self.__save_debug_images(
+                    encoded_faces, image,
+                    debug_out_folder, debug_out_file_name)
+        if self.__cdb is not None:
+            self.__cdb.commit()
 
     def __get_files_faces_by_filter(self, db, fltr):
         tp = fltr['type']
@@ -261,11 +271,13 @@ class Recognizer(threading.Thread):
                         f"changed '{face['oldname']}' -> '{face['name']}'")
                 if debug_out_folder and (changed or save_all_faces):
                     filename = ff['filename']
-                    image = tools.read_image(filename, self.__max_size)
+                    image = tools.LazyImage(filename, self.__max_size)
                     debug_out_file_name = self.__extract_filename(filename)
                     self.__save_debug_images(
                         (face,), image,
                         debug_out_folder, debug_out_file_name)
+        if self.__cdb is not None:
+            self.__cdb.commit()
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
     def __save_faces(self, files_faces, debug_out_folder):
@@ -275,7 +287,7 @@ class Recognizer(threading.Thread):
             self.__status_step()
             filename = ff['filename']
             logging.info(f"save faces from image: {filename}")
-            image = tools.read_image(filename, self.__max_size)
+            image = tools.LazyImage(filename, self.__max_size)
             debug_out_file_name = self.__extract_filename(filename)
             self.__save_debug_images(
                 ff['faces'], image,
@@ -314,18 +326,13 @@ class Recognizer(threading.Thread):
         return os.path.splitext(os.path.split(filename)[1])[0]
 
     def __save_debug_images(
-            self, encoded_faces, image, debug_out_folder, debug_out_file_name,
-            draw_landmarks=False):
-
-        if draw_landmarks:
-            self.__draw_landmarks(encoded_faces, image)
+            self, encoded_faces, image, debug_out_folder, debug_out_file_name):
 
         for enc in encoded_faces:
             name = enc['name']
             if name == '':
                 name = 'unknown_000'
             out_folder = os.path.join(debug_out_folder, name)
-            self.__make_debug_out_folder(out_folder)
 
             top, right, bottom, left = enc['box']
 
@@ -334,9 +341,23 @@ class Recognizer(threading.Thread):
                 out_folder,
                 f'{prefix}_{debug_out_file_name}_{left}x{top}.jpg')
 
-            tools.save_face(out_filename, image, enc['box'], enc['encoding'],
-                            self.__debug_out_image_size)
-            logging.debug(f'face saved to: {out_filename}')
+            if self.__cdb is not None:
+                if not self.__cdb.check_face(enc['face_id']):
+                    out_stream = io.BytesIO()
+                    tools.save_face(out_stream, image.get(),
+                                    enc['box'], enc['encoding'],
+                                    self.__debug_out_image_size)
+                    self.__cdb.save_face(enc['face_id'],
+                                         out_stream.getvalue())
+                    logging.debug(f"face {enc['face_id']} cached")
+
+                self.__cdb.add_to_cache(enc['face_id'], out_filename)
+            else:
+                self.__make_debug_out_folder(out_folder)
+                tools.save_face(out_filename, image.get(),
+                                enc['box'], enc['encoding'],
+                                self.__debug_out_image_size)
+                logging.debug(f'face saved to: {out_filename}')
 
     def __draw_landmarks(self, encoded_faces, image):
         boxes = [enc['box'] for enc in encoded_faces]
@@ -407,6 +428,12 @@ def main():
                              encoding_model=cfg['main']['encoding_model'])
     patt.load()
 
+    cachedb_file = cfg['main']['cachedb']
+    if cachedb_file:
+        cdb = cachedb.CacheDB(cachedb_file)
+    else:
+        cdb = None
+
     rec = Recognizer(patt,
                      model=cfg['main']['model'],
                      num_jitters=cfg['main']['num_jitters'],
@@ -417,12 +444,13 @@ def main():
                      max_image_size=cfg['main']['max_image_size'],
                      min_face_size=cfg['main']['min_face_size'],
                      debug_out_image_size=cfg['main']['debug_out_image_size'],
-                     encoding_model=cfg['main']['encoding_model'])
+                     encoding_model=cfg['main']['encoding_model'],
+                     cdb=cdb)
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
 
     if args.action == 'recognize_image':
-        print(rec.recognize_image(args.input, args.output))
+        print(rec.recognize_image(args.input)[0])
     elif args.action == 'recognize_folder':
         rec.recognize_folder(args.input, db, args.output, args.reencode)
     elif args.action == 'match_unmatched':

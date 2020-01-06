@@ -1,6 +1,7 @@
 import cv2
 import piexif
 import pickle
+import logging
 from PIL import Image
 
 
@@ -34,4 +35,17 @@ def save_face(out_filename, image, box, encoding, out_size):
         {"0th": {piexif.ImageIFD.ImageDescription: encd}})
     im = Image.fromarray(out_image)
     im.thumbnail((out_size, out_size))
-    im.save(out_filename, exif=exif)
+    im.save(out_filename, exif=exif, format="JPEG")
+
+
+class LazyImage(object):
+    def __init__(self, image_file, max_size):
+        self.__image_file = image_file
+        self.__max_size = max_size
+        self.__image = None
+
+    def get(self):
+        if self.__image is None:
+            logging.debug(f'LazyImage load: {self.__image_file}')
+            self.__image = read_image(self.__image_file, self.__max_size)
+        return self.__image

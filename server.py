@@ -13,6 +13,7 @@ import collections
 import log
 import recdb
 import config
+import cachedb
 import patterns
 import recognizer
 
@@ -51,6 +52,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
         if path.startswith('cache/'):
             fname = os.path.join(self.server.face_cache_path(), path[6:])
+            if self.server.cdb() is not None:
+                data = self.server.cdb().get_from_cache(fname)
+                self.__send_blob(data, 'image/jpeg')
+                return
         else:
             fname = os.path.join(self.server.web_path(), path)
 
@@ -73,13 +78,16 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             else:
                 cont = 'text/none'
             with open(fname, 'rb') as f:
-                self.send_response(200)
-                self.send_header('Content-type', cont)
-                self.end_headers()
-                self.wfile.write(bytearray(f.read()))
+                self.__send_blob(f.read(), cont)
         except IOError as ex:
             self.__not_found_response()
             logging.exception(ex)
+
+    def __send_blob(self, data, cont):
+        self.send_response(200)
+        self.send_header('Content-type', cont)
+        self.end_headers()
+        self.wfile.write(bytearray(data))
 
     def __data(self):
         datalen = int(self.headers['Content-Length'])
@@ -96,7 +104,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
     def __list_cache(self, params):
         cache_path = self.server.face_cache_path()
-        image_files = list(imutils.paths.list_images(cache_path))
+        if self.server.cdb() is not None:
+            image_files = self.server.cdb().list_cache()
+        else:
+            image_files = list(imutils.paths.list_images(cache_path))
 
         result = collections.defaultdict(lambda: [])
         for (i, image_file) in enumerate(image_files):
@@ -125,9 +136,18 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         cache_path = self.server.face_cache_path()
         files = data['files'][0].split('|')
         filenames = [os.path.join(cache_path, f) for f in files]
-        self.server.patterns().add_files(params['name'][0], filenames, True)
-        for fn in filenames:
-            os.remove(fn)
+        if self.server.cdb() is not None:
+            for fn in filenames:
+                data = self.server.cdb().get_from_cache(fn)
+                if data is None:
+                    raise Exception(f'No data for file {fn}')
+                self.server.patterns().add_file_data(params['name'][0],
+                                                     fn, data)
+                self.server.cdb().remove_from_cache(fn)
+            self.server.cdb().commit()
+        else:
+            self.server.patterns().add_files(params['name'][0],
+                                             filenames, True, True)
         self.server.updete_persons(params['name'][0])
         self.__ok_response('')
 
@@ -259,6 +279,14 @@ class FaceRecServer(http.server.HTTPServer):
 
         self.__db = recdb.RecDB(cfg['main']['db'])
 
+        cachedb_file = cfg['main']['cachedb']
+        if cachedb_file:
+            logging.info(f'Using cachedb: {cachedb_file}')
+            self.__cdb = cachedb.CacheDB(cachedb_file)
+        else:
+            logging.info(f'Not using cachedb')
+            self.__cdb = None
+
         port = int(cfg['server']['port'])
         self.__web_path = cfg['server']['web_path']
         self.__face_cache_path = cfg['server']['face_cache_path']
@@ -281,7 +309,8 @@ class FaceRecServer(http.server.HTTPServer):
             threshold_clusterize=self.__cfg['main']['threshold_clusterize'],
             max_image_size=self.__cfg['main']['max_image_size'],
             min_face_size=self.__cfg['main']['min_face_size'],
-            debug_out_image_size=self.__cfg['main']['debug_out_image_size'])
+            debug_out_image_size=self.__cfg['main']['debug_out_image_size'],
+            cdb=self.__cdb)
 
         self.__recognizer.start_method(method, *args)
 
@@ -321,6 +350,9 @@ class FaceRecServer(http.server.HTTPServer):
     def db(self):
         return self.__db
 
+    def cdb(self):
+        return self.__cdb
+
     def status(self):
         if self.__recognizer:
             self.__status = self.__recognizer.status()
@@ -331,6 +363,8 @@ class FaceRecServer(http.server.HTTPServer):
         return self.__status
 
     def __clean_cache(self):
+        if self.__cdb is not None:
+            self.__cdb.clean_cache()
         if os.path.exists(self.__face_cache_path):
             shutil.rmtree(self.__face_cache_path)
 

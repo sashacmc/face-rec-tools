@@ -18,6 +18,7 @@ class Config(object):
             'debug_out_image_size': 100,
             'encoding_model': 'large',
             'db': '/mnt/multimedia/recdb/rec.db',
+            'cachedb': '/opt/tmp/facereccache.db',
             'patterns': '/mnt/multimedia/recdb/face_rec_patt/',
         },
         'server': {
