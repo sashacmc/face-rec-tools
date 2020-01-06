@@ -127,7 +127,16 @@ class Patterns(object):
         logging.info(
             f'Patterns done: {self.__pickle_file} ({len(dump)} bytes)')
 
-    def add_files(self, name, filenames, new=False):
+    def __calc_out_filename(self, filename):
+        out_filename = os.path.split(filename)[1]
+        for n in self.__names:
+            out_filename = re.sub(n + '_\d+_', '', out_filename)
+            out_filename = re.sub(n + '_weak_\d+_', '', out_filename)
+            out_filename = out_filename.replace(n, '')
+        out_filename = re.sub('unknown_\d+_\d+_', '', out_filename)
+        return out_filename
+
+    def add_files(self, name, filenames, new=False, move=False):
         out_folder = os.path.join(self.__folder, name)
         if new:
             os.makedirs(out_folder, exist_ok=True)
@@ -135,15 +144,21 @@ class Patterns(object):
             if not os.path.exists(out_folder):
                 raise Exception(f"Name {name} not exists")
         for filename in filenames:
-            out_filename = os.path.split(filename)[1]
-            for n in self.__names:
-                out_filename = re.sub(n + '_\d+_', '', out_filename)
-                out_filename = re.sub(n + '_weak_\d+_', '', out_filename)
-                out_filename = out_filename.replace(n, '')
-            out_filename = re.sub('unknown_\d+_\d+_', '', out_filename)
-            out_filename = os.path.join(out_folder, out_filename)
+            out_filename = os.path.join(out_folder,
+                                        self.__calc_out_filename(filename))
             logging.info(f'adding {filename} to {out_filename}')
             shutil.copyfile(filename, out_filename)
+            if move:
+                os.remove(filename)
+
+    def add_file_data(self, name, filename, data):
+        out_folder = os.path.join(self.__folder, name)
+        os.makedirs(out_folder, exist_ok=True)
+        out_filename = os.path.join(out_folder,
+                                    self.__calc_out_filename(filename))
+        logging.info(f'adding data of {filename} to {out_filename}')
+        with open(out_filename, 'wb') as f:
+            f.write(data)
 
     def load(self):
         data = pickle.loads(open(self.__pickle_file, 'rb').read())
