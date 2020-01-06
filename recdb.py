@@ -82,8 +82,8 @@ class RecDB(object):
              VALUES (?)', (filename,)).lastrowid
 
         res = []
-        for face in rec_result:
-            face_id = c.execute(
+        for i, face in enumerate(rec_result):
+            rec_result[i]['face_id'] = c.execute(
                 'INSERT INTO faces (image_id, box, encoding, name, dist) \
                  VALUES (?, ?, ?, ?, ?)',
                 (image_id,
@@ -93,11 +93,7 @@ class RecDB(object):
                  face['dist'])
             ).lastrowid
 
-            res.append(face_id)
-
         self.__conn.commit()
-
-        return res
 
     def get_all_faces(self):
         c = self.__conn.cursor()
