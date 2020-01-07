@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import os
+import time
+import atexit
 import sqlite3
 import argparse
 
@@ -18,7 +20,7 @@ CREATE TABLE IF NOT EXISTS cache (
 CREATE UNIQUE INDEX IF NOT EXISTS cache_filename ON cache (filename);
 '''
 
-AUTOCOMMIT_COUNTER = 100
+AUTOCOMMIT_TIMEOUT = 60  # sec
 
 
 class CacheDB(object):
@@ -29,19 +31,21 @@ class CacheDB(object):
 
         self.__conn.execute('pragma journal_mode=off;')
         self.__conn.executescript(SCHEMA)
-        self.__counter = AUTOCOMMIT_COUNTER
+        self.__autocommit_time = time.time()
+        atexit.register(self.commit)
 
     def __del__(self):
         self.commit()
 
     def commit(self):
         self.__conn.commit()
+        self.__autocommit_time = time.time()
 
     def __autocommit(self):
-        if self.__counter == 0:
+        tm = time.time()
+        if self.__autocommit_time + AUTOCOMMIT_TIMEOUT < tm:
             self.__conn.commit()
-            self.__counter = AUTOCOMMIT_COUNTER
-        self.__counter -= 1
+            self.__autocommit_time = tm
 
     def save_face(self, face_id, data):
         c = self.__conn.cursor()
@@ -63,9 +67,10 @@ class CacheDB(object):
         return [r[0] for r in res.fetchall()]
 
     def clean_cache(self):
+        self.commit()
         c = self.__conn.cursor()
         c.execute('DELETE FROM cache')
-        self.__conn.commit()
+        self.commit()
 
     def add_to_cache(self, face_id, filename):
         c = self.__conn.cursor()
@@ -94,7 +99,7 @@ class CacheDB(object):
     def remove_from_cache(self, filename):
         c = self.__conn.cursor()
         c.execute('DELETE FROM cache WHERE filename=?', (filename,))
-        self.__conn.commit()
+        self.__autocommit()
 
 
 def __speed_test(db):
@@ -102,21 +107,14 @@ def __speed_test(db):
     count = 1000
     for i in range(count):
         db.save_face(i, data)
+    del db
 
 
 def speed_test(db):
-    import io
-    import pstats
     import cProfile
 
-    pr = cProfile.Profile()
-    pr.enable()
-    __speed_test(db)
-    pr.disable()
-    s = io.StringIO()
-    ps = pstats.Stats(pr, stream=s).sort_stats()
-    ps.print_stats()
-    print(s.getvalue())
+    cProfile.runctx('__speed_test(db)',
+                    {'__speed_test': __speed_test, 'db': db}, {})
 
 
 def args_parse():
