@@ -35,6 +35,7 @@
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liMatchFolder">Rematch folder...</a>
+                            <a class="dropdown-item" href="#" id="liMatchPerson">Rematch person...</a>
                             <a class="dropdown-item" href="#" id="liMatchUnmatched">Match unmatched</a>
                             <a class="dropdown-item" href="#" id="liMatchWeak">Rematch weak</a>
                             <a class="dropdown-item" href="#" id="liRematch">Rematch all</a>
@@ -46,6 +47,7 @@
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liGenerate">Generate faces...</a>
+                            <a class="dropdown-item" href="#" id="liGenerateName">Generate person faces...</a>
                             <a class="dropdown-item" href="#" id="liGenerateWeak">Generate weak faces</a>
                         </div>
                     </li>
@@ -705,6 +707,11 @@
 
             $("#liGenerate").click(function(e) {
                 e.preventDefault();
+                runPathCommand('generate_faces', 'type=folder', false, false);
+            });
+
+            $("#liGenerateName").click(function(e) {
+                e.preventDefault();
                 runPathCommand('generate_faces', 'type=name', false, true);
             });
 
@@ -731,6 +738,11 @@
             $("#liMatchFolder").click(function(e) {
                 e.preventDefault();
                 runPathCommand('match', 'type=folder', true, false);
+            });
+
+            $("#liMatchPerson").click(function(e) {
+                e.preventDefault();
+                runPathCommand('match', 'type=name', true, true);
             });
 
             $("#liClusterizeUnmatched").click(function(e) {
