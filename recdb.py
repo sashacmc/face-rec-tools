@@ -34,6 +34,10 @@ AFTER UPDATE ON faces
 BEGIN
     UPDATE images SET synced=0 WHERE id=OLD.image_id;
 END;
+
+CREATE INDEX IF NOT EXISTS images_filename ON images (filename);
+CREATE INDEX IF NOT EXISTS faces_image_id ON faces (image_id);
+CREATE INDEX IF NOT EXISTS faces_name ON faces (name);
 '''
 
 
