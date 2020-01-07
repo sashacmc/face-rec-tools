@@ -24,7 +24,7 @@ class Patterns(object):
         self.__encodings = []
         self.__names = []
         self.__files = []
-        self.__filetimes = {}
+        self.__times = []
         self.__classifer = None
         self.__classes = []
         self.__model = model
@@ -44,22 +44,15 @@ class Patterns(object):
 
         if not regenerate:
             self.load()
+            filetimes = {f: t for f, t in zip(self.__files, self.__times)}
             filtered = {}
             for image_file in image_files:
-                filename = os.path.split(image_file)[1]
-                filename_exsists = filename in self.__filetimes
+                filename_exsists = image_file in filetimes
                 if not filename_exsists or \
-                        self.__filetimes[filename] != image_files[image_file]:
+                        filetimes[image_file] != image_files[image_file]:
                     filtered[image_file] = image_files[image_file]
                     if filename_exsists:
-                        del self.__filetimes[filename]
-                        for i, f in enumerate(self.__files):
-                            if f == image_file:
-                                del self.__files[i]
-                                del self.__names[i]
-                                del self.__encodings[i]
-                                logging.debug(f'File replaced: {image_file}')
-                                break
+                        self.__remove_file(image_file)
 
             if len(filtered) == 0:
                 logging.info('Nothing changed')
@@ -94,16 +87,14 @@ class Patterns(object):
                     model=self.__encoding_model)
                 encoding = encodings[0]
 
-            filename = os.path.split(image_file)[1]
-            if filename in self.__filetimes:
-                logging.warning(f'Duplicate pattern file: {image_file}')
-                continue
-
             self.__encodings.append(encoding)
             self.__names.append(name)
             self.__files.append(image_file)
-            self.__filetimes[filename] = image_files[image_file]
+            self.__times.append(image_files[image_file])
 
+        self.__save()
+
+    def __save(self):
         if self.__train_classifer:
             logging.info('Classification training')
             self.train_classifer()
@@ -115,7 +106,7 @@ class Patterns(object):
             'names': self.__names,
             'files': self.__files,
             'encodings': self.__encodings,
-            'filetimes': self.__filetimes,
+            'times': self.__times,
             'persons': self.__persons,
             'classifer': self.__classifer,
             'classes': self.__classes}
@@ -160,12 +151,27 @@ class Patterns(object):
         with open(out_filename, 'wb') as f:
             f.write(data)
 
+    def __remove_file(self, filename):
+        i = self.__files.index(filename)
+        del self.__files[i]
+        del self.__names[i]
+        del self.__encodings[i]
+        del self.__times[i]
+        logging.debug(f'File removed: {filename}')
+
+    def remove_files(self, filenames):
+        self.load()
+        for filename in filenames:
+            self.__remove_file(filename)
+            os.remove(filename)
+        self.__save()
+
     def load(self):
         data = pickle.loads(open(self.__pickle_file, 'rb').read())
         self.__encodings = data['encodings']
         self.__names = data['names']
         self.__files = data['files']
-        self.__filetimes = data['filetimes']
+        self.__times = data['times']
         self.__classifer = data['classifer']
         self.__classes = data['classes']
         self.__persons = data['persons']
@@ -187,10 +193,20 @@ class Patterns(object):
                     logging.warning(
                         f'Different person {fname} {uniq[label]}')
                 else:
-                    logging.debug(f'Removing {fname} ({uniq[label]})')
-                    os.remove(fname)
+                    to_remove.append(fname)
 
+        self.remove_files(to_remove)
         logging.info(f'Optimized from {len(encs)} to {len(uniq)}.')
+
+    def analyze(self):
+        fset = {}
+        for f in self.__files:
+            filename = os.path.split(f)[1]
+            if filename in fset:
+                logging.warning(
+                    f'Duplicate pattern file: {f} ({fset[filename]})')
+            else:
+                fset[filename] = f
 
     def __calcPersons(self):
         dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
@@ -281,9 +297,11 @@ def args_parse():
                  'add',
                  'add_new',
                  'add_gen',
+                 'remove',
                  'list',
                  'persons',
-                 'optimize'])
+                 'optimize',
+                 'analyze'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-n', '--name', help='Person name')
@@ -317,6 +335,8 @@ def main():
         patt.load()
         patt.add_files(args.name, args.files)
         patt.generate(args.regenerate)
+    elif args.action == 'remove':
+        patt.remove_files(args.files)
     elif args.action == 'list':
         patt.load()
         for name, filename in zip(patt.names(), patt.files()):
@@ -328,6 +348,9 @@ def main():
     elif args.action == 'optimize':
         patt.load()
         patt.optimize()
+    elif args.action == 'analyze':
+        patt.load()
+        patt.analyze()
 
 
 if __name__ == '__main__':
