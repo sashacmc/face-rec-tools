@@ -397,6 +397,7 @@ def args_parse():
                  'recognize_folder',
                  'match_unmatched',
                  'match_all',
+                 'match_folder',
                  'clusterize_unmatched',
                  'save_faces'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
