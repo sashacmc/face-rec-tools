@@ -124,10 +124,8 @@ class Recognizer(threading.Thread):
         distances = face_recognition.face_distance(
             self.__patterns.encodings(), encoding)
 
-        names = [(dist, name)
-                 for dist, name in zip(distances, self.__patterns.names())]
-        names.sort()
-        return names[0]
+        i = numpy.argmin(distances)
+        return (distances[i], self.__patterns.names()[i])
 
     def __match_face_by_class(self, encoding):
         proba = self.__patterns.classifer().predict_proba(
@@ -210,7 +208,6 @@ class Recognizer(threading.Thread):
             self.__status_step()
             encoded_faces, image = self.recognize_image(f)
             db.insert(f, encoded_faces)
-            db.print_details(f)
             if debug_out_folder:
                 debug_out_file_name = self.__extract_filename(f)
                 self.__save_debug_images(
@@ -292,6 +289,8 @@ class Recognizer(threading.Thread):
             self.__save_debug_images(
                 ff['faces'], image,
                 debug_out_folder, debug_out_file_name)
+        if self.__cdb is not None:
+            self.__cdb.commit()
 
     def recognize_folder(self, folder, db, debug_out_folder, reencode=False):
         self.__status_state('recognize_folder')
