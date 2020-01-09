@@ -15,6 +15,8 @@ import log
 import tools
 import config
 
+FACE_FILENAME = '0_face.jpg'
+
 
 class Patterns(object):
     def __init__(self, folder, model='hog', max_size=1000,
@@ -40,6 +42,8 @@ class Patterns(object):
 
         image_files = {}
         for image_file in list(paths.list_images(self.__folder)):
+            if os.path.split(image_file)[1] == FACE_FILENAME:
+                continue
             image_files[image_file] = os.stat(image_file).st_mtime
 
         if not regenerate:
@@ -213,6 +217,12 @@ class Patterns(object):
         for i, name in enumerate(self.__names):
             dct[name]['count'] += 1
             dct[name]['image'] = min(dct[name]['image'], self.__files[i])
+
+        for name in dct:
+            face_filename = os.path.join(self.__folder, name, FACE_FILENAME)
+            if os.path.exists(face_filename):
+                dct[name]['image'] = face_filename
+
         res = [{'name': k, 'count': v['count'], 'image': v['image']}
                for k, v in dct.items()]
         res.sort(key=lambda el: el['count'], reverse=True)
