@@ -75,7 +75,7 @@ class CacheDB(object):
     def add_to_cache(self, face_id, filename):
         c = self.__conn.cursor()
         c.execute(
-            'INSERT INTO cache (face_id, filename) \
+            'INSERT OR REPLACE INTO cache (face_id, filename) \
              VALUES (?, ?)', (face_id, filename))
         self.__autocommit()
 
