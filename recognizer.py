@@ -187,9 +187,8 @@ class Recognizer(threading.Thread):
         for i in range(len(files_faces)):
             self.__status_step()
             for j in range(len(files_faces[i]['faces'])):
-                if files_faces[i]['faces'][j]['name'] == '':
-                    files_faces[i]['faces'][j]['name'] = \
-                        'unknown_{:04d}'.format(labels[lnum])
+                files_faces[i]['faces'][j]['name'] = \
+                    'unknown_{:04d}'.format(labels[lnum])
                 lnum += 1
 
             if debug_out_folder:
