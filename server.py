@@ -54,7 +54,11 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             fname = os.path.join(self.server.face_cache_path(), path[6:])
             if self.server.cdb() is not None:
                 data = self.server.cdb().get_from_cache(fname)
-                self.__send_blob(data, 'image/jpeg')
+                if data is not None:
+                    self.__send_blob(data, 'image/jpeg')
+                else:
+                    self.__not_found_response()
+                    logging.debug(f'File in cache not found: {fname}')
                 return
         else:
             fname = os.path.join(self.server.web_path(), path)
