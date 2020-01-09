@@ -22,7 +22,7 @@
                 <ul class="navbar-nav mr-auto">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Face recognition
+                            Recognition
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liAdd">Add new images...</a>
@@ -31,7 +31,7 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Face match
+                            Match
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liMatchFolder">Rematch folder...</a>
@@ -43,17 +43,18 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Face images generation
+                            Images generation
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liGenerate">Generate faces...</a>
                             <a class="dropdown-item" href="#" id="liGenerateName">Generate person faces...</a>
                             <a class="dropdown-item" href="#" id="liGenerateWeak">Generate weak faces</a>
+                            <a class="dropdown-item" href="#" id="liGenerateUnmatched">Generate unmatched faces</a>
                         </div>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Faces clustering
+                            Clustering
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liClusterizeUnmatched">Clusterize unmatched</a>
@@ -152,9 +153,12 @@
 
     <div class="modal fade" id="errorModal">
         <div class="modal-dialog">
-            <div class="modal-content">
+            <div class="modal-content error-modal">
                 <div class="modal-header">
                     <h5 class="modal-title">Error</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body" id="errorModalBody">
                 </div>
@@ -351,6 +355,7 @@
                 $('#images_names').html(images_names);
                 $('#images_html').html(images_html);
                 $('.img_close').on('click', function(e){
+                    e.preventDefault();
                     var img = $(this).attr('image');
                     images.splice(images.indexOf(img), 1);
                     fillContent();
@@ -473,7 +478,17 @@
                 var faces = data[i][1];
                 html += genCard(name, faces, i);
             }
-            $("#accordionFaces").html(html)
+            $("#accordionFaces").html(html);
+            $('#accordionFaces').on('shown.bs.collapse', function () {
+                var panel = $(this).find('.show').parent();
+                var pos = panel.offset().top - $('.navbar').height() - 16;
+                $('html, body').animate({scrollTop: pos}, 300);
+            })
+        }
+
+        function cleanFacesList()
+        {
+            $("#accordionFaces").html("");
         }
 
         function setFoldersList(data)
@@ -555,6 +570,7 @@
                     opts = 'name=' + $('#runPathModalNameCombo').val() + '&' + opts;
                 }
                 runPathModalSpinner(true);
+                cleanFacesList();
                 $.ajax({
                     url: '/' + cmd + '?path=' + g_addGenPath + '&' + opts,
                     type: 'POST',
@@ -576,6 +592,7 @@
         function runCommand(cmd, opts)
         {
             mainSpinner(true);
+            cleanFacesList();
             $.ajax({
                 url: '/' + cmd + '?' + opts,
                 type: 'POST',
@@ -686,6 +703,7 @@
         var commandText = {
             recognize_folder:       'Recognize folder',
             generate_faces:         'Generate faces',
+            save_faces:             'Generate faces',
             match:                  'Match',
             clusterize:             'Clusterize'
         }
@@ -718,6 +736,11 @@
             $("#liGenerateWeak").click(function(e) {
                 e.preventDefault();
                 runPathCommand('generate_faces', 'type=weak', false, false);
+            });
+
+            $("#liGenerateUnmatched").click(function(e) {
+                e.preventDefault();
+                runCommand('generate_faces', 'type=unmatched');
             });
 
             $("#liRematch").click(function(e) {
@@ -757,7 +780,7 @@
 
             $("#liClusterizeFolder").click(function(e) {
                 e.preventDefault();
-                runPathCommand('clusterize', 'type=folder', false, false);
+                runPathCommand('clusterize', 'type=name', false, true);
             });
 
             checkProgress();

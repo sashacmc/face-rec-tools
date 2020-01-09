@@ -78,3 +78,7 @@ code {
                  -1px  1px 1px white,
                  -1px -1px 1px white;
 }
+
+.error-modal {
+   background-color: salmon;
+} 
