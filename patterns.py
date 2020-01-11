@@ -124,7 +124,8 @@ class Patterns(object):
 
     def __calc_out_filename(self, filename):
         out_filename = os.path.split(filename)[1]
-        for n in self.__names:
+        for person in self.__persons:
+            n = person['name']
             out_filename = re.sub(n + '_\d+_', '', out_filename)
             out_filename = re.sub(n + '_weak_\d+_', '', out_filename)
             out_filename = out_filename.replace(n, '')
