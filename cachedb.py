@@ -5,6 +5,7 @@ import time
 import atexit
 import sqlite3
 import argparse
+import threading
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS face_images (
@@ -32,14 +33,16 @@ class CacheDB(object):
         self.__conn.execute('pragma journal_mode=off;')
         self.__conn.executescript(SCHEMA)
         self.__autocommit_time = time.time()
+        self.__lock = threading.RLock()
         atexit.register(self.commit)
 
     def __del__(self):
         self.commit()
 
     def commit(self):
-        self.__conn.commit()
-        self.__autocommit_time = time.time()
+        with self.__lock:
+            self.__conn.commit()
+            self.__autocommit_time = time.time()
 
     def __autocommit(self):
         tm = time.time()
@@ -48,58 +51,66 @@ class CacheDB(object):
             self.__autocommit_time = tm
 
     def save_face(self, face_id, data):
-        c = self.__conn.cursor()
-        c.execute(
-            'INSERT INTO face_images (face_id, data) \
-             VALUES (?, ?)', (face_id, data))
-        self.__autocommit()
+        with self.__lock:
+            c = self.__conn.cursor()
+            c.execute(
+                'INSERT INTO face_images (face_id, data) \
+                 VALUES (?, ?)', (face_id, data))
+            self.__autocommit()
 
     def check_face(self, face_id):
-        c = self.__conn.cursor()
-        res = c.execute('SELECT face_id FROM face_images WHERE face_id=?',
-                        (face_id,))
-        return res.fetchone() is not None
+        with self.__lock:
+            c = self.__conn.cursor()
+            res = c.execute('SELECT face_id FROM face_images WHERE face_id=?',
+                            (face_id,))
+            return res.fetchone() is not None
 
     def list_cache(self):
-        self.commit()
-        c = self.__conn.cursor()
-        res = c.execute('SELECT filename FROM cache')
-        return [r[0] for r in res.fetchall()]
+        with self.__lock:
+            self.commit()
+            c = self.__conn.cursor()
+            res = c.execute('SELECT filename FROM cache')
+            return [r[0] for r in res.fetchall()]
 
     def clean_cache(self):
-        self.commit()
-        c = self.__conn.cursor()
-        c.execute('DELETE FROM cache')
-        self.commit()
+        with self.__lock:
+            self.commit()
+            c = self.__conn.cursor()
+            c.execute('DELETE FROM cache')
+            self.commit()
 
     def add_to_cache(self, face_id, filename):
-        c = self.__conn.cursor()
-        c.execute(
-            'INSERT OR REPLACE INTO cache (face_id, filename) \
-             VALUES (?, ?)', (face_id, filename))
-        self.__autocommit()
+        with self.__lock:
+            c = self.__conn.cursor()
+            c.execute(
+                'INSERT OR REPLACE INTO cache (face_id, filename) \
+                 VALUES (?, ?)', (face_id, filename))
+            self.__autocommit()
 
     def get_from_cache(self, filename):
-        c = self.__conn.cursor()
-        res = c.execute('SELECT data FROM face_images \
-                         JOIN cache ON face_images.face_id=cache.face_id \
-                         WHERE filename=?', (filename,))
-        row = res.fetchone()
-        if row is not None:
-            return row[0]
-        else:
-            return None
+        with self.__lock:
+            c = self.__conn.cursor()
+            res = c.execute('SELECT data FROM face_images \
+                             JOIN cache ON face_images.face_id=cache.face_id \
+                             WHERE filename=?', (filename,))
+            row = res.fetchone()
+            if row is not None:
+                return row[0]
+            else:
+                return None
 
     def save_from_cache(self, filename, out_filename):
-        data = self.get_from_cache(filename)
-        os.makedirs(os.path.split(filename)[0], exist_ok=True)
-        with open(out_filename, 'wb') as f:
-            f.write(data)
+        with self.__lock:
+            data = self.get_from_cache(filename)
+            os.makedirs(os.path.split(filename)[0], exist_ok=True)
+            with open(out_filename, 'wb') as f:
+                f.write(data)
 
     def remove_from_cache(self, filename):
-        c = self.__conn.cursor()
-        c.execute('DELETE FROM cache WHERE filename=?', (filename,))
-        self.__autocommit()
+        with self.__lock:
+            c = self.__conn.cursor()
+            c.execute('DELETE FROM cache WHERE filename=?', (filename,))
+            self.__autocommit()
 
 
 def __speed_test(db):
