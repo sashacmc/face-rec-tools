@@ -10,8 +10,10 @@ import shutil
 import logging
 import argparse
 import threading
+import itertools
 import collections
 import face_recognition
+import concurrent.futures
 
 from imutils import paths
 
@@ -35,6 +37,7 @@ class Recognizer(threading.Thread):
                  min_face_size=20,
                  debug_out_image_size=100,
                  encoding_model='large',
+                 max_workers=1,
                  cdb=None,
                  nearest_match=True):
 
@@ -51,8 +54,16 @@ class Recognizer(threading.Thread):
         self.__encoding_model = encoding_model
         self.__cdb = cdb
         self.__nearest_match = nearest_match
+
         self.__status = {'state': '', 'count': 0, 'current': 0}
         self.__status_lock = threading.Lock()
+
+        self.__max_workers = int(max_workers)
+        self.__executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.__max_workers)
+        self.__pattern_encodings = numpy.array_split(
+            numpy.array(self.__patterns.encodings()),
+            self.__max_workers)
 
     def start_method(self, method, *args):
         self.__status_state(method)
@@ -121,9 +132,10 @@ class Recognizer(threading.Thread):
         return res
 
     def __match_face_by_nearest(self, encoding):
-        distances = face_recognition.face_distance(
-            self.__patterns.encodings(), encoding)
-
+        res = [r for r in self.__executor.map(face_recognition.face_distance,
+                                              self.__pattern_encodings,
+                                              itertools.repeat(encoding))]
+        distances = numpy.concatenate(res)
         i = numpy.argmin(distances)
         return (distances[i], self.__patterns.names()[i])
 
@@ -444,6 +456,7 @@ def main():
                      min_face_size=cfg['main']['min_face_size'],
                      debug_out_image_size=cfg['main']['debug_out_image_size'],
                      encoding_model=cfg['main']['encoding_model'],
+                     max_workers=cfg['main']['max_workers'],
                      cdb=cdb)
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)

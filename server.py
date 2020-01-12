@@ -314,6 +314,7 @@ class FaceRecServer(http.server.HTTPServer):
             max_image_size=self.__cfg['main']['max_image_size'],
             min_face_size=self.__cfg['main']['min_face_size'],
             debug_out_image_size=self.__cfg['main']['debug_out_image_size'],
+            max_workers=cfg['main']['max_workers'],
             cdb=self.__cdb)
 
         self.__recognizer.start_method(method, *args)
