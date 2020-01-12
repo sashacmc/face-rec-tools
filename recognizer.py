@@ -218,12 +218,13 @@ class Recognizer(threading.Thread):
         for f in filenames:
             self.__status_step()
             encoded_faces, image = self.recognize_image(f)
-            db.insert(f, encoded_faces)
+            db.insert(f, encoded_faces, commit=False)
             if debug_out_folder:
                 debug_out_file_name = self.__extract_filename(f)
                 self.__save_debug_images(
                     encoded_faces, image,
                     debug_out_folder, debug_out_file_name)
+        db.commit()
         if self.__cdb is not None:
             self.__cdb.commit()
 
@@ -271,7 +272,8 @@ class Recognizer(threading.Thread):
                 cnt_all += 1
                 changed = False
                 if 'oldname' in face and face['oldname'] != face['name']:
-                    db.set_name(face['face_id'], face['name'], face['dist'])
+                    db.set_name(face['face_id'], face['name'], face['dist'],
+                                commit=False)
                     cnt_changed += 1
                     changed = True
                     logging.info(
@@ -284,6 +286,7 @@ class Recognizer(threading.Thread):
                     self.__save_debug_images(
                         (face,), image,
                         debug_out_folder, debug_out_file_name)
+        db.commit()
         if self.__cdb is not None:
             self.__cdb.commit()
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')

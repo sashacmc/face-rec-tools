@@ -4,6 +4,7 @@ import io
 import os
 import json
 import numpy
+import atexit
 import sqlite3
 import argparse
 
@@ -66,8 +67,12 @@ class RecDB(object):
 
         self.__conn.executescript(SCHEMA)
         self.__readonly = readonly
+        atexit.register(self.commit)
 
-    def insert(self, filename, rec_result):
+    def commit(self):
+        self.__conn.commit()
+
+    def insert(self, filename, rec_result, commit=True):
         # rec_result =
         #   [{'box': (l, b, r, t),
         #     'encoding': BLOB,
@@ -97,7 +102,8 @@ class RecDB(object):
                  face['dist'])
             ).lastrowid
 
-        self.__conn.commit()
+        if commit:
+            self.__conn.commit()
 
     def get_all_faces(self):
         c = self.__conn.cursor()
@@ -106,13 +112,14 @@ class RecDB(object):
         return [{'id': r[0], 'box': json.loads(r[1]), 'encoding': [2]}
                 for r in res.fetchall()]
 
-    def set_name(self, face_id, name, dist):
+    def set_name(self, face_id, name, dist, commit=True):
         if self.__readonly:
             return
         c = self.__conn.cursor()
         c.execute('UPDATE faces SET name=?, dist=? WHERE id=?',
                   (name, dist, face_id))
-        self.__conn.commit()
+        if commit:
+            self.__conn.commit()
 
     def get_names(self, filename):
         c = self.__conn.cursor()
@@ -209,12 +216,13 @@ class RecDB(object):
 
         return files_faces
 
-    def mark_as_synced(self, filename):
+    def mark_as_synced(self, filename, commit):
         if self.__readonly:
             return
         c = self.__conn.cursor()
         c.execute('UPDATE images SET synced=1 WHERE filename=?', (filename,))
-        self.__conn.commit()
+        if commit:
+            self.__conn.commit()
 
 
 def args_parse():
