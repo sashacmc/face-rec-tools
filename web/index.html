@@ -75,7 +75,7 @@
     </main>
 
     <div class="modal fade" id="facePropModal" tabindex="-1" role="dialog" aria-labelledby="facePropModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog" role="document" id="facePropModalDoc">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="facePropModalLabel"></h5>
@@ -418,7 +418,6 @@
 
             var text_buff = '';
             var filtered = [];
-            var last_scroll = 0;
 
             $('#facePropModal').off("keydown").keydown(function(e) {
                 if (e.which == 13) { // Enter
@@ -446,11 +445,9 @@
                     if (filtered.length == 1) {
                         $('#radio' + filtered[0]).trigger('click');
                     }
-                    var scroll = $('#radio' + filtered[0]).offset().top;
-                    if (scroll != last_scroll) {
-                        $('#facePropModal').scrollTop(scroll);
-                        last_scroll = scroll;
-                    }
+                    var scroll = $('#radio' + filtered[0]).offset().top - 
+                                    $('#facePropModalDoc').offset().top;
+                    $('#facePropModal').scrollTop(scroll);
                 }
                 for (var i in g_names) {
                     if (filtered.includes(g_names[i])) {
