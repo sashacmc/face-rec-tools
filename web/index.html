@@ -278,6 +278,11 @@
 
         function showImageProps(name, image, e)
         {
+            if (e.ctrlKey) {
+                var target = $('input:checkbox[class=img_checkbox][imgname="' + image + '"]');
+                target.prop('checked', !target.prop('checked'));
+                return;
+            }
             if (e.shiftKey) {
                 var target = $('input:checkbox[class=img_checkbox][imgname="' + image + '"]');
                 target.prop('checked', true);
