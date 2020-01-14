@@ -108,6 +108,14 @@ class RecDB(object):
         if commit:
             self.__conn.commit()
 
+    def remove(self, filename, commit=True):
+        if self.__readonly:
+            return
+        c = self.__conn.cursor()
+        c.execute('DELETE FROM images WHERE filename=?', (filename,))
+        if commit:
+            self.__conn.commit()
+
     def get_all_faces(self):
         c = self.__conn.cursor()
         res = c.execute('SELECT image_id, box, encoding FROM faces')

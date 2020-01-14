@@ -318,6 +318,19 @@ class Recognizer(threading.Thread):
 
         self.recognize_files(filenames, db, debug_out_folder)
 
+    def remove_folder(self, folder, db):
+        self.__status_state('remove_folder')
+        files_faces = db.get_folder(folder)
+        for ff in files_faces:
+            logging.info(f"remove image: {ff['filename']}")
+            db.remove(ff['filename'], False)
+            if self.__cdb is not None:
+                for face in ff['faces']:
+                    self.__cdb.remove_face(face['face_id'])
+        db.commit()
+        if self.__cdb is not None:
+            self.__cdb.commit()
+
     def __get_images_from_folders(self, folder):
         return list(paths.list_images(folder))
 
@@ -408,6 +421,7 @@ def args_parse():
         '-a', '--action', help='Action', required=True,
         choices=['recognize_image',
                  'recognize_folder',
+                 'remove_folder',
                  'match_unmatched',
                  'match_all',
                  'match_folder',
@@ -468,6 +482,8 @@ def main():
         print(rec.recognize_image(args.input)[0])
     elif args.action == 'recognize_folder':
         rec.recognize_folder(args.input, db, args.output, args.reencode)
+    elif args.action == 'remove_folder':
+        rec.remove_folder(args.input, db)
     elif args.action == 'match_unmatched':
         rec.match(db, {'type': 'unmatched'}, args.output, False)
     elif args.action == 'match_all':

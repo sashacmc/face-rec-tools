@@ -65,6 +65,13 @@ class CacheDB(object):
                             (face_id,))
             return res.fetchone() is not None
 
+    def remove_face(self, face_id):
+        with self.__lock:
+            c = self.__conn.cursor()
+            res = c.execute('DELETE FROM face_images WHERE face_id=?',
+                            (face_id,))
+            self.__autocommit()
+
     def list_cache(self):
         with self.__lock:
             self.commit()

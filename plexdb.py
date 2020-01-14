@@ -9,6 +9,13 @@ class PlexDB(object):
     def __init__(self, filename):
         self.__conn = sqlite3.connect(filename)
         self.__tag_cache = {}
+    def get_files(self, folder):
+        c = self.__conn.cursor()
+        res = c.execute('SELECT file FROM media_parts \
+                         WHERE file LIKE ? \
+                         ORDER BY file',
+                        (folder + '%',))
+        return [row[0] for row in res.fetchall()]
 
     def set_tags(self, filename, tags):
         fid = self.__get_id(filename)
