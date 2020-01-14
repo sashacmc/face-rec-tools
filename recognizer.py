@@ -415,6 +415,21 @@ class Recognizer(threading.Thread):
             self.__status['current'] += 1
 
 
+def createRecognizer(patt, cfg, cdb):
+    return Recognizer(patt,
+                      model=cfg['main']['model'],
+                      num_jitters=cfg['main']['num_jitters'],
+                      threshold=cfg['main']['threshold'],
+                      threshold_weak=cfg['main']['threshold_weak'],
+                      threshold_clusterize=cfg['main']['threshold_clusterize'],
+                      max_image_size=cfg['main']['max_image_size'],
+                      min_face_size=cfg['main']['min_face_size'],
+                      debug_out_image_size=cfg['main']['debug_out_image_size'],
+                      encoding_model=cfg['main']['encoding_model'],
+                      max_workers=cfg['main']['max_workers'],
+                      cdb=cdb)
+
+
 def args_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -432,7 +447,6 @@ def args_parse():
     parser.add_argument('-i', '--input', help='Input file or folder')
     parser.add_argument('-o', '--output', help='Output folder for faces')
     parser.add_argument('-c', '--config', help='Config file')
-    parser.add_argument('--threshold', help='Match threshold')
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
     parser.add_argument('-r', '--reencode', help='Reencode existing files',
@@ -462,19 +476,7 @@ def main():
     else:
         cdb = None
 
-    rec = Recognizer(patt,
-                     model=cfg['main']['model'],
-                     num_jitters=cfg['main']['num_jitters'],
-                     threshold=cfg.get_def(
-                         'main', 'threshold', args.threshold),
-                     threshold_weak=cfg['main']['threshold_weak'],
-                     threshold_clusterize=cfg['main']['threshold_clusterize'],
-                     max_image_size=cfg['main']['max_image_size'],
-                     min_face_size=cfg['main']['min_face_size'],
-                     debug_out_image_size=cfg['main']['debug_out_image_size'],
-                     encoding_model=cfg['main']['encoding_model'],
-                     max_workers=cfg['main']['max_workers'],
-                     cdb=cdb)
+    rec = createRecognizer(patt, cfg, cdb)
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
 

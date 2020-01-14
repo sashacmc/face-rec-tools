@@ -303,20 +303,8 @@ class FaceRecServer(http.server.HTTPServer):
             raise Exception('Recognizer already started')
 
         self.__clean_cache()
-
-        self.__recognizer = recognizer.Recognizer(
-            self.__patterns,
-            model=self.__cfg['main']['model'],
-            num_jitters=self.__cfg['main']['num_jitters'],
-            threshold=self.__cfg['main']['threshold'],
-            threshold_weak=self.__cfg['main']['threshold_weak'],
-            threshold_clusterize=self.__cfg['main']['threshold_clusterize'],
-            max_image_size=self.__cfg['main']['max_image_size'],
-            min_face_size=self.__cfg['main']['min_face_size'],
-            debug_out_image_size=self.__cfg['main']['debug_out_image_size'],
-            max_workers=self.__cfg['main']['max_workers'],
-            cdb=self.__cdb)
-
+        self.__recognizer = createRecognizer(
+                self.__patterns, self.__cfg, self.__cdb)
         self.__recognizer.start_method(method, *args)
 
     def __generate_patterns(self):
