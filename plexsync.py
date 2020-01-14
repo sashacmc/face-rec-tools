@@ -74,6 +74,8 @@ def args_parse():
     parser.add_argument('-c', '--config', help='Config file')
     parser.add_argument('-r', '--resync', help='Resync all',
                         action='store_true')
+    parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
+                        action='store_true')
     return parser.parse_args()
 
 
@@ -90,8 +92,8 @@ def main():
     names = set(patt.names())
     names.remove('trash')
 
-    rdb = recdb.RecDB(cfg['main']['db'])
-    pdb = plexdb.PlexDB(cfg['plex']['db'])
+    rdb = recdb.RecDB(cfg['main']['db'], args.dry_run)
+    pdb = plexdb.PlexDB(cfg['plex']['db'], args.dry_run)
 
     pls = PlexSync(names, rdb, pdb)
 
