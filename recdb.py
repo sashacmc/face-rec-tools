@@ -61,15 +61,18 @@ class RecDB(object):
         sqlite3.register_converter('array', convert_array)
 
         self.__conn = sqlite3.connect(
-            filename,
+            'file:' + filename + ('?mode=ro' if readonly else ''),
             detect_types=sqlite3.PARSE_DECLTYPES,
-            check_same_thread=False)
+            check_same_thread=False,
+            uri=True)
 
         self.__conn.executescript(SCHEMA)
         self.__readonly = readonly
         atexit.register(self.commit)
 
     def commit(self):
+        if self.__readonly:
+            return
         self.__conn.commit()
 
     def insert(self, filename, rec_result, commit=True):
@@ -80,7 +83,7 @@ class RecDB(object):
         #     'dist': dist
         #    }, ...]
         if self.__readonly:
-            return []
+            return
 
         c = self.__conn.cursor()
 
@@ -216,7 +219,7 @@ class RecDB(object):
 
         return files_faces
 
-    def mark_as_synced(self, filename, commit):
+    def mark_as_synced(self, filename, commit=True):
         if self.__readonly:
             return
         c = self.__conn.cursor()
