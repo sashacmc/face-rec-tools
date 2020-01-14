@@ -50,9 +50,10 @@ class PlexSync(object):
             logging.debug(f"sync tags for image: {filename}: " + str(tags))
             if len(tags) != 0:
                 self.__plexdb.set_tags(filename, tags)
-            self.__recdb.mark_as_synced(filename)
+            self.__recdb.mark_as_synced(filename, commit=False)
             images_count += 1
             faces_count += len(tags)
+        self.__recdb.commit()
 
         logging.info(
             f'Set tags done: images={images_count} faces={faces_count}')
