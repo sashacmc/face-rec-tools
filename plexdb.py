@@ -6,9 +6,13 @@ import sqlite3
 
 
 class PlexDB(object):
-    def __init__(self, filename):
-        self.__conn = sqlite3.connect(filename)
+    def __init__(self, filename, readonly):
+        self.__conn = sqlite3.connect(
+            'file:' + filename + ('?mode=ro' if readonly else ''),
+            uri=True)
         self.__tag_cache = {}
+        self.__readonly = readonly
+
     def get_files(self, folder):
         c = self.__conn.cursor()
         res = c.execute('SELECT file FROM media_parts \
@@ -101,6 +105,8 @@ class PlexDB(object):
         return res
 
     def __delete_tag(self, tag_id, cleanup=False):
+        if self.__readonly:
+            return
         c = self.__conn.cursor()
 
         if cleanup:
@@ -133,6 +139,8 @@ class PlexDB(object):
         return not self.__get_tag_id(tag) is None
 
     def __set_tag(self, fid, tag_id):
+        if self.__readonly:
+            return
         c = self.__conn.cursor()
 
         tm = self.__gen_time()
@@ -146,6 +154,8 @@ class PlexDB(object):
         self.__conn.commit()
 
     def __clean_tag(self, fid, tag_id):
+        if self.__readonly:
+            return
         c = self.__conn.cursor()
 
         res = c.execute(
