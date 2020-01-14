@@ -254,6 +254,7 @@ def main():
         db.print_details(args.file)
     elif args.action == 'get_folders':
         folders = db.get_folders()
+        folders.sort()
         for f in folders:
             print(f)
     elif args.action == 'get_files':
