@@ -217,13 +217,16 @@ class Recognizer(threading.Thread):
         self.__status_count(len(filenames))
         for f in filenames:
             self.__status_step()
-            encoded_faces, image = self.recognize_image(f)
-            db.insert(f, encoded_faces, commit=False)
-            if debug_out_folder:
-                debug_out_file_name = self.__extract_filename(f)
-                self.__save_debug_images(
-                    encoded_faces, image,
-                    debug_out_folder, debug_out_file_name)
+            try:
+                encoded_faces, image = self.recognize_image(f)
+                db.insert(f, encoded_faces, commit=False)
+                if debug_out_folder:
+                    debug_out_file_name = self.__extract_filename(f)
+                    self.__save_debug_images(
+                        encoded_faces, image,
+                        debug_out_folder, debug_out_file_name)
+            except Exception as ex:
+                logging.exception(f'Image {f} recognition failed')
         db.commit()
         if self.__cdb is not None:
             self.__cdb.commit()
