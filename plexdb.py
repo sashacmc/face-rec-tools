@@ -13,6 +13,11 @@ class PlexDB(object):
         self.__tag_cache = {}
         self.__readonly = readonly
 
+    def commit(self):
+        if self.__readonly:
+            return
+        self.__conn.commit()
+
     def get_files(self, folder):
         c = self.__conn.cursor()
         res = c.execute('SELECT file FROM media_parts \
@@ -21,7 +26,7 @@ class PlexDB(object):
                         (folder + '%',))
         return [row[0] for row in res.fetchall()]
 
-    def set_tags(self, filename, tags):
+    def set_tags(self, filename, tags, commit=True):
         fid = self.__get_id(filename)
         if fid is None:
             logging.warning(f'Filename not found: {filename}')
@@ -33,7 +38,7 @@ class PlexDB(object):
                 logging.warning(f'Tag not found: {tag}')
                 continue
 
-            self.__set_tag(fid, tag_id)
+            self.__set_tag(fid, tag_id, commit)
 
         return True
 
@@ -52,7 +57,7 @@ class PlexDB(object):
 
         return [r[0] for r in res.fetchall()]
 
-    def clean_tags(self, filename, tags=None, tag_prefix=None):
+    def clean_tags(self, filename, tags=None, tag_prefix=None, commit=True):
         fid = self.__get_id(filename)
         if fid is None:
             logging.warning(f'Filename not found: {filename}')
@@ -63,18 +68,23 @@ class PlexDB(object):
         if tags is not None:
             for tag in tags:
                 tag_id = self.__get_tag_id(tag)
-                res += self.__clean_tag(fid, tag_id)
+                res += self.__clean_tag(fid, tag_id, commit)
         if tag_prefix is not None:
             tag_ids = self.__get_tag_ids(tag_prefix)
             for tag_id in tag_ids:
-                res += self.__clean_tag(fid, tag_id)
-        self.__conn.commit()
+                res += self.__clean_tag(fid, tag_id, commit)
+
+        if commit:
+            self.__conn.commit()
 
         logging.debug(f'Removed {res} tags for {filename}')
 
         return res
 
-    def create_tag(self, tag):
+    def create_tag(self, tag, commit=True):
+        if self.__readonly:
+            return
+
         c = self.__conn.cursor()
 
         tm = self.__gen_time()
@@ -85,26 +95,27 @@ class PlexDB(object):
              VALUES (?,0,?,?)',
             (tag, tm, tm)).lastrowid
 
-        self.__conn.commit()
+        if commit:
+            self.__conn.commit()
 
         return res
 
-    def delete_tag(self, tag):
+    def delete_tag(self, tag, commit=True):
         tag_id = self.__get_tag_id(tag)
         if tag_id is None:
             return 0
 
-        return self.__delete_tag(tag_id)
+        return self.__delete_tag(tag_id, commit)
 
-    def delete_tags(self, tag_prefix, cleanup=False):
+    def delete_tags(self, tag_prefix, cleanup=False, commit=True):
         tag_ids = self.__get_tag_ids(tag_prefix)
         res = 0
         for tag_id in tag_ids:
-            res += self.__delete_tag(tag_id, cleanup)
+            res += self.__delete_tag(tag_id, cleanup, commit)
 
         return res
 
-    def __delete_tag(self, tag_id, cleanup=False):
+    def __delete_tag(self, tag_id, cleanup=False, commit=True):
         if self.__readonly:
             return
         c = self.__conn.cursor()
@@ -131,14 +142,15 @@ class PlexDB(object):
              WHERE id=?',
             (tag_id, )).rowcount
 
-        self.__conn.commit()
+        if commit:
+            self.__conn.commit()
 
         return res
 
     def tag_exists(self, tag):
         return not self.__get_tag_id(tag) is None
 
-    def __set_tag(self, fid, tag_id):
+    def __set_tag(self, fid, tag_id, commit=True):
         if self.__readonly:
             return
         c = self.__conn.cursor()
@@ -151,9 +163,10 @@ class PlexDB(object):
              VALUES (?,?,0,?)',
             (fid, tag_id, tm))
 
-        self.__conn.commit()
+        if commit:
+            self.__conn.commit()
 
-    def __clean_tag(self, fid, tag_id):
+    def __clean_tag(self, fid, tag_id, commit=True):
         if self.__readonly:
             return
         c = self.__conn.cursor()
@@ -163,7 +176,8 @@ class PlexDB(object):
              WHERE metadata_item_id=? AND tag_id=?',
             (fid, tag_id)).rowcount
 
-        self.__conn.commit()
+        if commit:
+            self.__conn.commit()
 
         return res
 
