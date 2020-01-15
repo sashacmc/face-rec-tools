@@ -83,6 +83,8 @@ class RecDB(object):
         #     'dist': dist
         #    }, ...]
         if self.__readonly:
+            for i, face in enumerate(rec_result):
+                rec_result[i]['face_id'] = 0
             return
 
         c = self.__conn.cursor()
