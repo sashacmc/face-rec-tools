@@ -303,7 +303,7 @@ class FaceRecServer(http.server.HTTPServer):
             raise Exception('Recognizer already started')
 
         self.__clean_cache()
-        self.__recognizer = createRecognizer(
+        self.__recognizer = recognizer.createRecognizer(
                 self.__patterns, self.__cfg, self.__cdb)
         self.__recognizer.start_method(method, *args)
 
