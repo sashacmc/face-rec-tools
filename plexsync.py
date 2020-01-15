@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import os
 import logging
 import argparse
 
@@ -7,7 +8,9 @@ import log
 import recdb
 import plexdb
 import config
+import cachedb
 import patterns
+import recognizer
 
 
 TAG_PREFIX = 'person:'
@@ -66,13 +69,53 @@ class PlexSync(object):
         self.__plexdb.delete_tags(TAG_PREFIX, cleanup=True)
         logging.info(f'Remove tags done')
 
+    def sync_new(self, cfg, patt, folders, exts):
+        logging.info(f'Sync new started')
+        cachedb_file = cfg['main']['cachedb']
+        cache_path = cfg['server']['face_cache_path']
+        if cachedb_file:
+            cdb = cachedb.CacheDB(cachedb_file)
+        else:
+            cdb = None
+        rec = recognizer.createRecognizer(patt, cfg, cdb)
+
+        for folder in folders:
+            plex_files = self.__plexdb.get_files(folder)
+            plex_files = set(
+                filter(lambda f: os.path.splitext(f)[1].lower() in exts,
+                       plex_files))
+            rec_files = set(self.__recdb.get_files(folder))
+            filenames = sorted(plex_files - rec_files)
+            count = len(filenames)
+            if count != 0:
+                logging.info(f'Adding {count} files from {folder}')
+                rec.recognize_files(filenames, self.__recdb, cache_path)
+            else:
+                logging.info(f'No files to add from {folder}')
+        self.set_tags()
+
+    def sync_deleted(self, folders):
+        logging.info(f'Sync deleted started')
+        for folder in folders:
+            plex_files = set(self.__plexdb.get_files(folder))
+            rec_files = set(self.__recdb.get_files(folder))
+            filenames = sorted(plex_files - rec_files)
+            for filename in filenames:
+                logging.info(f'removing from recdb: {filename}')
+                self.__recdb.remove(filename, commit=False)
+            else:
+                logging.info(f'No files to remove from {folder}')
+            self.__recdb.commit()
+
 
 def args_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '-a', '--action', help='Action', required=True,
         choices=['set_tags',
-                 'remove_tags'])
+                 'remove_tags',
+                 'sync_new',
+                 'sync_deleted'])
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-c', '--config', help='Config file')
     parser.add_argument('-r', '--resync', help='Resync all',
@@ -104,6 +147,12 @@ def main():
         pls.set_tags(resync=args.resync)
     elif args.action == 'remove_tags':
         pls.remove_tags()
+    elif args.action == 'sync_new':
+        folders = cfg['plex']['folders'].split(':')
+        pls.sync_new(cfg, patt, folders, ('.jpg',))
+    elif args.action == 'sync_deleted':
+        folders = cfg['plex']['folders'].split(':')
+        pls.sync_deleted(folders)
 
 
 if __name__ == '__main__':

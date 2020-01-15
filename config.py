@@ -30,6 +30,7 @@ class Config(object):
         },
         'plex': {
             'db': '/opt/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db',
+            'folders': '/mnt/multimedia/NEW/Foto:/mnt/multimedia/MediaAlbum/MyAlbum'
         }
     }
 
