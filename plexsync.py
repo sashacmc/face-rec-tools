@@ -24,8 +24,9 @@ class PlexSync(object):
             tag = TAG_PREFIX + name
             if self.__plexdb.tag_exists(tag):
                 continue
-            self.__plexdb.create_tag(tag)
+            self.__plexdb.create_tag(tag, commit=False)
             logging.info(f'Tag "{tag}" added to plex db')
+        self.__plexdb.commit()
 
     def set_tags(self, resync=False):
         logging.info(f'Set tags started ({resync})')
@@ -40,7 +41,8 @@ class PlexSync(object):
         faces_count = 0
         for ff in files_faces:
             filename = ff['filename']
-            self.__plexdb.clean_tags(filename, tag_prefix=TAG_PREFIX)
+            self.__plexdb.clean_tags(filename, tag_prefix=TAG_PREFIX,
+                                     commit=False)
             tags = []
             for face in ff['faces']:
                 name = face['name']
@@ -49,10 +51,11 @@ class PlexSync(object):
 
             logging.debug(f"sync tags for image: {filename}: " + str(tags))
             if len(tags) != 0:
-                self.__plexdb.set_tags(filename, tags)
+                self.__plexdb.set_tags(filename, tags, commit=False)
             self.__recdb.mark_as_synced(filename, commit=False)
             images_count += 1
             faces_count += len(tags)
+        self.__plexdb.commit()
         self.__recdb.commit()
 
         logging.info(
