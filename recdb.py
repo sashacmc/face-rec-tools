@@ -155,6 +155,25 @@ class RecDB(object):
             print(f'\tBox: {r[1]}')
             print(f'\tName: {r[2]}')
 
+    def print_stat(self):
+        c = self.__conn.cursor()
+
+        res = c.execute(
+            'SELECT name, COUNT(*) \
+             FROM faces \
+             GROUP BY name \
+             ORDER BY 2 DESC')
+
+        print(f'Person count')
+        for r in res.fetchall():
+            print(f'{r[1]}\t{r[0]}')
+
+        res = c.execute('SELECT COUNT(*) FROM faces')
+        print(f'Total faces: {res.fetchone()[0]}')
+
+        res = c.execute('SELECT COUNT(*) FROM images')
+        print(f'Total files: {res.fetchone()[0]}')
+
     def get_folders(self):
         c = self.__conn.cursor()
         res = c.execute('SELECT filename FROM images')
@@ -245,6 +264,7 @@ def args_parse():
         choices=['get_names',
                  'get_faces',
                  'print_details',
+                 'print_stat',
                  'get_folders',
                  'get_files'])
     parser.add_argument('-d', '--database', help='Database file')
@@ -262,6 +282,8 @@ def main():
         print(db.get_faces(args.file))
     elif args.action == 'print_details':
         db.print_details(args.file)
+    elif args.action == 'print_stat':
+        db.print_stat()
     elif args.action == 'get_folders':
         folders = db.get_folders()
         folders.sort()
