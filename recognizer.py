@@ -330,6 +330,11 @@ class Recognizer(threading.Thread):
             if self.__cdb is not None:
                 for face in ff['faces']:
                     self.__cdb.remove_face(face['face_id'])
+        # delete files without faces
+        files = db.get_files(folder)
+        for f in files:
+            logging.info(f"remove image: {f}")
+            db.remove(f, False)
         db.commit()
         if self.__cdb is not None:
             self.__cdb.commit()
