@@ -5,8 +5,13 @@ import os
 import json
 import numpy
 import atexit
+import logging
 import sqlite3
 import argparse
+
+from imutils import paths
+
+import log
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS images (
@@ -115,6 +120,15 @@ class RecDB(object):
             return
         c = self.__conn.cursor()
         c.execute('DELETE FROM images WHERE filename=?', (filename,))
+        if commit:
+            self.__conn.commit()
+
+    def move(self, oldfilename, newfilename, commit=True):
+        if self.__readonly:
+            return
+        c = self.__conn.cursor()
+        c.execute('UPDATE images SET filename=?, synced=0 WHERE filename=?',
+                  (newfilename, oldfilename))
         if commit:
             self.__conn.commit()
 
@@ -256,6 +270,35 @@ class RecDB(object):
         if commit:
             self.__conn.commit()
 
+    def __filenames_to_dict(self, filenames):
+        res = {}
+        dupl = False
+        for f in filenames:
+            path, name = os.path.split(f)
+            if name in res:
+                dupl = True
+                logging.error(
+                    f'Duplicate file {name} in {path} and {res[name]}')
+            res[name] = path
+        if dupl:
+            raise Exception(f'Duplicate files')
+        return res
+
+    def update_filepaths(self, oldfolder, newfolder):
+        newfiles = self.__filenames_to_dict(paths.list_images(newfolder))
+        oldfiles = self.__filenames_to_dict(self.get_files(oldfolder))
+        for name, oldpath in oldfiles.items():
+            if name not in newfiles:
+                old = os.path.join(oldpath, name)
+                logging.info(f'removing unexists file: {old}')
+                self.remove(old, commit=False)
+            elif newfiles[name] != oldpath:
+                old = os.path.join(oldpath, name)
+                new = os.path.join(newfiles[name], name)
+                logging.info(f'move file {old} to {new}')
+                self.move(old, new, commit=False)
+        self.commit()
+
 
 def args_parse():
     parser = argparse.ArgumentParser()
@@ -266,15 +309,20 @@ def args_parse():
                  'print_details',
                  'print_stat',
                  'get_folders',
-                 'get_files'])
+                 'get_files',
+                 'update_filepaths'])
     parser.add_argument('-d', '--database', help='Database file')
-    parser.add_argument('-f', '--file', help='File')
+    parser.add_argument('-f', '--file', help='File or folder')
+    parser.add_argument('-l', '--logfile', help='Log file')
+    parser.add_argument('--dry-run', help='Do''t modify DB',
+                        action='store_true')
     return parser.parse_args()
 
 
 def main():
     args = args_parse()
-    db = RecDB(args.database)
+    log.initLogger(args.logfile)
+    db = RecDB(args.database, args.dry_run)
 
     if args.action == 'get_names':
         print(db.get_names(args.file))
@@ -293,6 +341,8 @@ def main():
         files = db.get_files(args.file)
         for f in files:
             print(f)
+    elif args.action == 'update_filepaths':
+        db.update_filepaths(args.file, args.file)
 
 
 if __name__ == '__main__':
