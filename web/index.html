@@ -430,7 +430,9 @@
                     submitImageProps();
                     return;
                 }
-
+                if (e.which == 33 || e.which == 34) { // PageUp/PageDown
+                    return;
+                }
                 if ($('#inputNew').is(':focus')) {
                     return;
                 }
