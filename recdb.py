@@ -229,6 +229,11 @@ class RecDB(object):
         return self.get_files_faces(
             'WHERE filename LIKE ? AND name LIKE "%_weak"', (folder + '%',))
 
+    def get_weak_unmatched(self, folder):
+        return self.get_files_faces(
+            'WHERE filename LIKE ? AND (name LIKE "%_weak" OR name = "")',
+            (folder + '%',))
+
     def get_folder(self, folder):
         return self.get_files_faces('WHERE filename LIKE ?', (folder + '%',))
 

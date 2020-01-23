@@ -239,6 +239,8 @@ class Recognizer(threading.Thread):
             return db.get_all()
         elif tp == 'weak':
             return db.get_weak(fltr['path'])
+        elif tp == 'weak_unmatched':
+            return db.get_weak_unmatched(fltr['path'])
         elif tp == 'folder':
             return db.get_folder(fltr['path'])
         elif tp == 'name':

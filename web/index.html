@@ -36,6 +36,7 @@
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liMatchFolder">Rematch folder...</a>
                             <a class="dropdown-item" href="#" id="liMatchPerson">Rematch person...</a>
+                            <a class="dropdown-item" href="#" id="liMatchWeakUnmatched">Rematch weak unmatched...</a>
                             <a class="dropdown-item" href="#" id="liMatchUnmatched">Match unmatched</a>
                             <a class="dropdown-item" href="#" id="liMatchWeak">Rematch weak</a>
                             <a class="dropdown-item" href="#" id="liRematch">Rematch all</a>
@@ -61,6 +62,7 @@
                             <a class="dropdown-item" href="#" id="liClusterizeWeak">Clusterize weak</a>
                             <a class="dropdown-item" href="#" id="liClusterizeFolder">Clusterize folder...</a>
                             <a class="dropdown-item" href="#" id="liClusterizeWeakFolder">Clusterize weak folder...</a>
+                            <a class="dropdown-item" href="#" id="liClusterizeWeakUnmatched">Clusterize weak and unmatched...</a>
                         </div>
                     </li>
                 </ul>
@@ -773,6 +775,11 @@
                 runPathCommand('match', 'type=name', true, true);
             });
 
+            $("#liMatchWeakUnmatched").click(function(e) {
+                e.preventDefault();
+                runPathCommand('match', 'type=weak_unmatched', false, false);
+            });
+
             $("#liClusterizeUnmatched").click(function(e) {
                 e.preventDefault();
                 runCommand('clusterize', 'type=unmatched');
@@ -791,6 +798,11 @@
             $("#liClusterizeWeakFolder").click(function(e) {
                 e.preventDefault();
                 runPathCommand('clusterize', 'type=weak', false, false);
+            });
+
+            $("#liClusterizeWeakUnmatched").click(function(e) {
+                e.preventDefault();
+                runPathCommand('clusterize', 'type=weak_unmatched', false, false);
             });
 
             checkProgress();
