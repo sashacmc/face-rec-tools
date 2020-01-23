@@ -194,7 +194,10 @@ class RecDB(object):
 
         fset = set()
         for r in res.fetchall():
-            fset.add(os.path.split(r[0])[0])
+            path = os.path.dirname(r[0])
+            fset.add(path)
+            path = os.path.dirname(path)
+            fset.add(path)
 
         return list(fset)
 
