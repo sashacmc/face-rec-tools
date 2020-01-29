@@ -6,6 +6,7 @@ import cv2
 import sys
 import dlib
 import numpy
+import random
 import shutil
 import logging
 import argparse
@@ -185,7 +186,9 @@ class Recognizer(threading.Thread):
 
     def __clusterize(self, files_faces, debug_out_folder=None):
         encs = []
-        for i in range(len(files_faces)):
+        indexes = list(range(len(files_faces)))
+        random.shuffle(indexes)
+        for i in indexes:
             for j in range(len(files_faces[i]['faces'])):
                 encs.append(dlib.vector(
                     files_faces[i]['faces'][j]['encoding']))
@@ -196,7 +199,7 @@ class Recognizer(threading.Thread):
         labels = self.__reassign_by_count(labels)
         lnum = 0
         self.__status_count(len(files_faces))
-        for i in range(len(files_faces)):
+        for i in indexes:
             self.__status_step()
             for j in range(len(files_faces[i]['faces'])):
                 files_faces[i]['faces'][j]['name'] = \
