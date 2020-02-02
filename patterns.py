@@ -132,6 +132,14 @@ class Patterns(object):
         out_filename = re.sub('unknown_\d+_\d+_', '', out_filename)
         return out_filename
 
+    def __calc_filename(self, filename):
+        if filename.startswith('http://'):
+            path, filename = os.path.split(filename)
+            name = os.path.split(path)[1]
+            return os.path.join(self.__folder, name,
+                                self.__calc_out_filename(filename))
+        return filename
+
     def add_files(self, name, filenames, new=False, move=False):
         out_folder = os.path.join(self.__folder, name)
         if new:
@@ -167,6 +175,7 @@ class Patterns(object):
     def remove_files(self, filenames):
         self.load()
         for filename in filenames:
+            filename = self.__calc_filename(filename)
             self.__remove_file(filename)
             os.remove(filename)
         self.__save()
