@@ -66,6 +66,8 @@ class Recognizer(threading.Thread):
             numpy.array(self.__patterns.encodings()),
             self.__max_workers)
 
+        self.__video_batch_size = 8 
+
     def start_method(self, method, *args):
         self.__status_state(method)
         self.__method = method
@@ -103,6 +105,47 @@ class Recognizer(threading.Thread):
             self.__draw_landmarks(encoded_faces, image.get())
 
         return encoded_faces, image
+
+    def recognize_video(self, filename):
+        logging.info(f'recognize video: {filename}')
+        video = cv2.VideoCapture(filename)
+        ret = True
+        count = 0
+        batched_encoded_faces = []
+        while ret:
+            frames = []
+            while len(frames) < self.__video_batch_size:
+                ret, frame = video.read()
+                if ret:
+                    frame = tools.prepare_image(frame, self.__max_size)
+                    frames.append(frame)
+                else:
+                    break
+
+            batched_boxes = face_recognition.batch_face_locations(
+                frames, batch_size=len(frames))
+            count += len(frames)
+
+            for image, boxes in zip(frames, batched_boxes):
+                encodings = face_recognition.face_encodings(
+                    image, boxes, self.__num_jitters, self.__encoding_model)
+
+                encoded_faces = [{'encoding': e, 'box': b}
+                                 for e, b in zip(encodings, boxes)]
+
+                self.__match_faces(encoded_faces)
+                for face in encoded_faces:
+                    if face['dist'] < self.__threshold:
+                        batched_encoded_faces.append(face)
+
+        logging.info(f'done {count} frames: {filename}')
+        return batched_encoded_faces
+
+    def calc_names_in_video(self, encoded_faces):
+        dct = collections.defaultdict(int)
+        for face in encoded_faces:
+            dct[face['name']] += 1
+        return dct
 
     def encode_faces(self, image):
         boxes = face_recognition.face_locations(image, model=self.__model)
@@ -448,6 +491,7 @@ def args_parse():
     parser.add_argument(
         '-a', '--action', help='Action', required=True,
         choices=['recognize_image',
+                 'recognize_video',
                  'recognize_folder',
                  'remove_folder',
                  'match_unmatched',
@@ -495,6 +539,8 @@ def main():
 
     if args.action == 'recognize_image':
         print(rec.recognize_image(args.input)[0])
+    elif args.action == 'recognize_video':
+        print(rec.calc_names_in_video(rec.recognize_video(args.input)))
     elif args.action == 'recognize_folder':
         rec.recognize_folder(args.input, db, args.output, args.reencode)
     elif args.action == 'remove_folder':

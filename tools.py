@@ -7,7 +7,10 @@ from PIL import Image
 
 def read_image(image_file, max_size):
     image = cv2.imread(image_file)
+    return prepare_image(image, max_size)
 
+
+def prepare_image(image, max_size):
     height, width, col = image.shape
 
     if height > width:
