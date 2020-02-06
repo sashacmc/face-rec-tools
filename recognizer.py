@@ -66,7 +66,7 @@ class Recognizer(threading.Thread):
             numpy.array(self.__patterns.encodings()),
             self.__max_workers)
 
-        self.__video_batch_size = 8 
+        self.__video_batch_size = 8
 
     def start_method(self, method, *args):
         self.__status_state(method)
