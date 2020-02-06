@@ -52,10 +52,20 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
 
         logging.debug(f'Found in db file: {fname} {box}')
 
-        image = tools.read_image(fname, max_size)
+        try:
+            image = tools.read_image(fname, max_size)
+        except Exception as ex:
+            logging.warning(f'Cant''t read image: {fname}: ' + str(ex))
+            continue
+
         encodings = face_recognition.face_encodings(
             image, (box,), num_jitters, encoding_model)
-        tools.save_face(patt_fname, image, box, encodings[0], out_size)
+        landmarks = face_recognition.face_landmarks(
+            image, (box,), model=encoding_model)
+        tools.save_face(patt_fname,
+                        image, box,
+                        encodings[0], landmarks[0],
+                        out_size)
         logging.info(f'Updated: {patt_fname}')
 
 
