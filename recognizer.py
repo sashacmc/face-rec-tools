@@ -91,18 +91,16 @@ class Recognizer(threading.Thread):
             logging.exception(ex)
             self.__status_state('error')
 
-    def recognize_image(self, filename,
-                        draw_landmarks=False):
+    def recognize_image(self, filename):
         logging.info(f'recognize image: {filename}')
 
         image = tools.LazyImage(filename, self.__max_size)
 
         encoded_faces = self.encode_faces(image.get())
 
-        self.__match_faces(encoded_faces)
+        self.__save_landmarks(encoded_faces, image.get())
 
-        if draw_landmarks:
-            self.__draw_landmarks(encoded_faces, image.get())
+        self.__match_faces(encoded_faces)
 
         return encoded_faces, image
 
@@ -426,8 +424,11 @@ class Recognizer(threading.Thread):
             if self.__cdb is not None:
                 if not self.__cdb.check_face(enc['face_id']):
                     out_stream = io.BytesIO()
+                    if not enc['landmarks']:
+                        self.__save_landmarks((enc,), image.get())
                     tools.save_face(out_stream, image.get(),
                                     enc['box'], enc['encoding'],
+                                    enc['landmarks'],
                                     self.__debug_out_image_size)
                     self.__cdb.save_face(enc['face_id'],
                                          out_stream.getvalue())
@@ -436,22 +437,23 @@ class Recognizer(threading.Thread):
                 self.__cdb.add_to_cache(enc['face_id'], out_filename)
             else:
                 self.__make_debug_out_folder(out_folder)
+                if not enc['landmarks']:
+                    self.__save_landmarks((enc,), image.get())
                 tools.save_face(out_filename, image.get(),
                                 enc['box'], enc['encoding'],
+                                enc['landmarks'],
                                 self.__debug_out_image_size)
                 logging.debug(f'face saved to: {out_filename}')
 
-    def __draw_landmarks(self, encoded_faces, image):
+    def __save_landmarks(self, encoded_faces, image):
         boxes = [enc['box'] for enc in encoded_faces]
         landmarks = face_recognition.face_landmarks(
             image,
             face_locations=boxes,
             model=self.__encoding_model)
 
-        for landmark in landmarks:
-            for pts in landmark.values():
-                for pt in pts:
-                    cv2.circle(image, pt, 5, (0, 0, 255), -1)
+        for i in range(len(encoded_faces)):
+            encoded_faces[i]['landmarks'] = landmarks[i]
 
     def status(self):
         with self.__status_lock:

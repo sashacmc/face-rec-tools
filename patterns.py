@@ -68,16 +68,8 @@ class Patterns(object):
             name = image_file.split(os.path.sep)[-2]
             logging.info(f'{i + 1}/{len(image_files)} file: {image_file}')
 
-            exif = piexif.load(image_file)
-            encoding = None
-            try:
-                encd = exif["0th"][piexif.ImageIFD.ImageDescription]
-                encoding = pickle.loads(encd)['encoding']
-                logging.debug(f'Loaded from Exif: {len(encoding)}')
-            except Exception:
-                pass
-
-            if encoding is None:
+            descr, thumbnail = tools.load_face_description(image_file)
+            if descr is None:
                 image = tools.read_image(image_file, self.__max_size)
 
                 boxes = face_recognition.face_locations(
@@ -90,6 +82,8 @@ class Patterns(object):
                     image, boxes, self.__num_jitters,
                     model=self.__encoding_model)
                 encoding = encodings[0]
+            else:
+                encoding = descr['encoding']
 
             self.__encodings.append(encoding)
             self.__names.append(name)
@@ -124,7 +118,7 @@ class Patterns(object):
 
     def __calc_out_filename(self, filename):
         out_filename = os.path.split(filename)[1]
-        for person in self.__persons:
+        for person in reversed(sorted(self.__persons, key=len)):
             n = person['name']
             out_filename = re.sub(n + '_\d+_', '', out_filename)
             out_filename = re.sub(n + '_weak_\d+_', '', out_filename)
@@ -321,7 +315,9 @@ def args_parse():
                  'list',
                  'persons',
                  'optimize',
-                 'analyze'])
+                 'analyze',
+                 'set_landmarks',
+                 'clear_landmarks'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-n', '--name', help='Person name')
@@ -371,6 +367,12 @@ def main():
     elif args.action == 'analyze':
         patt.load()
         patt.analyze()
+    elif args.action == 'set_landmarks':
+        for f in args.files:
+            tools.enable_landmarks(f, True)
+    elif args.action == 'clear_landmarks':
+        for f in args.files:
+            tools.enable_landmarks(f, False)
 
 
 if __name__ == '__main__':

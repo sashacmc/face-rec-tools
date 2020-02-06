@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS faces (
     "image_id" INTEGER,
     "box" TEXT,
     "encoding" array,
+    "landmarks" TEXT,
     "name" TEXT,
     "dist" FLOAT
 );
@@ -84,6 +85,7 @@ class RecDB(object):
         # rec_result =
         #   [{'box': (l, b, r, t),
         #     'encoding': BLOB,
+        #     'landmarks': {...},
         #     'name': name
         #     'dist': dist
         #    }, ...]
@@ -103,11 +105,13 @@ class RecDB(object):
         res = []
         for i, face in enumerate(rec_result):
             rec_result[i]['face_id'] = c.execute(
-                'INSERT INTO faces (image_id, box, encoding, name, dist) \
-                 VALUES (?, ?, ?, ?, ?)',
+                'INSERT INTO faces \
+                    (image_id, box, encoding, landmarks, name, dist) \
+                 VALUES (?, ?, ?, ?, ?, ?)',
                 (image_id,
                  json.dumps(face["box"]),
                  face['encoding'],
+                 json.dumps(face['landmarks']),
                  face['name'],
                  face['dist'])
             ).lastrowid
@@ -134,9 +138,12 @@ class RecDB(object):
 
     def get_all_faces(self):
         c = self.__conn.cursor()
-        res = c.execute('SELECT image_id, box, encoding FROM faces')
+        res = c.execute('SELECT image_id, box, encoding, landmarks FROM faces')
 
-        return [{'id': r[0], 'box': json.loads(r[1]), 'encoding': [2]}
+        return [{'id': r[0],
+                 'box': json.loads(r[1]),
+                 'encoding': [2],
+                 'landmarks': None if r[3] is None else json.loads([3])}
                 for r in res.fetchall()]
 
     def set_name(self, face_id, name, dist, commit=True):
@@ -214,7 +221,7 @@ class RecDB(object):
     def get_files_faces(self, where_clause, args=()):
         c = self.__conn.cursor()
         res = c.execute(
-            'SELECT filename, faces.id, box, encoding, name, dist \
+            'SELECT filename, faces.id, box, encoding, landmarks, name, dist \
              FROM images JOIN faces ON images.id=faces.image_id ' +
             where_clause, args)
         return self.__build_files_faces(res.fetchall())
@@ -262,8 +269,9 @@ class RecDB(object):
                 'face_id': r[1],
                 'box': json.loads(r[2]),
                 'encoding': r[3],
-                'name': r[4],
-                'dist': r[5]})
+                'landmarks': None if r[4] is None else json.loads(r[4]),
+                'name': r[5],
+                'dist': r[6]})
 
         if filename != '':
             files_faces.append({'filename': filename, 'faces': faces})
