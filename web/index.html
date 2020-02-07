@@ -294,11 +294,17 @@
             }
             facePropModalSpinner(false);
             var inputs = '';
+            var bad_checked = '';
             for (var i in g_names) {
                 var checked = '';
                 if (name == g_names[i]) {
                     checked = 'checked=""';
-                }
+                } else 
+                if (name == g_names[i] + '_bad') {
+                    checked = 'checked=""';
+                    bad_checked = 'checked=""';
+                    name = g_names[i];
+                } 
                 inputs +=
                 '<div class="form-check form-check-img">' +
                     '<input class="form-check-input form-check-input-img" type="radio" name="names" id="radio' + g_names[i] + '" value="' + g_names[i] + '" ' + checked + '>' +
@@ -321,6 +327,10 @@
                 '</tr>' +
                     '<td>' +
                         'Persons' +
+                        '<div class="container">' +
+                            '<input type="checkbox" id="checkBadEncoding"' + bad_checked + '></input>' +
+                            '<label for="checkBadEncoding">&nbsp;Bad encoding</label>' + 
+                        '</div>' +
                         '<div class="container">' +
                             inputs +
                         '</div>' +
@@ -375,7 +385,8 @@
             function submitImageProps() {
                 var newname = $('input[name="names"]:checked').val();
                 var add_new = false;
-                if (name == newname || newname === undefined || images.length == 0) {
+                var bad_encoding = $('#checkBadEncoding').prop('checked') ? 1 : 0;
+                if ((name == newname && (bad_checked == '') == (bad_encoding == 0)) || newname === undefined || images.length == 0) {
                     return;
                 }
                 $('#facePropModalSubmit').off('click');
@@ -387,7 +398,7 @@
                 }
                 facePropModalSpinner(true);
                 $.ajax({
-                    url: '/add_to_pattern?name=' + newname,
+                    url: '/add_to_pattern?name=' + newname + '&bad=' + bad_encoding,
                     type: 'POST',
                     data: {'files': images.join('|')},
                     success: function(data) {

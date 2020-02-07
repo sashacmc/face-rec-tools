@@ -3,7 +3,6 @@
 import io
 import os
 import cv2
-import sys
 import dlib
 import numpy
 import random
@@ -62,9 +61,15 @@ class Recognizer(threading.Thread):
         self.__max_workers = int(max_workers)
         self.__executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.__max_workers)
-        self.__pattern_encodings = numpy.array_split(
-            numpy.array(self.__patterns.encodings()),
-            self.__max_workers)
+
+        self.__pattern_encodings = []
+        self.__pattern_names = []
+        for tp in (0, 1):
+            encodings, names, files = self.__patterns.encodings(tp)
+            self.__pattern_encodings.append(numpy.array_split(
+                numpy.array(encodings),
+                self.__max_workers))
+            self.__pattern_names.append(names)
 
         self.__video_batch_size = 8
 
@@ -173,13 +178,15 @@ class Recognizer(threading.Thread):
 
         return res
 
-    def __match_face_by_nearest(self, encoding):
+    def __match_face_by_nearest(self, encoding, tp):
         res = [r for r in self.__executor.map(face_recognition.face_distance,
-                                              self.__pattern_encodings,
+                                              self.__pattern_encodings[tp],
                                               itertools.repeat(encoding))]
         distances = numpy.concatenate(res)
+        if len(distances) == 0:
+            return 1, ''
         i = numpy.argmin(distances)
-        return (distances[i], self.__patterns.names()[i])
+        return (distances[i], self.__pattern_names[tp][i])
 
     def __match_face_by_class(self, encoding):
         proba = self.__patterns.classifer().predict_proba(
@@ -190,13 +197,17 @@ class Recognizer(threading.Thread):
         return dist, self.__patterns.classes()[j]
 
     def __match_faces(self, encoded_faces):
-        if len(self.__patterns.encodings()) == 0:
+        if len(self.__pattern_encodings) == 0:
             logging.warning('Empty patterns')
 
         for i in range(len(encoded_faces)):
             encoding = encoded_faces[i]['encoding']
             if self.__nearest_match:
-                dist, name = self.__match_face_by_nearest(encoding)
+                dist_bad, name_bad = self.__match_face_by_nearest(encoding, 0)
+                dist, name = self.__match_face_by_nearest(encoding, 1)
+                if dist_bad < dist:
+                    name = name_bad + '_bad'
+                    dist = dist_bad
             else:
                 dist, name = self.__match_face_by_class(encoding)
 

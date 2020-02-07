@@ -5,7 +5,6 @@ import re
 import numpy
 import shutil
 import pickle
-import piexif
 import logging
 import argparse
 import collections
@@ -16,17 +15,21 @@ import tools
 import config
 
 FACE_FILENAME = '0_face.jpg'
+BAD_FOLDERNAME = 'bad'
 
 
 class Patterns(object):
+    FILES_ENC = 0
+    FILES_NAME = 1
+    FILES_TIME = 2
+    FILES_TYPE = 3
+
     def __init__(self, folder, model='hog', max_size=1000,
                  num_jitters=1, encoding_model='large', train_classifer=False):
         self.__folder = folder
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
-        self.__encodings = []
-        self.__names = []
-        self.__files = []
-        self.__times = []
+        self.__files = {}
+        self.__persons = []
         self.__classifer = None
         self.__classes = []
         self.__model = model
@@ -48,12 +51,13 @@ class Patterns(object):
 
         if not regenerate:
             self.load()
-            filetimes = {f: t for f, t in zip(self.__files, self.__times)}
             filtered = {}
             for image_file in image_files:
-                filename_exsists = image_file in filetimes
+                filename_exsists = image_file in self.__files
                 if not filename_exsists or \
-                        filetimes[image_file] != image_files[image_file]:
+                   self.__files[image_file][self.FILES_TIME] != \
+                   image_files[image_file]:
+
                     filtered[image_file] = image_files[image_file]
                     if filename_exsists:
                         self.__remove_file(image_file)
@@ -65,7 +69,14 @@ class Patterns(object):
             image_files = filtered
 
         for (i, image_file) in enumerate(image_files):
-            name = image_file.split(os.path.sep)[-2]
+            splitted = image_file.split(os.path.sep)
+            name = splitted[-2]
+            if name == BAD_FOLDERNAME:
+                name = splitted[-3]
+                tp = 0
+            else:
+                tp = 1
+
             logging.info(f'{i + 1}/{len(image_files)} file: {image_file}')
 
             descr, thumbnail = tools.load_face_description(image_file)
@@ -85,11 +96,10 @@ class Patterns(object):
             else:
                 encoding = descr['encoding']
 
-            self.__encodings.append(encoding)
-            self.__names.append(name)
-            self.__files.append(image_file)
-            self.__times.append(image_files[image_file])
-
+            self.__files[image_file] = [encoding,
+                                        name,
+                                        image_files[image_file],
+                                        tp]
         self.__save()
 
     def __save(self):
@@ -101,10 +111,7 @@ class Patterns(object):
 
         logging.info('Patterns saving')
         data = {
-            'names': self.__names,
             'files': self.__files,
-            'encodings': self.__encodings,
-            'times': self.__times,
             'persons': self.__persons,
             'classifer': self.__classifer,
             'classes': self.__classes}
@@ -121,6 +128,7 @@ class Patterns(object):
         for person in reversed(sorted(self.__persons, key=len)):
             n = person['name']
             out_filename = re.sub(n + '_\d+_', '', out_filename)
+            out_filename = re.sub(n + '_bad_\d+_', '', out_filename)
             out_filename = re.sub(n + '_weak_\d+_', '', out_filename)
             out_filename = out_filename.replace(n, '')
         out_filename = re.sub('unknown_\d+_\d+_', '', out_filename)
@@ -134,8 +142,10 @@ class Patterns(object):
                                 self.__calc_out_filename(filename))
         return filename
 
-    def add_files(self, name, filenames, new=False, move=False):
+    def add_files(self, name, filenames, new=False, move=False, bad=False):
         out_folder = os.path.join(self.__folder, name)
+        if bad:
+            out_folder = os.path.join(out_folder, BAD_FOLDERNAME)
         if new:
             os.makedirs(out_folder, exist_ok=True)
         else:
@@ -149,8 +159,10 @@ class Patterns(object):
             if move:
                 os.remove(filename)
 
-    def add_file_data(self, name, filename, data):
+    def add_file_data(self, name, filename, data, bad=False):
         out_folder = os.path.join(self.__folder, name)
+        if bad:
+            out_folder = os.path.join(out_folder, BAD_FOLDERNAME)
         os.makedirs(out_folder, exist_ok=True)
         out_filename = os.path.join(out_folder,
                                     self.__calc_out_filename(filename))
@@ -159,11 +171,7 @@ class Patterns(object):
             f.write(data)
 
     def __remove_file(self, filename):
-        i = self.__files.index(filename)
-        del self.__files[i]
-        del self.__names[i]
-        del self.__encodings[i]
-        del self.__times[i]
+        del self.__files[filename]
         logging.debug(f'File removed: {filename}')
 
     def remove_files(self, filenames):
@@ -175,23 +183,23 @@ class Patterns(object):
         self.__save()
 
     def load(self):
-        data = pickle.loads(open(self.__pickle_file, 'rb').read())
-        self.__encodings = data['encodings']
-        self.__names = data['names']
-        self.__files = data['files']
-        self.__times = data['times']
-        self.__classifer = data['classifer']
-        self.__classes = data['classes']
-        self.__persons = data['persons']
+        try:
+            data = pickle.loads(open(self.__pickle_file, 'rb').read())
+            self.__files = data['files']
+            self.__classifer = data['classifer']
+            self.__classes = data['classes']
+            self.__persons = data['persons']
+        except Exception:
+            logging.exception(f'Can''t load patterns: {self.__pickle_file}')
 
     def optimize(self):
         import dlib
-
-        encs = [dlib.vector(enc) for enc in self.__encodings]
+        encodings, names, files = self.encodings()
+        encs = [dlib.vector(enc) for enc in encodings]
         labels = dlib.chinese_whispers_clustering(encs, 0.1)
         uniq = {}
         to_remove = []
-        for fname, label in zip(self.__files, labels):
+        for fname, label in zip(files, labels):
             if label not in uniq:
                 uniq[label] = fname
             else:
@@ -218,9 +226,10 @@ class Patterns(object):
 
     def __calcPersons(self):
         dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
-        for i, name in enumerate(self.__names):
+        for f in self.__files:
+            name = self.__files[f][self.FILES_NAME]
             dct[name]['count'] += 1
-            dct[name]['image'] = min(dct[name]['image'], self.__files[i])
+            dct[name]['image'] = min(dct[name]['image'], f)
 
         for name in dct:
             face_filename = os.path.join(self.__folder, name, FACE_FILENAME)
@@ -290,14 +299,17 @@ class Patterns(object):
     def classes(self):
         return self.__classes
 
-    def encodings(self):
-        return self.__encodings
+    def encodings(self, ftp=None):
+        encodings = []
+        names = []
+        files = []
+        for f, (enc, name, time, tp) in self.__files.items():
+            if ftp is None or ftp == tp:
+                encodings.append(enc)
+                names.append(name)
+                files.append(f)
 
-    def names(self):
-        return self.__names
-
-    def files(self):
-        return self.__files
+        return encodings, names, files
 
     def persons(self):
         return self.__persons

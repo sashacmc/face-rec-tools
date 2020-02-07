@@ -151,7 +151,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             self.server.cdb().commit()
         else:
             self.server.patterns().add_files(params['name'][0],
-                                             filenames, True, True)
+                                             filenames, True, True,
+                                             params['bad'][0] == '1')
         self.server.updete_persons(params['name'][0])
         self.__ok_response('')
 
