@@ -80,7 +80,12 @@ class Patterns(object):
             logging.info(f'{i + 1}/{len(image_files)} file: {image_file}')
 
             descr, thumbnail = tools.load_face_description(image_file)
-            if descr is None:
+            try:
+                encoding = descr['encoding']
+            except Exception:
+                encoding = None
+
+            if encoding is None:
                 image = tools.read_image(image_file, self.__max_size)
 
                 boxes = face_recognition.face_locations(
@@ -93,8 +98,6 @@ class Patterns(object):
                     image, boxes, self.__num_jitters,
                     model=self.__encoding_model)
                 encoding = encodings[0]
-            else:
-                encoding = descr['encoding']
 
             self.__files[image_file] = [encoding,
                                         name,
