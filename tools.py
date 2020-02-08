@@ -3,7 +3,7 @@ import cv2
 import piexif
 import pickle
 import logging
-from PIL import Image
+from PIL import Image, ImageDraw
 
 
 def read_image(image_file, max_size):
@@ -57,9 +57,17 @@ def __set_landmarks(image, face_landmarks):
         for pt in pts:
             try:
                 r, g, b = image.getpixel(pt)
-                image.putpixel(pt, (255 - r, 255 - g, 255 - b))
+                image.putpixel(pt, ((128 + r) % 255,
+                                    (128 + g) % 255,
+                                    (128 + b) % 255))
             except IndexError:
                 logging.debug(f'Incorrect landmark point: {pt}')
+
+
+def __set_landmarks_lines(image, face_landmarks):
+    draw = ImageDraw.Draw(image)
+    for pts in face_landmarks.values():
+        draw.line(pts, fill=(255, 255, 255))
 
 
 def enable_landmarks(filename, enable):
@@ -77,7 +85,7 @@ def enable_landmarks(filename, enable):
     image = Image.open(filename)
     if enable:
         thumbnail = image.copy()
-        __set_landmarks(image, descr['landmarks'])
+        __set_landmarks_lines(image, descr['landmarks'])
     else:
         image = thumbnail
         thumbnail = None
