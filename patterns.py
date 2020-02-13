@@ -30,8 +30,6 @@ class Patterns(object):
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
         self.__files = {}
         self.__persons = []
-        self.__classifer = None
-        self.__classes = []
         self.__model = model
         self.__encoding_model = encoding_model
         self.__max_size = int(max_size)
@@ -118,9 +116,7 @@ class Patterns(object):
         logging.info('Patterns saving')
         data = {
             'files': self.__files,
-            'persons': self.__persons,
-            'classifer': self.__classifer,
-            'classes': self.__classes}
+            'persons': self.__persons}
         dump = pickle.dumps(data)
 
         with open(self.__pickle_file, 'wb') as f:
@@ -195,8 +191,6 @@ class Patterns(object):
         try:
             data = pickle.loads(open(self.__pickle_file, 'rb').read())
             self.__files = data['files']
-            self.__classifer = data['classifer']
-            self.__classes = data['classes']
             self.__persons = data['persons']
         except Exception:
             logging.exception(f'Can''t load patterns: {self.__pickle_file}')
@@ -249,64 +243,6 @@ class Patterns(object):
                for k, v in dct.items()]
         res.sort(key=lambda el: el['count'], reverse=True)
         return res
-
-    def train_classifer(self):
-        from sklearn import svm
-        from sklearn import metrics
-        from sklearn import preprocessing
-        from sklearn import model_selection
-
-        RANDOM_SEED = 42
-
-        data = numpy.array(self.__encodings)
-        le = preprocessing.LabelEncoder()
-        labels = le.fit_transform(self.__names)
-
-        (x_train, x_test, y_train, y_test) = model_selection.train_test_split(
-            data,
-            labels,
-            test_size=0.20,
-            random_state=RANDOM_SEED)
-
-        skf = model_selection.StratifiedKFold(n_splits=5)
-        cv = skf.split(x_train, y_train)
-
-        Cs = [0.001, 0.01, 0.1, 1, 10, 100]
-        gammas = [0.001, 0.01, 0.1, 1, 10, 100]
-        param_grid = [
-            {'C': Cs, 'kernel': ['linear']},
-            {'C': Cs, 'gamma': gammas, 'kernel': ['rbf']}]
-
-        init_est = svm.SVC(
-            probability=True,
-            class_weight='balanced',
-            random_state=RANDOM_SEED)
-
-        grid_search = model_selection.GridSearchCV(
-            estimator=init_est,
-            param_grid=param_grid,
-            n_jobs=4,
-            cv=cv)
-
-        grid_search.fit(x_train, y_train)
-
-        self.__classifer = grid_search.best_estimator_
-        self.__classes = list(le.classes_)
-
-        y_pred = self.__classifer.predict(x_test)
-
-        logging.info('Confusion matrix \n' +
-                     str(metrics.confusion_matrix(y_test, y_pred)))
-
-        logging.info('Classification report \n' +
-                     str(metrics.classification_report(
-                         y_test, y_pred, target_names=self.__classes)))
-
-    def classifer(self):
-        return self.__classifer
-
-    def classes(self):
-        return self.__classes
 
     def encodings(self, ftp=None):
         encodings = []
