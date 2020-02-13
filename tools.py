@@ -78,7 +78,7 @@ def enable_landmarks(filename, enable):
         logging.debug(f'enable_landmarks skip: {filename}')
         return
 
-    if 'landmarks' not in descr:
+    if descr is None or 'landmarks' not in descr:
         logging.warning(f'has no landmarks: {filename}')
         return
 
