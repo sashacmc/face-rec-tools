@@ -185,7 +185,10 @@ class Patterns(object):
         for filename in filenames:
             filename = self.__calc_filename(filename)
             self.__remove_file(filename)
-            os.remove(filename)
+            try:
+                os.remove(filename)
+            except FileNotFoundError:
+                logging.exception('Skip file removing')
         self.__save()
 
     def load(self):
