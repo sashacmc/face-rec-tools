@@ -39,7 +39,10 @@ class Patterns(object):
         self.__train_classifer = train_classifer
 
     def generate(self, regenerate=False):
-        import face_recognition
+        try:
+            import face_recognition
+        except Exception:
+            print('face_recognition not loaded, readonly mode')
 
         logging.info(f'Patterns generation: {self.__folder} ({regenerate})')
 

@@ -12,8 +12,12 @@ import argparse
 import threading
 import itertools
 import collections
-import face_recognition
 import concurrent.futures
+
+try:
+    import face_recognition
+except Exception:
+    print('face_recognition not loaded, readonly mode')
 
 from imutils import paths
 
