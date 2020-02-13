@@ -7,6 +7,7 @@ import argparse
 
 import cv2
 import numpy as np
+from imutils import paths
 
 from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
@@ -25,7 +26,7 @@ import patterns
 class EncodingQualityCont(object):
     def __init__(self, patterns):
         self.__patterns = patterns
-        self.__epoch_size = 15
+        self.__epoch_size = 30 
         self.__batch_size = 1000
         self.__test_size = 0
         self.__image_size = 50
@@ -149,15 +150,22 @@ class EncodingQualityCont(object):
         logging.info('model saving')
         model.save('my_model.h5')
 
-    def test(self, images):
+    def test(self, files):
         model = tf.keras.models.load_model('my_model.h5')
+        images = np.array([self.__load_image(f) for f in files])
+        return model.predict(images, batch_size=self.__batch_size)
+
+    def sort_patterns(self, files):
+        images = []
+        for f in files:
+            if os.path.isdir(f):
+                images += list(paths.list_images(f))
+            else:
+                images.append(f)
 
         debug_out_folder = '/mnt/multimedia/recdb/work/'
-        for path in images:
-            image = self.__load_image(path)
-            images = np.array([image, ])
-            pred = model.predict(images)
-            res = pred[0][0]
+        for path, pred in zip(images, self.test(images)):
+            res = pred[0]
             if res >= 0.5:
                 name = 'Sasha'
             else:
@@ -177,7 +185,8 @@ def args_parse():
         '-a', '--action', help='Action', required=True,
         choices=['check',
                  'train',
-                 'test'])
+                 'test',
+                 'sort_patterns'])
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('files', nargs='*', help='Files with one face')
     parser.add_argument('-c', '--config', help='Config file')
@@ -200,7 +209,9 @@ def main():
     if args.action == 'train':
         cont.train()
     elif args.action == 'test':
-        cont.test(args.files)
+        print(cont.test(args.files))
+    elif args.action == 'sort_patterns':
+        cont.sort_patterns(args.files)
 
 
 if __name__ == '__main__':
