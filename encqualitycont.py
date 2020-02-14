@@ -24,8 +24,9 @@ import patterns
 
 
 class EncodingQualityCont(object):
-    def __init__(self, patterns):
+    def __init__(self, patterns, modelfile):
         self.__patterns = patterns
+        self.__modelfile = modelfile
         self.__epoch_size = 30 
         self.__batch_size = 1000
         self.__test_size = 0
@@ -147,15 +148,16 @@ class EncodingQualityCont(object):
                                      batch_size=self.__batch_size)
             logging.info(f'test loss, test acc: {results}')
 
-        logging.info('model saving')
-        model.save('my_model.h5')
+        logging.info(f'model saving: {self.__modelfile}')
+        model.save(self.__modelfile)
 
     def test(self, files):
-        model = tf.keras.models.load_model('my_model.h5')
+        logging.info(f'model loading: {self.__modelfile}')
+        model = keras.models.load_model(self.__modelfile)
         images = np.array([self.__load_image(f) for f in files])
         return model.predict(images, batch_size=self.__batch_size)
 
-    def sort_patterns(self, files):
+    def sort_patterns(self, files, out_folder):
         images = []
         for f in files:
             if os.path.isdir(f):
@@ -163,15 +165,15 @@ class EncodingQualityCont(object):
             else:
                 images.append(f)
 
-        debug_out_folder = '/mnt/multimedia/recdb/work/'
         for path, pred in zip(images, self.test(images)):
-            res = pred[0]
-            if res >= 0.5:
-                name = 'Sasha'
-            else:
-                name = 'Sasha_bad'
+            splitted = path.split(os.path.sep)
+            name = splitted[-2]
 
-            outdir = os.path.join(debug_out_folder, name)
+            res = pred[0]
+            if res < 0.5:
+                name += '_bad'
+
+            outdir = os.path.join(out_folder, name)
             prefix = '{}_{:03d}_'.format(name, abs(int(res * 100)))
             outname = os.path.join(outdir, prefix + os.path.split(path)[1])
             print(path + ': ' + str(pred))
@@ -190,6 +192,9 @@ def args_parse():
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('files', nargs='*', help='Files with one face')
     parser.add_argument('-c', '--config', help='Config file')
+    parser.add_argument('-o', '--output', help='Output folder for faces')
+    parser.add_argument('-m', '--model', help='Model file',
+                        default='EncodingQualityCont.h5')
     return parser.parse_args()
 
 
@@ -204,14 +209,14 @@ def main():
                              num_jitters=cfg['main']['num_jitters'],
                              encoding_model=cfg['main']['encoding_model'])
 
-    cont = EncodingQualityCont(patt)
+    cont = EncodingQualityCont(patt, args.model)
 
     if args.action == 'train':
         cont.train()
     elif args.action == 'test':
         print(cont.test(args.files))
     elif args.action == 'sort_patterns':
-        cont.sort_patterns(args.files)
+        cont.sort_patterns(args.files, args.output)
 
 
 if __name__ == '__main__':
