@@ -50,10 +50,10 @@ class EncodingQualityCont(object):
         self.__patterns.load()
         logging.info('train started')
 
-        files_bad = self.__patterns.encodings(0)[2]
+        files_bad = self.__patterns.encodings(patterns.PATTERN_TYPE_BAD)[2]
         logging.info(f'found {len(files_bad)} bad files')
 
-        files_good = self.__patterns.encodings(1)[2]
+        files_good = self.__patterns.encodings(patterns.PATTERN_TYPE_GOOD)[2]
         logging.info(f'found {len(files_good)} good files')
 
         limit = min(len(files_bad), len(files_good))
