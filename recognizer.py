@@ -31,7 +31,7 @@ import patterns
 
 class Recognizer(threading.Thread):
     def __init__(self,
-                 patterns,
+                 patts,
                  model='hog',
                  num_jitters=1,
                  threshold=0.3,
@@ -46,7 +46,7 @@ class Recognizer(threading.Thread):
                  nearest_match=True):
 
         threading.Thread.__init__(self)
-        self.__patterns = patterns
+        self.__patterns = patts
         self.__model = model
         self.__num_jitters = int(num_jitters)
         self.__threshold = float(threshold)
@@ -68,7 +68,9 @@ class Recognizer(threading.Thread):
 
         self.__pattern_encodings = []
         self.__pattern_names = []
-        for tp in (0, 1):
+        for tp in (patterns.PATTERN_TYPE_BAD,
+                   patterns.PATTERN_TYPE_GOOD,
+                   patterns.PATTERN_TYPE_OTHER):
             encodings, names, files = self.__patterns.encodings(tp)
             self.__pattern_encodings.append(numpy.array_split(
                 numpy.array(encodings),
@@ -200,18 +202,26 @@ class Recognizer(threading.Thread):
         dist = 1 - proba[j]
         return dist, self.__patterns.classes()[j]
 
-    def __match_faces(self, encoded_faces):
+    def __match_faces(self, encoded_faces, good_only):
         if len(self.__pattern_encodings) == 0:
             logging.warning('Empty patterns')
 
         for i in range(len(encoded_faces)):
             encoding = encoded_faces[i]['encoding']
             if self.__nearest_match:
-                dist_bad, name_bad = self.__match_face_by_nearest(encoding, 0)
-                dist, name = self.__match_face_by_nearest(encoding, 1)
-                if dist_bad < dist:
-                    name = name_bad + '_bad'
-                    dist = dist_bad
+                dist, name = self.__match_face_by_nearest(
+                    encoding, patterns.PATTERN_TYPE_GOOD)
+                if not good_only:
+                    dist_bad, name_bad = self.__match_face_by_nearest(
+                        encoding, patterns.PATTERN_TYPE_BAD)
+                    dist_other, name_other = self.__match_face_by_nearest(
+                        encoding, patterns.PATTERN_TYPE_OTHER)
+                    if dist_other < dist_bad:
+                        dist_bad = dist_other
+                        name_bad = name_other
+                    if dist_bad < dist:
+                        name = name_bad + '_bad'
+                        dist = dist_bad
             else:
                 dist, name = self.__match_face_by_class(encoding)
 

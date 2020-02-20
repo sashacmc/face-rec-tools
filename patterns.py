@@ -2,7 +2,6 @@
 
 import os
 import re
-import numpy
 import shutil
 import pickle
 import logging
@@ -16,6 +15,11 @@ import config
 
 FACE_FILENAME = '0_face.jpg'
 BAD_FOLDERNAME = 'bad'
+OTHER_FOLDERNAME = 'other'
+
+PATTERN_TYPE_BAD = 0
+PATTERN_TYPE_GOOD = 1
+PATTERN_TYPE_OTHER = 2
 
 
 class Patterns(object):
@@ -74,9 +78,12 @@ class Patterns(object):
             name = splitted[-2]
             if name == BAD_FOLDERNAME:
                 name = splitted[-3]
-                tp = 0
+                tp = PATTERN_TYPE_BAD
+            elif name == OTHER_FOLDERNAME:
+                name = splitted[-3]
+                tp = PATTERN_TYPE_OTHER
             else:
-                tp = 1
+                tp = PATTERN_TYPE_GOOD
 
             logging.info(f'{i + 1}/{len(image_files)} file: {image_file}')
 
