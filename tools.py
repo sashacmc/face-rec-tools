@@ -1,14 +1,30 @@
 import io
+import os
 import cv2
 import piexif
 import pickle
 import logging
 from PIL import Image, ImageDraw
 
+IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')
+VIDEO_EXTS = ('.mp4', '.mpg', '.mpeg', '.mov', '.avi', '.mts')
+
 
 def read_image(image_file, max_size):
     image = cv2.imread(image_file)
     return prepare_image(image, max_size)
+
+
+def read_video(video_file, max_size):
+    video = cv2.VideoCapture(video_file)
+    frames = []
+    ret = True
+    while ret:
+        ret, frame = video.read()
+        if ret:
+            frame = prepare_image(frame, max_size)
+            frames.append(frame)
+    return frames
 
 
 def prepare_image(image, max_size):
@@ -92,8 +108,8 @@ def enable_landmarks(filename, enable):
     save_with_description(image, descr, thumbnail, filename)
 
 
-def save_face(out_filename, image, box, encoding, landmarks, out_size):
-    top, right, bottom, left = box
+def save_face(out_filename, image, enc, out_size):
+    top, right, bottom, left = enc['box']
     d = (bottom - top) // 2
     top = max(0, top - d)
     left = max(0, left - d)
@@ -106,10 +122,10 @@ def save_face(out_filename, image, box, encoding, landmarks, out_size):
     im.thumbnail((out_size, out_size))
 
     face_landmarks = {}
-    if landmarks:
+    if 'landmarks' in enc and enc['landmarks']:
         hk = im.size[0] / (right - left)
         vk = im.size[1] / (bottom - top)
-        for landmark, pts in landmarks.items():
+        for landmark, pts in enc['landmarks'].items():
             face_pts = []
             for pt in pts:
                 face_pts.append((
@@ -118,8 +134,11 @@ def save_face(out_filename, image, box, encoding, landmarks, out_size):
             face_landmarks[landmark] = face_pts
 
     thumbnail = im.copy()
-    __set_landmarks(im, face_landmarks)
-    descr = {'encoding': encoding, 'landmarks': face_landmarks}
+    __set_landmarks_lines(im, face_landmarks)
+    descr = {'encoding': enc['encoding'],
+             'landmarks': face_landmarks,
+             'box': enc['box'],
+             'frame': enc['frame']}
 
     save_with_description(im, descr, thumbnail, out_filename)
 
@@ -130,8 +149,34 @@ class LazyImage(object):
         self.__max_size = max_size
         self.__image = None
 
-    def get(self):
+    def get(self, dummy_frame_num=0):
         if self.__image is None:
             logging.debug(f'LazyImage load: {self.__image_file}')
             self.__image = read_image(self.__image_file, self.__max_size)
         return self.__image
+
+
+class LazyVideo(object):
+    def __init__(self, video_file, max_size):
+        self.__video_file = video_file
+        self.__max_size = max_size
+        self.__frames = None
+
+    def frames(self):
+        if self.__frames is None:
+            logging.debug(f'LazyVideo load: {self.__video_file}')
+            self.__frames = read_video(self.__video_file, self.__max_size)
+        return self.__frames
+
+    def get(self, frame_num):
+        return self.frames()[frame_num]
+
+
+def load_media(media_file, max_size):
+    ext = os.path.splitext(media_file)[1].lower()
+    if ext in IMAGE_EXTS:
+        return LazyImage(media_file, max_size)
+    elif ext in VIDEO_EXTS:
+        return LazyVideo(media_file, max_size)
+    else:
+        raise Exception(f'Unknown ext: {ext}')

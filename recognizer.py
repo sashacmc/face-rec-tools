@@ -29,6 +29,9 @@ import cachedb
 import patterns
 
 
+SKIP_FACE = 'skip_face'
+
+
 class Recognizer(threading.Thread):
     def __init__(self,
                  patts,
@@ -111,44 +114,39 @@ class Recognizer(threading.Thread):
 
         self.__save_landmarks(encoded_faces, image.get())
 
-        self.__match_faces(encoded_faces)
+        self.__match_faces(encoded_faces, False)
 
         return encoded_faces, image
 
     def recognize_video(self, filename):
         logging.info(f'recognize video: {filename}')
-        video = cv2.VideoCapture(filename)
-        ret = True
-        count = 0
+        video = tools.LazyVideo(filename, self.__max_size)
+        frame_num = 0
         batched_encoded_faces = []
-        while ret:
-            frames = []
-            while len(frames) < self.__video_batch_size:
-                ret, frame = video.read()
-                if ret:
-                    frame = tools.prepare_image(frame, self.__max_size)
-                    frames.append(frame)
-                else:
-                    break
+        while frame_num < len(video.frames()):
+            frames = video.frames()[frame_num:
+                                    frame_num + self.__video_batch_size]
 
             batched_boxes = face_recognition.batch_face_locations(
                 frames, batch_size=len(frames))
-            count += len(frames)
 
             for image, boxes in zip(frames, batched_boxes):
                 encodings = face_recognition.face_encodings(
                     image, boxes, self.__num_jitters, self.__encoding_model)
 
-                encoded_faces = [{'encoding': e, 'box': b}
+                encoded_faces = [{'encoding': e, 'box': b, 'frame': frame_num}
                                  for e, b in zip(encodings, boxes)]
 
-                self.__match_faces(encoded_faces)
+                self.__match_faces(encoded_faces, True)
+                self.__save_landmarks(encoded_faces, image)
                 for face in encoded_faces:
-                    if face['dist'] < self.__threshold:
-                        batched_encoded_faces.append(face)
+                    if face['dist'] >= self.__threshold:
+                        face['name'] = SKIP_FACE
+                batched_encoded_faces += encoded_faces
+                frame_num += 1
 
-        logging.info(f'done {count} frames: {filename}')
-        return batched_encoded_faces
+        logging.info(f'done {frame_num} frames: {filename}')
+        return batched_encoded_faces, video
 
     def calc_names_in_video(self, encoded_faces):
         dct = collections.defaultdict(int)
@@ -179,7 +177,7 @@ class Recognizer(threading.Thread):
         encodings = face_recognition.face_encodings(
             image, filtered_boxes, self.__num_jitters, self.__encoding_model)
 
-        res = [{'encoding': e, 'box': b}
+        res = [{'encoding': e, 'box': b, 'frame': 0}
                for e, b in zip(encodings, filtered_boxes)]
 
         return res
@@ -274,10 +272,10 @@ class Recognizer(threading.Thread):
 
             if debug_out_folder:
                 filename = files_faces[i]['filename']
-                image = tools.LazyImage(filename, self.__max_size)
+                media = tools.load_media(filename, self.__max_size)
                 debug_out_file_name = self.__extract_filename(filename)
                 self.__save_debug_images(
-                    files_faces[i]['faces'], image,
+                    files_faces[i]['faces'], media,
                     debug_out_folder, debug_out_file_name)
 
     def recognize_files(self, filenames, db, debug_out_folder):
@@ -287,12 +285,19 @@ class Recognizer(threading.Thread):
         for f in filenames:
             self.__status_step()
             try:
-                encoded_faces, image = self.recognize_image(f)
+                ext = os.path.splitext(f)[1].lower()
+                if ext in tools.IMAGE_EXTS:
+                    encoded_faces, media = self.recognize_image(f)
+                elif ext in tools.VIDEO_EXTS:
+                    encoded_faces, media = self.recognize_video(f)
+                else:
+                    logging.warning(f'Unknown ext: {ext}')
+                    continue
                 db.insert(f, encoded_faces, commit=False)
                 if debug_out_folder:
                     debug_out_file_name = self.__extract_filename(f)
                     self.__save_debug_images(
-                        encoded_faces, image,
+                        encoded_faces, media,
                         debug_out_folder, debug_out_file_name)
             except Exception as ex:
                 logging.exception(f'Image {f} recognition failed')
@@ -341,7 +346,7 @@ class Recognizer(threading.Thread):
         for ff in files_faces:
             self.__status_step()
             logging.info(f"match image: {ff['filename']}")
-            self.__match_faces(ff['faces'])
+            self.__match_faces(ff['faces'], False)
             for face in ff['faces']:
                 cnt_all += 1
                 changed = False
@@ -355,10 +360,10 @@ class Recognizer(threading.Thread):
                         f"changed '{face['oldname']}' -> '{face['name']}'")
                 if debug_out_folder and (changed or save_all_faces):
                     filename = ff['filename']
-                    image = tools.LazyImage(filename, self.__max_size)
+                    media = tools.load_media(filename, self.__max_size)
                     debug_out_file_name = self.__extract_filename(filename)
                     self.__save_debug_images(
-                        (face,), image,
+                        (face,), media,
                         debug_out_folder, debug_out_file_name)
         db.commit()
         if self.__cdb is not None:
@@ -372,17 +377,17 @@ class Recognizer(threading.Thread):
             self.__status_step()
             filename = ff['filename']
             logging.info(f"save faces from image: {filename}")
-            image = tools.LazyImage(filename, self.__max_size)
+            media = tools.load_media(filename, self.__max_size)
             debug_out_file_name = self.__extract_filename(filename)
             self.__save_debug_images(
-                ff['faces'], image,
+                ff['faces'], media,
                 debug_out_folder, debug_out_file_name)
         if self.__cdb is not None:
             self.__cdb.commit()
 
     def recognize_folder(self, folder, db, debug_out_folder, reencode=False):
         self.__status_state('recognize_folder')
-        filenames = self.__get_images_from_folders(folder)
+        filenames = self.__get_media_from_folder(folder)
 
         if not reencode:
             filenames = set(filenames) - set(db.get_files(folder))
@@ -410,14 +415,15 @@ class Recognizer(threading.Thread):
         if self.__cdb is not None:
             self.__cdb.commit()
 
-    def __get_images_from_folders(self, folder):
-        return list(paths.list_images(folder))
+    def __get_media_from_folder(self, folder):
+        return list(paths.list_files(
+            folder,
+            validExts=tools.IMAGE_EXTS + tools.VIDEO_EXTS))
 
     def __make_debug_out_folder(self, debug_out_folder):
         if debug_out_folder:
             try:
                 os.makedirs(debug_out_folder, exist_ok=False)
-
                 with open(
                     os.path.join(
                         debug_out_folder, '.plexignore'), 'w') as f:
@@ -431,10 +437,12 @@ class Recognizer(threading.Thread):
         return os.path.splitext(os.path.split(filename)[1])[0]
 
     def __save_debug_images(
-            self, encoded_faces, image, debug_out_folder, debug_out_file_name):
+            self, encoded_faces, media, debug_out_folder, debug_out_file_name):
 
         for enc in encoded_faces:
             name = enc['name']
+            if name == SKIP_FACE:
+                continue
             if name == '':
                 name = 'unknown_000'
             out_folder = os.path.join(debug_out_folder, name)
@@ -450,10 +458,8 @@ class Recognizer(threading.Thread):
                 if not self.__cdb.check_face(enc['face_id']):
                     out_stream = io.BytesIO()
                     if not enc['landmarks']:
-                        self.__save_landmarks((enc,), image.get())
-                    tools.save_face(out_stream, image.get(),
-                                    enc['box'], enc['encoding'],
-                                    enc['landmarks'],
+                        self.__save_landmarks((enc,), media.get(enc['frame']))
+                    tools.save_face(out_stream, media.get(enc['frame']), enc,
                                     self.__debug_out_image_size)
                     self.__cdb.save_face(enc['face_id'],
                                          out_stream.getvalue())
@@ -463,10 +469,8 @@ class Recognizer(threading.Thread):
             else:
                 self.__make_debug_out_folder(out_folder)
                 if not enc['landmarks']:
-                    self.__save_landmarks((enc,), image.get())
-                tools.save_face(out_filename, image.get(),
-                                enc['box'], enc['encoding'],
-                                enc['landmarks'],
+                    self.__save_landmarks((enc,), media.get(enc['frame']))
+                tools.save_face(out_filename, media.get(enc['frame']), enc,
                                 self.__debug_out_image_size)
                 logging.debug(f'face saved to: {out_filename}')
 
@@ -567,7 +571,7 @@ def main():
     if args.action == 'recognize_image':
         print(rec.recognize_image(args.input)[0])
     elif args.action == 'recognize_video':
-        print(rec.calc_names_in_video(rec.recognize_video(args.input)))
+        print(rec.calc_names_in_video(rec.recognize_video(args.input)[0]))
     elif args.action == 'recognize_folder':
         rec.recognize_folder(args.input, db, args.output, args.reencode)
     elif args.action == 'remove_folder':
