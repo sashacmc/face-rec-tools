@@ -14,7 +14,7 @@ from imutils import paths
 import log
 
 SCHEMA = '''
-CREATE TABLE IF NOT EXISTS images (
+CREATE TABLE IF NOT EXISTS files (
     "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     "filename" TEXT,
     "synced" INTEGER DEFAULT 0
@@ -22,28 +22,29 @@ CREATE TABLE IF NOT EXISTS images (
 
 CREATE TABLE IF NOT EXISTS faces (
     "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    "image_id" INTEGER,
+    "file_id" INTEGER,
     "box" TEXT,
     "encoding" array,
     "landmarks" TEXT,
     "name" TEXT,
-    "dist" FLOAT
+    "dist" FLOAT,
+    "frame" INTEGER default 0
 );
 
 CREATE TRIGGER IF NOT EXISTS faces_before_delete
-BEFORE DELETE ON images
+BEFORE DELETE ON files
 BEGIN
-    DELETE FROM faces WHERE image_id=OLD.id;
+    DELETE FROM faces WHERE file_id=OLD.id;
 END;
 
-CREATE TRIGGER IF NOT EXISTS set_images_unsync
+CREATE TRIGGER IF NOT EXISTS set_files_unsync
 AFTER UPDATE ON faces
 BEGIN
-    UPDATE images SET synced=0 WHERE id=OLD.image_id;
+    UPDATE files SET synced=0 WHERE id=OLD.file_id;
 END;
 
-CREATE INDEX IF NOT EXISTS images_filename ON images (filename);
-CREATE INDEX IF NOT EXISTS faces_image_id ON faces (image_id);
+CREATE INDEX IF NOT EXISTS files_filename ON files (filename);
+CREATE INDEX IF NOT EXISTS faces_file_id ON faces (file_id);
 CREATE INDEX IF NOT EXISTS faces_name ON faces (name);
 '''
 
@@ -86,8 +87,9 @@ class RecDB(object):
         #   [{'box': (l, b, r, t),
         #     'encoding': BLOB,
         #     'landmarks': {...},
-        #     'name': name
-        #     'dist': dist
+        #     'name': name,
+        #     'dist': dist,
+        #     'frame': frame
         #    }, ...]
         if self.__readonly:
             for i, face in enumerate(rec_result):
@@ -96,24 +98,25 @@ class RecDB(object):
 
         c = self.__conn.cursor()
 
-        c.execute('DELETE FROM images WHERE filename=?', (filename,))
+        c.execute('DELETE FROM files WHERE filename=?', (filename,))
 
-        image_id = c.execute(
-            'INSERT INTO images (filename) \
+        file_id = c.execute(
+            'INSERT INTO files (filename) \
              VALUES (?)', (filename,)).lastrowid
 
         res = []
         for i, face in enumerate(rec_result):
             rec_result[i]['face_id'] = c.execute(
                 'INSERT INTO faces \
-                    (image_id, box, encoding, landmarks, name, dist) \
-                 VALUES (?, ?, ?, ?, ?, ?)',
-                (image_id,
+                    (file_id, box, encoding, landmarks, name, dist, frame) \
+                 VALUES (?, ?, ?, ?, ?, ?, ?)',
+                (file_id,
                  json.dumps(face["box"]),
                  face['encoding'],
                  json.dumps(face['landmarks']),
                  face['name'],
-                 face['dist'])
+                 face['dist'],
+                 face['frame'])
             ).lastrowid
 
         if commit:
@@ -123,7 +126,7 @@ class RecDB(object):
         if self.__readonly:
             return
         c = self.__conn.cursor()
-        c.execute('DELETE FROM images WHERE filename=?', (filename,))
+        c.execute('DELETE FROM files WHERE filename=?', (filename,))
         if commit:
             self.__conn.commit()
 
@@ -131,14 +134,14 @@ class RecDB(object):
         if self.__readonly:
             return
         c = self.__conn.cursor()
-        c.execute('UPDATE images SET filename=?, synced=0 WHERE filename=?',
+        c.execute('UPDATE files SET filename=?, synced=0 WHERE filename=?',
                   (newfilename, oldfilename))
         if commit:
             self.__conn.commit()
 
     def get_all_faces(self):
         c = self.__conn.cursor()
-        res = c.execute('SELECT image_id, box, encoding, landmarks FROM faces')
+        res = c.execute('SELECT file_id, box, encoding, landmarks FROM faces')
 
         return [{'id': r[0],
                  'box': json.loads(r[1]),
@@ -159,7 +162,7 @@ class RecDB(object):
         c = self.__conn.cursor()
         res = c.execute(
             'SELECT faces.name \
-             FROM images JOIN faces ON images.id=faces.image_id \
+             FROM files JOIN faces ON files.id=faces.file_id \
              WHERE filename=?', (filename,))
 
         return [r[0] for r in res.fetchall()]
@@ -168,7 +171,7 @@ class RecDB(object):
         c = self.__conn.cursor()
         res = c.execute(
             'SELECT faces.id, faces.box, faces.name \
-             FROM images JOIN faces ON images.id=faces.image_id \
+             FROM files JOIN faces ON files.id=faces.file_id \
              WHERE filename=?', (filename,))
 
         print(f'File: {filename}')
@@ -192,12 +195,12 @@ class RecDB(object):
         res = c.execute('SELECT COUNT(*) FROM faces')
         print(f'Total faces: {res.fetchone()[0]}')
 
-        res = c.execute('SELECT COUNT(*) FROM images')
+        res = c.execute('SELECT COUNT(*) FROM files')
         print(f'Total files: {res.fetchone()[0]}')
 
     def get_folders(self):
         c = self.__conn.cursor()
-        res = c.execute('SELECT filename FROM images')
+        res = c.execute('SELECT filename FROM files')
 
         fset = set()
         for r in res.fetchall():
@@ -213,7 +216,7 @@ class RecDB(object):
             folder = ''
         c = self.__conn.cursor()
         res = c.execute(
-            'SELECT filename FROM images \
+            'SELECT filename FROM files \
              WHERE filename LIKE ?', (folder + '%',))
 
         return [r[0] for r in res.fetchall()]
@@ -221,8 +224,9 @@ class RecDB(object):
     def get_files_faces(self, where_clause, args=()):
         c = self.__conn.cursor()
         res = c.execute(
-            'SELECT filename, faces.id, box, encoding, landmarks, name, dist \
-             FROM images JOIN faces ON images.id=faces.image_id ' +
+            'SELECT filename, faces.id, box, encoding, \
+                    landmarks, name, dist, frame \
+             FROM files JOIN faces ON files.id=faces.file_id ' +
             where_clause, args)
         return self.__build_files_faces(res.fetchall())
 
@@ -271,7 +275,8 @@ class RecDB(object):
                 'encoding': r[3],
                 'landmarks': None if r[4] is None else json.loads(r[4]),
                 'name': r[5],
-                'dist': r[6]})
+                'dist': r[6],
+                'frame': r[7]})
 
         if filename != '':
             files_faces.append({'filename': filename, 'faces': faces})
@@ -282,7 +287,7 @@ class RecDB(object):
         if self.__readonly:
             return
         c = self.__conn.cursor()
-        c.execute('UPDATE images SET synced=1 WHERE filename=?', (filename,))
+        c.execute('UPDATE files SET synced=1 WHERE filename=?', (filename,))
         if commit:
             self.__conn.commit()
 
