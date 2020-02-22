@@ -197,13 +197,33 @@
             return html;
         }
 
+        function onImgMouseOver(e)
+        {
+            var img = $(e.target);
+            if (img.prop('src_orig')) {
+                return;
+            }
+            img.prop('src_orig', img.prop('src'));
+            img.prop('src', img.prop('src') + '?thumbnail=1');
+        }
+
+        function onImgMouseOut(e)
+        {
+            var img = $(e.target);
+            img.prop('src', img.prop('src_orig'));
+            img.prop('src_orig', '');
+        }
+
         function genImagesList(name, images)
         {
             var html = '';
             for (var i in images) {
                 html += '<div class="img_container">' +
-                            '<img src="cache/' + images[i] + '" height="100" width="100" onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\', event)" title="' + images[i] + '"/>' +
-                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclick="javascript:onImgCheckboxClick(event)" order="' + i + '"/>' +
+                            '<img src="cache/' + images[i] + '" height="100" width="100" title="' + images[i] + '" ' + 
+                                'onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\', event)" ' +
+                                'onmouseover="javascript:onImgMouseOver(event)" ' +
+                                'onmouseout="javascript:onImgMouseOut(event)"/>' +
+                            '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclickick="javascript:onImgCheckboxClick(event)" order="' + i + '"/>' +
                         '</div>';
             }
             return html;
@@ -366,7 +386,9 @@
                     images_html +=
                     '<div class="img_container">' + 
                         '<a href="#" class="img_close" image="' + images[i] + '">&times;</a>' +
-                        '<img src="cache/' + images[i] + '" height="100" width="100" title="' + images[i] + '">' +
+                        '<img src="cache/' + images[i] + '" height="100" width="100" title="' + images[i] + '" ' +
+                            'onmouseover="javascript:onImgMouseOver(event)" ' +
+                            'onmouseout="javascript:onImgMouseOut(event)"/>' +
                     '</div>'
                     images_names += images[i].split('/')[1] + '<br/>';
                 }

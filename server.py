@@ -12,6 +12,7 @@ import collections
 
 import log
 import recdb
+import tools
 import config
 import cachedb
 import patterns
@@ -44,7 +45,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
     def __server_error_response(self, err):
         self.send_error(500, 'Internal Server Error: %s' % err)
 
-    def __file_request(self, path):
+    def __file_request(self, path, params):
         if path[0] == '/':
             path = path[1:]
 
@@ -55,7 +56,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             if self.server.cdb() is not None:
                 data = self.server.cdb().get_from_cache(fname)
                 if data is not None:
-                    self.__send_blob(data, 'image/jpeg')
+                    self.__send_blob(data, 'image/jpeg', params)
                 else:
                     self.__not_found_response()
                     logging.debug(f'File in cache not found: {fname}')
@@ -63,16 +64,16 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         else:
             fname = os.path.join(self.server.web_path(), path)
 
-        self.__send_file(fname)
+        self.__send_file(fname, params)
 
-    def __send_file(self, fname):
+    def __send_file(self, fname, params={}):
         try:
             ext = os.path.splitext(fname)[1].lower()
             cont = ''
             if ext == '.html':
                 cont = 'text/html'
             elif ext == '.js':
-                cont = 'text/script'
+                cont = 'text/javascript'
             elif ext == '.css':
                 cont = 'text/css'
             elif ext == '.png':
@@ -82,12 +83,14 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             else:
                 cont = 'text/none'
             with open(fname, 'rb') as f:
-                self.__send_blob(f.read(), cont)
+                self.__send_blob(f.read(), cont, params)
         except IOError as ex:
             self.__not_found_response()
             logging.exception(ex)
 
-    def __send_blob(self, data, cont):
+    def __send_blob(self, data, cont, params):
+        if 'thumbnail' in params:
+            data = tools.load_face_thumbnail(data)
         self.send_response(200)
         self.send_header('Content-type', cont)
         self.end_headers()
@@ -228,7 +231,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
             ext = os.path.splitext(path)[1].lower()
             if ext in ('.html', '.js', '.css', '.png', '.jpg'):
-                self.__file_request(path)
+                self.__file_request(path, params)
                 return
 
             logging.warning('Wrong path: ' + path)
@@ -305,7 +308,7 @@ class FaceRecServer(http.server.HTTPServer):
 
         self.__clean_cache()
         self.__recognizer = recognizer.createRecognizer(
-                self.__patterns, self.__cfg, self.__cdb)
+            self.__patterns, self.__cfg, self.__cdb)
         self.__recognizer.start_method(method, *args)
 
     def __generate_patterns(self):

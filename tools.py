@@ -56,6 +56,11 @@ def load_face_description(filename):
         return None, None
 
 
+def load_face_thumbnail(filename):
+    exif = piexif.load(filename)
+    return exif.pop('thumbnail')
+
+
 def save_with_description(image, descr, thumbnail, filename):
     thumbnail_data = None
     if thumbnail is not None:
