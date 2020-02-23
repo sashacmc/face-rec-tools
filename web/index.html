@@ -210,6 +210,9 @@
         function onImgMouseOut(e)
         {
             var img = $(e.target);
+            if (!img.prop('src_orig')) {
+                return;
+            }
             img.prop('src', img.prop('src_orig'));
             img.prop('src_orig', '');
         }
@@ -434,7 +437,7 @@
                             unselectedImages();
                         }
                         for (var i in images) {
-                            var img = $("img[src='cache/" + images[i] + "']");
+                            var img = $('img[title="' + images[i] + '"]');
                             img.css('opacity', 0.2);
                             img.prop('onclick', '');
                             var chb = $('input:checkbox[class=img_checkbox][imgname="' + images[i] + '"]')
