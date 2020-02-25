@@ -460,7 +460,8 @@ class Recognizer(threading.Thread):
                     if not enc['landmarks']:
                         self.__save_landmarks((enc,), media.get(enc['frame']))
                     tools.save_face(out_stream, media.get(enc['frame']), enc,
-                                    self.__debug_out_image_size)
+                                    self.__debug_out_image_size,
+                                    media.filename())
                     self.__cdb.save_face(enc['face_id'],
                                          out_stream.getvalue())
                     logging.debug(f"face {enc['face_id']} cached")
@@ -471,7 +472,8 @@ class Recognizer(threading.Thread):
                 if not enc['landmarks']:
                     self.__save_landmarks((enc,), media.get(enc['frame']))
                 tools.save_face(out_filename, media.get(enc['frame']), enc,
-                                self.__debug_out_image_size)
+                                self.__debug_out_image_size,
+                                media.filename())
                 logging.debug(f'face saved to: {out_filename}')
 
     def __save_landmarks(self, encoded_faces, image):

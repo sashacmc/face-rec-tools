@@ -113,7 +113,7 @@ def enable_landmarks(filename, enable):
     save_with_description(image, descr, thumbnail, filename)
 
 
-def save_face(out_filename, image, enc, out_size):
+def save_face(out_filename, image, enc, out_size, src_filename):
     top, right, bottom, left = enc['box']
     d = (bottom - top) // 2
     top = max(0, top - d)
@@ -143,7 +143,8 @@ def save_face(out_filename, image, enc, out_size):
     descr = {'encoding': enc['encoding'],
              'landmarks': face_landmarks,
              'box': enc['box'],
-             'frame': enc['frame']}
+             'frame': enc['frame'],
+             'src': src_filename}
 
     save_with_description(im, descr, thumbnail, out_filename)
 
@@ -160,6 +161,9 @@ class LazyImage(object):
             self.__image = read_image(self.__image_file, self.__max_size)
         return self.__image
 
+    def filename(self):
+        return self.__image_file
+
 
 class LazyVideo(object):
     def __init__(self, video_file, max_size):
@@ -175,6 +179,9 @@ class LazyVideo(object):
 
     def get(self, frame_num):
         return self.frames()[frame_num]
+
+    def filename(self):
+        return self.__video_file
 
 
 def load_media(media_file, max_size):
