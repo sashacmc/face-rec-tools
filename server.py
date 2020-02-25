@@ -133,6 +133,27 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         name = params['name'][0]
         self.__send_file(self.server.name_image(name))
 
+    def __get_face_file_description(self, path):
+        if path.startswith('cache/'):
+            fname = os.path.join(self.server.face_cache_path(), path[6:])
+            if self.server.cdb() is not None:
+                data = self.server.cdb().get_from_cache(fname)
+                if data is not None:
+                    return tools.load_face_description(data)[0]
+            else:
+                return tools.load_face_description(fname)[0]
+        return None
+
+    def __get_face_src(self, params):
+        path = params['path'][0]
+        descr = self.__get_face_file_description(path)
+        if descr is None:
+            self.__not_found_response()
+        src_filename = descr.get('src', None)
+        if src_filename is None:
+            self.__not_found_response()
+        self.__send_file(src_filename)
+
     def __get_folders(self):
         self.__ok_response(sorted(self.server.db().get_folders()))
 
@@ -219,6 +240,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
             if path == '/get_status':
                 self.__get_status()
+                return
+
+            if path == '/get_face_src':
+                self.__get_face_src(params)
                 return
 
             if path == '/':
