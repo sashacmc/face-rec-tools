@@ -76,6 +76,7 @@ class RecDB(object):
         self.__conn.executescript(SCHEMA)
         self.__readonly = readonly
         atexit.register(self.commit)
+        self.__all_encodings = None  # all encodings for searching by face
 
     def commit(self):
         if self.__readonly:
@@ -319,6 +320,23 @@ class RecDB(object):
                 logging.info(f'move file {old} to {new}')
                 self.move(old, new, commit=False)
         self.commit()
+
+    def get_all_encodings(self, encodings_split=1):
+        if self.__all_encodings is None:
+            logging.debug(f'loading all encodings...')
+            files_faces = self.get_all()
+            encodings = []
+            info = []
+            for ff in files_faces:
+                for face in ff['faces']:
+                    encodings.append(face['encoding'])
+                    info.append((ff['filename'], face))
+            np_encodings = numpy.array_split(
+                numpy.array(encodings),
+                encodings_split)
+            self.__all_encodings = (np_encodings, info)
+            logging.debug(f'{len(info)} encodings was loaded')
+        return self.__all_encodings
 
 
 def args_parse():

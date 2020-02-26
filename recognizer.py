@@ -99,6 +99,8 @@ class Recognizer(threading.Thread):
                 self.clusterize(*self.__args)
             elif self.__method == 'save_faces':
                 self.save_faces(*self.__args)
+            elif self.__method == 'get_faces_by_face':
+                self.get_faces_by_face(*self.__args)
             logging.info(f'Thread done: {self.__method}')
             self.__status_state('done')
         except Exception as ex:
@@ -486,6 +488,47 @@ class Recognizer(threading.Thread):
         for i in range(len(encoded_faces)):
             encoded_faces[i]['landmarks'] = landmarks[i]
 
+    def get_faces_by_face(self, db, filename, debug_out_folder,
+                          remove_file=False):
+        logging.info(f'get faces by face: {filename}')
+        self.__status_state('get_faces_by_face')
+
+        image = tools.LazyImage(filename, self.__max_size)
+
+        encoded_faces = self.encode_faces(image.get())
+        face = encoded_faces[0]
+        logging.debug(f'found face: {face}')
+
+        all_encodings = db.get_all_encodings(self.__max_workers)
+
+        res = [r for r in self.__executor.map(
+            face_recognition.face_distance,
+            all_encodings[0],
+            itertools.repeat(face['encoding']))]
+        distances = numpy.concatenate(res)
+
+        filtered = []
+        for dist, info in zip(distances, all_encodings[1]):
+            if dist < 0.4:
+                filtered.append((dist, info))
+        filtered.sort()
+
+        logging.debug(f'{len(filtered)} faces matched')
+
+        self.__status_count(len(filtered))
+        for dist, info in filtered:
+            self.__status_step()
+            fname, face = info
+            face['dist'] = dist
+            media = tools.load_media(fname, self.__max_size)
+            debug_out_file_name = self.__extract_filename(fname)
+            self.__save_debug_images(
+                (face,), media,
+                debug_out_folder, debug_out_file_name)
+        if remove_file:
+            logging.debug(f'removing temp file: {filename}')
+            os.remove(filename)
+
     def status(self):
         with self.__status_lock:
             return self.__status
@@ -531,7 +574,8 @@ def args_parse():
                  'match_all',
                  'match_folder',
                  'clusterize_unmatched',
-                 'save_faces'])
+                 'save_faces',
+                 'get_faces_by_face'])
     parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-i', '--input', help='Input file or folder')
@@ -589,6 +633,8 @@ def main():
         rec.clusterize(db, {'type': 'unmatched'}, args.output)
     elif args.action == 'save_faces':
         rec.save_faces(db, {'type': 'folder', 'path': args.input}, args.output)
+    elif args.action == 'get_faces_by_face':
+        rec.get_faces_by_face(db, args.input, args.output)
 
 
 if __name__ == '__main__':

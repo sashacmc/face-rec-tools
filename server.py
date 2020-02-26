@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 
 import os
+import cgi
 import json
 import shutil
 import urllib
 import logging
 import imutils
+import tempfile
 import argparse
 import http.server
 import collections
@@ -101,6 +103,12 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         data_raw = self.rfile.read(datalen)
         data = data_raw.decode('utf-8')
         return urllib.parse.parse_qs(data)
+
+    def __form_data(self):
+        ctype, pdict = cgi.parse_header(self.headers['Content-Type'])
+        pdict['boundary'] = bytes(pdict['boundary'], "utf-8")
+        form = cgi.parse_multipart(self.rfile, pdict)
+        return form
 
     def __path_params(self):
         path_params = self.path.split('?')
@@ -218,6 +226,13 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.server.clusterize(fltr)
         self.__ok_response('')
 
+    def __get_faces_by_face_request(self, params, data):
+        tf = tempfile.NamedTemporaryFile(suffix='.jpg', delete=False)
+        tf.write(data['file'][0])
+        tf.close()
+        self.server.get_faces_by_face(tf.name)
+        self.__ok_response('')
+
     def do_GET(self):
         logging.debug('do_GET: ' + self.path)
         try:
@@ -288,6 +303,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
             if path == '/clusterize':
                 self.__clusterize_request(params)
+                return
+
+            if path == '/get_faces_by_face':
+                self.__get_faces_by_face_request(params, self.__form_data())
                 return
 
         except Exception as ex:
@@ -410,6 +429,11 @@ class FaceRecServer(http.server.HTTPServer):
     def save_faces(self, fltr):
         self.__start_recognizer('save_faces',
                                 self.__db, fltr, self.__face_cache_path)
+
+    def get_faces_by_face(self, filename):
+        self.__start_recognizer('get_faces_by_face',
+                                self.__db, filename, self.__face_cache_path,
+                                True)
 
 
 def args_parse():

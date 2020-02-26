@@ -65,6 +65,14 @@
                             <a class="dropdown-item" href="#" id="liClusterizeWeakUnmatched">Clusterize weak and unmatched...</a>
                         </div>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Find 
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="#" id="liFindByFace">Find by face...</a>
+                        </div>
+                    </li>
                 </ul>
             </div>
             <div id="mainSpinner">
@@ -182,6 +190,29 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="findByFaceModal" tabindex="-1" role="dialog" aria-labelledby="facePropModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Find by face</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="findByFaceForm">
+                        Choose file with face:<br/>
+                        <input type="file" class="form-control-file" id="findByFaceModalFile" name="file">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button id="findByFaceModalSubmit" type="button" class="btn btn-primary">Find</button>
                 </div>
             </div>
         </div>
@@ -676,6 +707,33 @@
             });
         }
 
+        function runFindByFace()
+        {
+            $('#findByFaceModalSubmit').off('click').on('click', function(e) {
+                e.preventDefault();
+                mainSpinner(true);
+                cleanFacesList();
+                $("#findByFaceModal").modal("hide");
+                $.ajax({
+                    url: '/get_faces_by_face',
+                    type: 'POST',
+                    data: new FormData(document.getElementById('findByFaceForm')),
+                    contentType: false,
+                    processData: false,
+                    timeout: 0,
+                    success: function(data) {
+                        mainSpinner(false);
+                        showProgress(commandText['get_faces_by_face']);
+                    },
+                    error: function(request, status, error) {
+                        mainSpinner(false);
+                        showError(request.responseText);
+                    }
+                });
+            });
+            $("#findByFaceModal").modal("show");
+        }
+
         function updateProgress() {
             $.ajax({  
                 url: 'get_status',
@@ -774,7 +832,8 @@
             generate_faces:         'Generate faces',
             save_faces:             'Generate faces',
             match:                  'Match',
-            clusterize:             'Clusterize'
+            clusterize:             'Clusterize',
+            get_faces_by_face:      'Find faces'
         }
 
         $(document).ready(function() 
@@ -865,6 +924,11 @@
             $("#liClusterizeWeakUnmatched").click(function(e) {
                 e.preventDefault();
                 runPathCommand('clusterize', 'type=weak_unmatched', false, false);
+            });
+
+            $("#liFindByFace").click(function(e) {
+                e.preventDefault();
+                runFindByFace();
             });
 
             checkProgress();
