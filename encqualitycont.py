@@ -27,7 +27,7 @@ class EncodingQualityCont(object):
     def __init__(self, patterns, modelfile):
         self.__patterns = patterns
         self.__modelfile = modelfile
-        self.__epoch_size = 30 
+        self.__epoch_size = 40
         self.__batch_size = 1000
         self.__test_size = 0
         self.__image_size = 50
