@@ -168,6 +168,8 @@ class EncodingQualityCont(object):
         for path, pred in zip(images, self.test(images)):
             splitted = path.split(os.path.sep)
             name = splitted[-2]
+            if name == 'bad':
+                name = splitted[-3]
 
             res = pred[0]
             if res < 0.5:
