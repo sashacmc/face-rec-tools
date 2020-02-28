@@ -63,7 +63,6 @@ class PlexDB(object):
             logging.warning(f'Filename not found: {filename}')
             return 0
 
-        c = self.__conn.cursor()
         res = 0
         if tags is not None:
             for tag in tags:

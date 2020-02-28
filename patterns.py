@@ -29,7 +29,7 @@ class Patterns(object):
     FILES_TYPE = 3
 
     def __init__(self, folder, model='hog', max_size=1000,
-                 num_jitters=1, encoding_model='large', train_classifer=False):
+                 num_jitters=1, encoding_model='large'):
         self.__folder = folder
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
         self.__files = {}
@@ -114,10 +114,6 @@ class Patterns(object):
         self.__save()
 
     def __save(self):
-        if self.__train_classifer:
-            logging.info('Classification training')
-            self.train_classifer()
-
         self.__persons = self.__calcPersons()
 
         logging.info('Patterns saving')

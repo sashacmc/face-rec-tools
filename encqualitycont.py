@@ -9,7 +9,6 @@ import cv2
 import numpy as np
 from imutils import paths
 
-from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 
 import tensorflow as tf

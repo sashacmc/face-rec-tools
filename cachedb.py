@@ -68,8 +68,7 @@ class CacheDB(object):
     def remove_face(self, face_id):
         with self.__lock:
             c = self.__conn.cursor()
-            res = c.execute('DELETE FROM face_images WHERE face_id=?',
-                            (face_id,))
+            c.execute('DELETE FROM face_images WHERE face_id=?', (face_id,))
             self.__autocommit()
 
     def list_cache(self):

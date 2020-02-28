@@ -194,36 +194,26 @@ class Recognizer(threading.Thread):
         i = numpy.argmin(distances)
         return (distances[i], self.__pattern_names[tp][i])
 
-    def __match_face_by_class(self, encoding):
-        proba = self.__patterns.classifer().predict_proba(
-            encoding.reshape(1, -1))[0]
-
-        j = numpy.argmax(proba)
-        dist = 1 - proba[j]
-        return dist, self.__patterns.classes()[j]
-
     def __match_faces(self, encoded_faces, good_only):
         if len(self.__pattern_encodings) == 0:
             logging.warning('Empty patterns')
 
         for i in range(len(encoded_faces)):
             encoding = encoded_faces[i]['encoding']
-            if self.__nearest_match:
-                dist, name = self.__match_face_by_nearest(
-                    encoding, patterns.PATTERN_TYPE_GOOD)
-                if not good_only:
-                    dist_bad, name_bad = self.__match_face_by_nearest(
-                        encoding, patterns.PATTERN_TYPE_BAD)
-                    dist_other, name_other = self.__match_face_by_nearest(
-                        encoding, patterns.PATTERN_TYPE_OTHER)
-                    if dist_other < dist_bad:
-                        dist_bad = dist_other
-                        name_bad = name_other
-                    if dist_bad < dist:
-                        name = name_bad + '_bad'
-                        dist = dist_bad
-            else:
-                dist, name = self.__match_face_by_class(encoding)
+            dist, name = self.__match_face_by_nearest(
+                encoding, patterns.PATTERN_TYPE_GOOD)
+            if not good_only:
+                dist_bad, name_bad = self.__match_face_by_nearest(
+                    encoding, patterns.PATTERN_TYPE_BAD)
+                # dist_other, name_other = self.__match_face_by_nearest(
+                #    encoding, patterns.PATTERN_TYPE_OTHER)
+                dist_other, name_other = 1, ''
+                if dist_other < dist_bad:
+                    dist_bad = dist_other
+                    name_bad = name_other
+                if dist_bad < dist:
+                    name = name_bad + '_bad'
+                    dist = dist_bad
 
             logging.debug(f'matched: {name}: {dist}')
             if 'name' in encoded_faces[i]:

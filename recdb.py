@@ -105,7 +105,6 @@ class RecDB(object):
             'INSERT INTO files (filename) \
              VALUES (?)', (filename,)).lastrowid
 
-        res = []
         for i, face in enumerate(rec_result):
             rec_result[i]['face_id'] = c.execute(
                 'INSERT INTO faces \

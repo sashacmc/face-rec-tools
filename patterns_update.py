@@ -2,9 +2,6 @@
 
 import re
 import os
-import cv2
-import sys
-import shutil
 import logging
 import argparse
 import face_recognition
