@@ -136,9 +136,10 @@ class Patterns(object):
         out_filename = os.path.split(filename)[1]
         for person in reversed(sorted(self.__persons, key=len)):
             n = person['name']
-            out_filename = re.sub(n + '_\d+_', '', out_filename)
-            out_filename = re.sub(n + '_bad_\d+_', '', out_filename)
+            out_filename = re.sub(n + '_bad_weak_\d+_', '', out_filename)
             out_filename = re.sub(n + '_weak_\d+_', '', out_filename)
+            out_filename = re.sub(n + '_bad_\d+_', '', out_filename)
+            out_filename = re.sub(n + '_\d+_', '', out_filename)
             out_filename = out_filename.replace(n, '')
         out_filename = re.sub('unknown_\d+_\d+_', '', out_filename)
         return out_filename
