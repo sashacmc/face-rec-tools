@@ -38,7 +38,6 @@ class Patterns(object):
         self.__encoding_model = encoding_model
         self.__max_size = int(max_size)
         self.__num_jitters = int(num_jitters)
-        self.__train_classifer = train_classifer
 
     def generate(self, regenerate=False):
         try:
