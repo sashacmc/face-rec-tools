@@ -15,6 +15,7 @@ import collections
 import concurrent.futures
 
 try:
+    import faceencoder
     import face_recognition
 except Exception:
     print('face_recognition not loaded, readonly mode')
@@ -51,7 +52,10 @@ class Recognizer(threading.Thread):
         threading.Thread.__init__(self)
         self.__patterns = patts
         self.__model = model
-        self.__num_jitters = int(num_jitters)
+        self.__encoder = faceencoder.FaceEncoder(
+            encoding_model=encoding_model,
+            distance_metric='cosine',
+            num_jitters=num_jitters)
         self.__threshold = float(threshold)
         self.__threshold_weak = float(threshold_weak)
         self.__threshold_clusterize = float(threshold_clusterize)
@@ -133,9 +137,7 @@ class Recognizer(threading.Thread):
                 frames, batch_size=len(frames))
 
             for image, boxes in zip(frames, batched_boxes):
-                encodings = face_recognition.face_encodings(
-                    image, boxes, self.__num_jitters, self.__encoding_model)
-
+                encodings = self.__encoder.encode(image, boxes)
                 encoded_faces = [{'encoding': e, 'box': b, 'frame': frame_num}
                                  for e, b in zip(encodings, boxes)]
 
@@ -176,16 +178,14 @@ class Recognizer(threading.Thread):
                 continue
             filtered_boxes.append(box)
 
-        encodings = face_recognition.face_encodings(
-            image, filtered_boxes, self.__num_jitters, self.__encoding_model)
-
+        encodings = self.__encoder.encode(image, filtered_boxes)
         res = [{'encoding': e, 'box': b, 'frame': 0}
                for e, b in zip(encodings, filtered_boxes)]
 
         return res
 
     def __match_face_by_nearest(self, encoding, tp):
-        res = [r for r in self.__executor.map(face_recognition.face_distance,
+        res = [r for r in self.__executor.map(self.__encoder.distance,
                                               self.__pattern_encodings[tp],
                                               itertools.repeat(encoding))]
         distances = numpy.concatenate(res)
@@ -469,14 +469,18 @@ class Recognizer(threading.Thread):
                 logging.debug(f'face saved to: {out_filename}')
 
     def __save_landmarks(self, encoded_faces, image):
-        boxes = [enc['box'] for enc in encoded_faces]
-        landmarks = face_recognition.face_landmarks(
-            image,
-            face_locations=boxes,
-            model=self.__encoding_model)
+        if self.__encoding_model in ('small', 'large'):
+            boxes = [enc['box'] for enc in encoded_faces]
+            landmarks = face_recognition.face_landmarks(
+                image,
+                face_locations=boxes,
+                model=self.__encoding_model)
 
-        for i in range(len(encoded_faces)):
-            encoded_faces[i]['landmarks'] = landmarks[i]
+            for i in range(len(encoded_faces)):
+                encoded_faces[i]['landmarks'] = landmarks[i]
+        else:
+            for i in range(len(encoded_faces)):
+                encoded_faces[i]['landmarks'] = {}
 
     def get_faces_by_face(self, db, filename, debug_out_folder,
                           remove_file=False):
@@ -492,7 +496,7 @@ class Recognizer(threading.Thread):
         all_encodings = db.get_all_encodings(self.__max_workers)
 
         res = [r for r in self.__executor.map(
-            face_recognition.face_distance,
+            self.__encoder.distance,
             all_encodings[0],
             itertools.repeat(face['encoding']))]
         distances = numpy.concatenate(res)

@@ -12,6 +12,7 @@ import tools
 import config
 import patterns
 import recognizer
+import faceencoder
 
 
 def get_from_db(files_faces, db, filename):
@@ -39,9 +40,13 @@ def get_from_db(files_faces, db, filename):
 
 
 def update(patt, db, num_jitters, encoding_model, max_size, out_size):
+    encoder = faceencoder.FaceEncoder(
+        encoding_model=encoding_model,
+        num_jitters=num_jitters)
+
     files_faces = db.get_all()
 
-    for patt_fname in patt.files():
+    for patt_fname in patt.encodings()[2]:
         fname, box = get_from_db(files_faces, db, patt_fname)
         if fname is None:
             logging.warning(f'Not found in db: {patt_fname}')
@@ -55,14 +60,22 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
             logging.warning(f'Cant''t read image: {fname}: ' + str(ex))
             continue
 
-        encodings = face_recognition.face_encodings(
-            image, (box,), num_jitters, encoding_model)
-        landmarks = face_recognition.face_landmarks(
-            image, (box,), model=encoding_model)
+        encodings = encoder.encode(image, (box,))
+
+        if encoding_model in ('small', 'large'):
+            landmarks = face_recognition.face_landmarks(
+                image, (box,), model=encoding_model)
+        else:
+            landmarks = {}
+
+        enc = {'box': box,
+               'encoding': encodings[0],
+               'frame': 0,
+               'landmarks': landmarks}
         tools.save_face(patt_fname,
-                        image, box,
-                        encodings[0], landmarks[0],
-                        out_size)
+                        image, enc,
+                        out_size,
+                        fname)
         logging.info(f'Updated: {patt_fname}')
 
 

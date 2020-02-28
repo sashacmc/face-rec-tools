@@ -6,6 +6,10 @@ import piexif
 import face_recognition
 
 import tools
+import faceencoder
+
+
+encoder = faceencoder.FaceEncoder('VGG-Face', 'cosine')
 
 
 def get_face(fname):
@@ -19,7 +23,7 @@ def get_face(fname):
 
     image = tools.read_image(fname, 1000)
     boxes = face_recognition.face_locations(image, model='cnn')
-    return face_recognition.face_encodings(image, boxes, 1)[0]
+    return encoder.encode(image, boxes)[0]
 
 
 def main():
@@ -27,7 +31,7 @@ def main():
     fnames = sys.argv[2:]
     encodings = [get_face(fname) for fname in fnames]
 
-    distances = face_recognition.face_distance(encodings, encoding_base)
+    distances = encoder.distance(encodings, encoding_base)
 
     dist_name = [(distances[i], fname) for i, fname in enumerate(fnames)]
     dist_name.sort()

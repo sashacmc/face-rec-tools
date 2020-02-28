@@ -86,6 +86,8 @@ def __set_landmarks(image, face_landmarks):
 
 
 def __set_landmarks_lines(image, face_landmarks):
+    if len(face_landmarks) == 0:
+        return
     draw = ImageDraw.Draw(image)
     for pts in face_landmarks.values():
         draw.line(pts, fill=(255, 255, 255))

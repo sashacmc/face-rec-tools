@@ -41,11 +41,16 @@ class Patterns(object):
 
     def generate(self, regenerate=False):
         try:
+            import faceencoder
             import face_recognition
         except Exception:
-            print('face_recognition not loaded, readonly mode')
+            logging.exception('faceencoder not loaded, readonly mode')
 
         logging.info(f'Patterns generation: {self.__folder} ({regenerate})')
+
+        encoder = faceencoder.FaceEncoder(
+            encoding_model=self.__encoding_model,
+            num_jitters=self.__num_jitters)
 
         image_files = {}
         for image_file in list(paths.list_images(self.__folder)):
@@ -101,9 +106,7 @@ class Patterns(object):
                     logging.warning(
                         f'{len(boxes)} faces detected in {image_file}. Skip.')
                     continue
-                encodings = face_recognition.face_encodings(
-                    image, boxes, self.__num_jitters,
-                    model=self.__encoding_model)
+                encodings = encoder.encode(image, boxes)
                 encoding = encodings[0]
 
             self.__files[image_file] = [encoding,
