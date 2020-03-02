@@ -2,20 +2,36 @@
 
 import logging
 
+import os
 import cv2
 import numpy as np
 import tensorflow as tf
+import face_alignment
 import face_recognition
 from tensorflow.keras.preprocessing import image as keras_image
 from deepface.basemodels import VGGFace, OpenFace, Facenet, FbDeepFace
 from deepface.commons import distance as dst
+
+PRED_TYPES = {'face': slice(0, 17),
+              'eyebrow1': slice(17, 22),
+              'eyebrow2': slice(22, 27),
+              'nose': slice(27, 31),
+              'nostril': slice(31, 36),
+              'eye1': slice(36, 42),
+              'eye2': slice(42, 48),
+              'lips': slice(48, 60),
+              'teeth': slice(60, 68)
+              }
 
 
 class FaceEncoder(object):
     def __init__(self,
                  encoding_model='large',
                  distance_metric='default',
-                 num_jitters=1):
+                 num_jitters=1,
+                 align=False,
+                 debug_out_folder='/mnt/multimedia/tmp/test/'):
+
         logging.info(
             f"Using {encoding_model} model and {distance_metric} metric")
 
@@ -23,6 +39,9 @@ class FaceEncoder(object):
 
         self.__encoding_model = encoding_model
         self.__num_jitters = int(num_jitters)
+        self.__debug_out_folder = debug_out_folder
+        self.__debug_out_counter = 0
+
         if encoding_model == 'small':
             self.__encode = self.__encode_face_recognition
         elif encoding_model == 'large':
@@ -62,6 +81,14 @@ class FaceEncoder(object):
         else:
             raise ValueError("Invalid distance_metric: ", distance_metric)
 
+        if align:
+            self.__aligner = face_alignment.FaceAlignment(
+                face_alignment.LandmarksType._2D,
+                device='cpu',
+                flip_input=True)
+        else:
+            self.__aligner = None
+
     def __tensorflow_init(self):
         gpu = tf.config.experimental.list_physical_devices('GPU')[0]
         if tf.config.experimental.get_memory_growth(gpu):
@@ -72,12 +99,72 @@ class FaceEncoder(object):
             [tf.config.experimental.VirtualDeviceConfiguration(
                 memory_limit=1536)])
 
+    def __save_debug(self, image):
+        if self.__debug_out_folder is None:
+            return
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        cv2.imwrite(os.path.join(self.__debug_out_folder,
+                                 str(self.__debug_out_counter) + '.jpg'),
+                    image)
+        self.__debug_out_counter += 1
+
+    def __align(self, image, box, pred):
+        desiredLeftEye = (0.35, 0.35)
+        desiredFaceWidth, desiredFaceHeight = self.__input_shape
+
+        leftEyePts = pred[PRED_TYPES['eye2']]
+        rightEyePts = pred[PRED_TYPES['eye1']]
+
+        leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
+        rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
+
+        dY = rightEyeCenter[1] - leftEyeCenter[1]
+        dX = rightEyeCenter[0] - leftEyeCenter[0]
+        angle = np.degrees(np.arctan2(dY, dX)) - 180
+
+        desiredRightEyeX = 1.0 - desiredLeftEye[0]
+
+        dist = np.sqrt((dX ** 2) + (dY ** 2))
+        desiredDist = (desiredRightEyeX - desiredLeftEye[0])
+        desiredDist *= desiredFaceWidth
+        scale = desiredDist / dist
+
+        eyesCenter = ((leftEyeCenter[0] + rightEyeCenter[0]) // 2,
+                      (leftEyeCenter[1] + rightEyeCenter[1]) // 2)
+
+        M = cv2.getRotationMatrix2D(eyesCenter, angle, scale)
+
+        tX = desiredFaceWidth * 0.5
+        tY = desiredFaceHeight * desiredLeftEye[1]
+        M[0, 2] += (tX - eyesCenter[0])
+        M[1, 2] += (tY - eyesCenter[1])
+
+        output = cv2.warpAffine(image, M, self.__input_shape,
+                                flags=cv2.INTER_CUBIC)
+        return output
+
+    def __aligner_boxes(self, boxes):
+        return [(left, top, right, bottom)
+                for top, right, bottom, left in boxes]
+
     def __encode_deepface(self, image, boxes):
         res = []
-        for box in boxes:
-            top, right, bottom, left = box
-            sub_image = image[top:bottom, left:right]
-            sub_image = cv2.resize(sub_image, self.__input_shape)
+        if self.__aligner is not None:
+            preds = self.__aligner.get_landmarks_from_image(
+                image, self.__aligner_boxes(boxes))
+        else:
+            preds = [None] * len(boxes)
+
+        for box, pred in zip(boxes, preds):
+            if self.__aligner is not None:
+                sub_image = self.__align(
+                    image, self.__aligner_boxes((box,))[0], pred)
+                self.__save_debug(sub_image)
+            else:
+                top, right, bottom, left = box
+                sub_image = image[top:bottom, left:right]
+                sub_image = cv2.resize(sub_image, self.__input_shape)
+                self.__save_debug(sub_image)
             img_pixels = keras_image.img_to_array(sub_image)
             img_pixels = np.expand_dims(img_pixels, axis=0)
             img_pixels /= 255

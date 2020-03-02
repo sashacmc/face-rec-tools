@@ -55,7 +55,8 @@ class Recognizer(threading.Thread):
         self.__encoder = faceencoder.FaceEncoder(
             encoding_model=encoding_model,
             distance_metric='cosine',
-            num_jitters=num_jitters)
+            num_jitters=num_jitters,
+            align=True)
         self.__threshold = float(threshold)
         self.__threshold_weak = float(threshold_weak)
         self.__threshold_clusterize = float(threshold_clusterize)
