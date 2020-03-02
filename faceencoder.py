@@ -22,7 +22,7 @@ class FaceEncoder(object):
         self.__tensorflow_init()
 
         self.__encoding_model = encoding_model
-        self.__num_jitters = num_jitters
+        self.__num_jitters = int(num_jitters)
         if encoding_model == 'small':
             self.__encode = self.__encode_face_recognition
         elif encoding_model == 'large':
@@ -92,5 +92,5 @@ class FaceEncoder(object):
     def encode(self, image, boxes):
         return self.__encode(image, boxes)
 
-    def distance(self, encoding1, encoding2):
-        return self.__distance(encoding1, encoding2)
+    def distance(self, encodings, encoding):
+        return self.__distance(encodings, encoding)
