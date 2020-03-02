@@ -46,7 +46,8 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
 
     files_faces = db.get_all()
 
-    for patt_fname in patt.encodings()[2]:
+    encodings, names, filenames = patt.encodings()
+    for patt_fname, enc in zip(filenames, encodings):
         fname, box = get_from_db(files_faces, db, patt_fname)
         if fname is None:
             logging.warning(f'Not found in db: {patt_fname}')
@@ -60,30 +61,32 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
             logging.warning(f'Cant''t read image: {fname}: ' + str(ex))
             continue
 
-        encodings = encoder.encode(image, (box,))
+        try:
+            encodings = encoder.encode(image, (box,))
 
-        if encoding_model in ('small', 'large'):
-            landmarks = face_recognition.face_landmarks(
-                image, (box,), model=encoding_model)
-        else:
-            landmarks = {}
+            if encoding_model in ('small', 'large'):
+                landmarks = face_recognition.face_landmarks(
+                    image, (box,), model=encoding_model)
+            else:
+                landmarks = {}
 
-        enc = {'box': box,
-               'encoding': encodings[0],
-               'frame': 0,
-               'landmarks': landmarks}
-        tools.save_face(patt_fname,
-                        image, enc,
-                        out_size,
-                        fname)
-        logging.info(f'Updated: {patt_fname}')
+            enc = {'box': box,
+                   'encoding': encodings[0],
+                   'frame': 0,
+                   'landmarks': landmarks}
+            tools.save_face(patt_fname,
+                            image, enc,
+                            out_size,
+                            fname)
+            logging.info(f'Updated: {patt_fname}')
+        except Exception as ex:
+            logging.exception(f'Failed: {patt_fname}')
 
 
 def update_db(db, rec):
     files_faces = db.get_all()
-    filenames = [ff['filename'] for ff in files_faces]
-    logging.info(f'Start recognize {len(filenames)} files')
-    rec.recognize_files(filenames, db, None)
+    logging.info(f'Start reencode {len(files_faces)} files')
+    rec.reeencode_files(files_faces, db, None)
 
 
 def args_parse():
@@ -112,17 +115,7 @@ def main():
            int(cfg['main']['max_image_size']),
            int(cfg['main']['debug_out_image_size']))
 
-    rec = recognizer.Recognizer(
-        patt,
-        model=cfg['main']['model'],
-        num_jitters=cfg['main']['num_jitters'],
-        threshold=cfg['main']['threshold'],
-        threshold_weak=cfg['main']['threshold_weak'],
-        threshold_clusterize=cfg['main']['threshold_clusterize'],
-        max_image_size=cfg['main']['max_image_size'],
-        min_face_size=cfg['main']['min_face_size'],
-        debug_out_image_size=cfg['main']['debug_out_image_size'],
-        encoding_model=cfg['main']['encoding_model'])
+    rec = recognizer.createRecognizer(patt, cfg)
 
     update_db(db, rec)
 

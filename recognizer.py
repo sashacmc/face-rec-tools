@@ -17,8 +17,8 @@ import concurrent.futures
 try:
     import faceencoder
     import face_recognition
-except Exception:
-    print('face_recognition not loaded, readonly mode')
+except Exception as ex:
+    print('face_recognition not loaded, readonly mode: ' + str(ex))
 
 from imutils import paths
 
@@ -123,6 +123,19 @@ class Recognizer(threading.Thread):
         self.__match_faces(encoded_faces, False)
 
         return encoded_faces, image
+
+    def reencode_image(self, filename, encoded_faces):
+        logging.info(f'reencode image: {filename}')
+
+        image = tools.LazyImage(filename, self.__max_size)
+
+        boxes = [f['box'] for f in encoded_faces]
+        encodings = self.__encoder.encode(image.get(), boxes)
+
+        for i in range(len(encoded_faces)):
+            encoded_faces[i] = encodings[i]
+
+        self.__save_landmarks(encoded_faces, image.get())
 
     def recognize_video(self, filename):
         logging.info(f'recognize video: {filename}')
@@ -296,6 +309,24 @@ class Recognizer(threading.Thread):
         db.commit()
         if self.__cdb is not None:
             self.__cdb.commit()
+
+    def reencode_files(self, files_faces, db):
+        for ff in files_faces:
+            try:
+                encoded_faces = ff['faces']
+                filename = ff['filename']
+                ext = os.path.splitext(filename)[1].lower()
+                if ext in tools.IMAGE_EXTS:
+                    self.reencode_image(filename, encoded_faces)
+                elif ext in tools.VIDEO_EXTS:
+                    encoded_faces = self.recognize_video(filename)
+                else:
+                    logging.warning(f'Unknown ext: {ext}')
+                    continue
+                db.insert(filename, encoded_faces, commit=False)
+            except Exception as ex:
+                logging.exception(f'{filename} reencoding failed')
+        db.commit()
 
     def __get_files_faces_by_filter(self, db, fltr):
         tp = fltr['type']
@@ -541,7 +572,7 @@ class Recognizer(threading.Thread):
             self.__status['current'] += 1
 
 
-def createRecognizer(patt, cfg, cdb):
+def createRecognizer(patt, cfg, cdb=None):
     return Recognizer(patt,
                       model=cfg['main']['model'],
                       num_jitters=cfg['main']['num_jitters'],
