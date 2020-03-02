@@ -233,6 +233,20 @@ class Patterns(object):
             else:
                 fset[filename] = f
 
+        dct = collections.defaultdict(list)
+        for f, (enc, name, time, tp) in self.__files.items():
+            dct[len(enc)].append(f)
+        if len(dct) != 1:
+            logging.warning('Inconsistent encoding: ' + str(dct.keys()))
+            max_key = list(dct.keys())[0]
+            for key in dct:
+                if len(dct[max_key]) < len(dct[key]):
+                    max_key = key
+            del dct[max_key]
+            for lst in dct.values():
+                for f in lst:
+                    logging.warning(f'wrong encoding: {f}')
+
     def __calcPersons(self):
         dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
         for f in self.__files:
