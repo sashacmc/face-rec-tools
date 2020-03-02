@@ -45,16 +45,16 @@ class Recognizer(threading.Thread):
                  min_face_size=20,
                  debug_out_image_size=100,
                  encoding_model='large',
+                 distance_metric='default',
                  max_workers=1,
-                 cdb=None,
-                 nearest_match=True):
+                 cdb=None):
 
         threading.Thread.__init__(self)
         self.__patterns = patts
         self.__model = model
         self.__encoder = faceencoder.FaceEncoder(
             encoding_model=encoding_model,
-            distance_metric='cosine',
+            distance_metric=distance_metric,
             num_jitters=num_jitters,
             align=True)
         self.__threshold = float(threshold)
@@ -65,7 +65,6 @@ class Recognizer(threading.Thread):
         self.__debug_out_image_size = int(debug_out_image_size)
         self.__encoding_model = encoding_model
         self.__cdb = cdb
-        self.__nearest_match = nearest_match
 
         self.__status = {'state': '', 'count': 0, 'current': 0}
         self.__status_lock = threading.Lock()
@@ -584,6 +583,7 @@ def createRecognizer(patt, cfg, cdb=None):
                       min_face_size=cfg['main']['min_face_size'],
                       debug_out_image_size=cfg['main']['debug_out_image_size'],
                       encoding_model=cfg['main']['encoding_model'],
+                      distance_metric=cfg['main']['distance_metric'],
                       max_workers=cfg['main']['max_workers'],
                       cdb=cdb)
 
