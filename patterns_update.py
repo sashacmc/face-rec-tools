@@ -4,7 +4,6 @@ import re
 import os
 import logging
 import argparse
-import face_recognition
 
 import log
 import recdb
@@ -42,7 +41,8 @@ def get_from_db(files_faces, db, filename):
 def update(patt, db, num_jitters, encoding_model, max_size, out_size):
     encoder = faceencoder.FaceEncoder(
         encoding_model=encoding_model,
-        num_jitters=num_jitters)
+        num_jitters=num_jitters,
+        align=True)
 
     files_faces = db.get_all()
 
@@ -62,18 +62,12 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
             continue
 
         try:
-            encodings = encoder.encode(image, (box,))
-
-            if encoding_model in ('small', 'large'):
-                landmarks = face_recognition.face_landmarks(
-                    image, (box,), model=encoding_model)
-            else:
-                landmarks = {}
+            encodings, landmarks = encoder.encode(image, (box,))
 
             enc = {'box': box,
                    'encoding': encodings[0],
                    'frame': 0,
-                   'landmarks': landmarks}
+                   'landmarks': landmarks[0]}
             tools.save_face(patt_fname,
                             image, enc,
                             out_size,

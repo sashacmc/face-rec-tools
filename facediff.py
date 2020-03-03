@@ -1,15 +1,13 @@
 #!/usr/bin/python3
 
 import sys
-import pickle
-import piexif
 import face_recognition
 
 import tools
 import faceencoder
 
 
-encoder = faceencoder.FaceEncoder('VGG-Face', 'cosine')
+encoder = faceencoder.FaceEncoder('VGG-Face', 'cosine', align=True)
 
 
 def get_face(fname):
@@ -31,7 +29,7 @@ def get_face(fname):
     if len(boxes) != 1:
         print(f'Image contains {len(boxes)} faces')
         return None
-    return encoder.encode(image, boxes)[0]
+    return encoder.encode(image, boxes)[0][0]
 
 
 def main():

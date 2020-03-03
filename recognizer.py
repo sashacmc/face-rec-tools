@@ -118,8 +118,6 @@ class Recognizer(threading.Thread):
 
         encoded_faces = self.encode_faces(image.get())
 
-        self.__save_landmarks(encoded_faces, image.get())
-
         self.__match_faces(encoded_faces, False)
 
         return encoded_faces, image
@@ -130,12 +128,11 @@ class Recognizer(threading.Thread):
         image = tools.LazyImage(filename, self.__max_size)
 
         boxes = [f['box'] for f in encoded_faces]
-        encodings = self.__encoder.encode(image.get(), boxes)
+        encodings, landmarks = self.__encoder.encode(image.get(), boxes)
 
         for i in range(len(encoded_faces)):
-            encoded_faces[i] = encodings[i]
-
-        self.__save_landmarks(encoded_faces, image.get())
+            encoded_faces[i]['encoding'] = encodings[i]
+            encoded_faces[i]['landmarks'] = landmarks[i]
 
     def recognize_video(self, filename):
         logging.info(f'recognize video: {filename}')
@@ -150,12 +147,15 @@ class Recognizer(threading.Thread):
                 frames, batch_size=len(frames))
 
             for image, boxes in zip(frames, batched_boxes):
-                encodings = self.__encoder.encode(image, boxes)
-                encoded_faces = [{'encoding': e, 'box': b, 'frame': frame_num}
-                                 for e, b in zip(encodings, boxes)]
+                encodings, landmarks = self.__encoder.encode(image, boxes)
+                encoded_faces = [
+                    {'encoding': e,
+                     'box': b,
+                     'frame': frame_num,
+                     'landmarks': l}
+                    for e, l, b in zip(encodings, landmarks, boxes)]
 
                 self.__match_faces(encoded_faces, True)
-                self.__save_landmarks(encoded_faces, image)
                 for face in encoded_faces:
                     if face['dist'] >= self.__threshold:
                         face['name'] = SKIP_FACE
@@ -191,9 +191,9 @@ class Recognizer(threading.Thread):
                 continue
             filtered_boxes.append(box)
 
-        encodings = self.__encoder.encode(image, filtered_boxes)
-        res = [{'encoding': e, 'box': b, 'frame': 0}
-               for e, b in zip(encodings, filtered_boxes)]
+        encodings, landmarks = self.__encoder.encode(image, filtered_boxes)
+        res = [{'encoding': e, 'box': b, 'frame': 0, 'landmarks': l}
+               for e, l, b in zip(encodings, landmarks, filtered_boxes)]
 
         return res
 
@@ -480,8 +480,6 @@ class Recognizer(threading.Thread):
             if self.__cdb is not None:
                 if not self.__cdb.check_face(enc['face_id']):
                     out_stream = io.BytesIO()
-                    if not enc['landmarks']:
-                        self.__save_landmarks((enc,), media.get(enc['frame']))
                     tools.save_face(out_stream, media.get(enc['frame']), enc,
                                     self.__debug_out_image_size,
                                     media.filename())
@@ -492,26 +490,10 @@ class Recognizer(threading.Thread):
                 self.__cdb.add_to_cache(enc['face_id'], out_filename)
             else:
                 self.__make_debug_out_folder(out_folder)
-                if not enc['landmarks']:
-                    self.__save_landmarks((enc,), media.get(enc['frame']))
                 tools.save_face(out_filename, media.get(enc['frame']), enc,
                                 self.__debug_out_image_size,
                                 media.filename())
                 logging.debug(f'face saved to: {out_filename}')
-
-    def __save_landmarks(self, encoded_faces, image):
-        if self.__encoding_model in ('small', 'large'):
-            boxes = [enc['box'] for enc in encoded_faces]
-            landmarks = face_recognition.face_landmarks(
-                image,
-                face_locations=boxes,
-                model=self.__encoding_model)
-
-            for i in range(len(encoded_faces)):
-                encoded_faces[i]['landmarks'] = landmarks[i]
-        else:
-            for i in range(len(encoded_faces)):
-                encoded_faces[i]['landmarks'] = {}
 
     def get_faces_by_face(self, db, filename, debug_out_folder,
                           remove_file=False):

@@ -84,7 +84,7 @@ class FaceEncoder(object):
         if align:
             self.__aligner = face_alignment.FaceAlignment(
                 face_alignment.LandmarksType._2D,
-                device='cpu',
+                device='cuda',
                 flip_input=True)
         else:
             self.__aligner = None
@@ -147,13 +147,30 @@ class FaceEncoder(object):
         return [(left, top, right, bottom)
                 for top, right, bottom, left in boxes]
 
+    def __convert_to_landmarks(self, preds):
+        if preds is None:
+            return None
+        return [{
+            "chin": pred[PRED_TYPES['face']].tolist(),
+            "left_eyebrow": pred[PRED_TYPES['eyebrow2']].tolist(),
+            "right_eyebrow": pred[PRED_TYPES['eyebrow1']].tolist(),
+            "nose_bridge": pred[PRED_TYPES['nose']].tolist(),
+            "nose_tip": pred[PRED_TYPES['nostril']].tolist(),
+            "left_eye": pred[PRED_TYPES['eye2']].tolist(),
+            "right_eye": pred[PRED_TYPES['eye1']].tolist(),
+            "top_lip": pred[PRED_TYPES['lips']].tolist(),
+            "bottom_lip": pred[PRED_TYPES['teeth']].tolist()}
+            for pred in preds]
+
     def __encode_deepface(self, image, boxes):
         res = []
         if self.__aligner is not None:
             preds = self.__aligner.get_landmarks_from_image(
                 image, self.__aligner_boxes(boxes))
+            landmarks = self.__convert_to_landmarks(preds)
         else:
             preds = [None] * len(boxes)
+            landmarks = [{}] * len(boxes)
 
         for box, pred in zip(boxes, preds):
             if self.__aligner is not None:
@@ -169,12 +186,18 @@ class FaceEncoder(object):
             img_pixels = np.expand_dims(img_pixels, axis=0)
             img_pixels /= 255
             res.append(self.__model.predict(img_pixels)[0, :])
-        return res
+        return res, landmarks
 
     def __encode_face_recognition(self, image, boxes):
-        return face_recognition.face_encodings(
+        encodings = face_recognition.face_encodings(
             image, boxes, self.__num_jitters,
             model=self.__encoding_model)
+
+        landmarks = face_recognition.face_landmarks(
+            image,
+            face_locations=boxes,
+            model=self.__encoding_model)
+        return encodings, landmarks
 
     def encode(self, image, boxes):
         return self.__encode(image, boxes)
