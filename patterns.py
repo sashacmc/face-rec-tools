@@ -106,7 +106,12 @@ class Patterns(object):
                     logging.warning(
                         f'{len(boxes)} faces detected in {image_file}. Skip.')
                     continue
-                encodings = encoder.encode(image, boxes)[0]
+                encodings, landmarks = encoder.encode(image, boxes)
+                if not tools.test_landmarks(landmarks[0]):
+                    logging.warning(
+                        f'bad face detected in {image_file}. Skip.')
+                    continue
+
                 encoding = encodings[0]
 
             self.__files[image_file] = [encoding,

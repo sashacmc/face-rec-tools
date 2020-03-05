@@ -1,10 +1,12 @@
 import io
 import os
 import cv2
+import math
 import piexif
 import pickle
 import logging
 from PIL import Image, ImageDraw
+
 
 IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')
 VIDEO_EXTS = ('.mp4', '.mpg', '.mpeg', '.mov', '.avi', '.mts')
@@ -113,6 +115,53 @@ def enable_landmarks(filename, enable):
         image = thumbnail
         thumbnail = None
     save_with_description(image, descr, thumbnail, filename)
+
+
+def bound_size(line):
+    xmin, ymin = line[0]
+    xmax, ymax = line[0]
+    for x, y, in line[1:]:
+        if x < xmin:
+            xmin = x
+        if x > xmax:
+            xmax = x
+        if y < ymin:
+            ymin = y
+        if y > ymax:
+            ymax = y
+    return math.hypot(xmax - xmin, ymax - ymin)
+
+
+def calc_angle(a, b, c):
+    ang = math.degrees(math.atan2(c[1] - b[1], c[0] - b[0]) -
+                       math.atan2(a[1] - b[1], a[0] - b[0]))
+    return ang + 360 if ang < 0 else ang
+
+
+def test_line_angle(line):
+    for i in range(len(line) - 3):
+        if calc_angle(line[i], line[i + 1], line[i + 2]) < 30:
+            return False
+    return True
+
+
+def test_landmarks(l):
+    if 'chin' not in l:
+        return True
+    size = bound_size(l['chin'])
+    return \
+        test_line_angle(l['chin']) and \
+        bound_size(l['left_eye']) < size / 4 and \
+        bound_size(l['right_eye']) < size / 4 and \
+        bound_size(l['left_eyebrow']) < size / 3 and \
+        bound_size(l['right_eyebrow']) < size / 3 and \
+        bound_size(l['nose_tip']) < size / 4 and \
+        bound_size(l['nose_bridge']) < size / 2
+
+
+def filter_encoded_faces(encoded_faces):
+    return list(filter(
+        lambda enc: test_landmarks(enc['landmarks']), encoded_faces))
 
 
 def save_face(out_filename, image, enc, out_size, src_filename):

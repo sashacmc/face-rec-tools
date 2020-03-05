@@ -154,6 +154,7 @@ class Recognizer(threading.Thread):
                      'frame': frame_num,
                      'landmarks': l}
                     for e, l, b in zip(encodings, landmarks, boxes)]
+                encoded_faces = tools.filter_encoded_faces(encoded_faces)
 
                 self.__match_faces(encoded_faces, True)
                 for face in encoded_faces:
@@ -191,9 +192,13 @@ class Recognizer(threading.Thread):
                 continue
             filtered_boxes.append(box)
 
-        encodings, landmarks = self.__encoder.encode(image, filtered_boxes)
-        res = [{'encoding': e, 'box': b, 'frame': 0, 'landmarks': l}
-               for e, l, b in zip(encodings, landmarks, filtered_boxes)]
+        if len(filtered_boxes):
+            encodings, landmarks = self.__encoder.encode(image, filtered_boxes)
+            res = [{'encoding': e, 'box': b, 'frame': 0, 'landmarks': l}
+                   for e, l, b in zip(encodings, landmarks, filtered_boxes)]
+            res = tools.filter_encoded_faces(res)
+        else:
+            res = []
 
         return res
 

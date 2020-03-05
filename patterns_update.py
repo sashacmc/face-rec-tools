@@ -63,6 +63,10 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
 
         try:
             encodings, landmarks = encoder.encode(image, (box,))
+            if not tools.test_landmarks(landmarks[0]):
+                logging.warning(
+                    f'bad face detected in {fname}. Skip.')
+                continue
 
             enc = {'box': box,
                    'encoding': encodings[0],
