@@ -188,15 +188,30 @@ class FaceEncoder(object):
             res.append(self.__model.predict(img_pixels)[0, :])
         return res, landmarks
 
+    def __create_full_object_detection(self, box, fa_landmarks):
+        rect = dlib.rectangle(*box)
+        points = [dlib.point(*fa_point) for fa_point in fa_landmarks]
+        return dlib.full_object_detection(rect, points)
+
     def __encode_face_recognition(self, image, boxes):
+        if self.__aligner is not None:
+            aboxes = self.__aligner_boxes(boxes)
+            preds = self.__aligner.get_landmarks_from_image(image, aboxes)
+            raw_landmarks = [self.__create_full_object_detection(box, pred)
+                             for box, pred in zip(aboxes, preds)]
+        else:
+            raw_landmarks = None
+
         encodings = face_recognition.face_encodings(
             image, boxes, self.__num_jitters,
-            model=self.__encoding_model)
+            model=self.__encoding_model,
+            raw_landmarks=raw_landmarks)
 
         landmarks = face_recognition.face_landmarks(
             image,
             face_locations=boxes,
-            model=self.__encoding_model)
+            model=self.__encoding_model,
+            raw_landmarks=raw_landmarks)
         return encodings, landmarks
 
     def encode(self, image, boxes):
