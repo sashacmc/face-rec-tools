@@ -118,12 +118,18 @@ def enable_landmarks(filename, enable):
 def save_face(out_filename, image, enc, out_size, src_filename):
     top, right, bottom, left = enc['box']
     d = (bottom - top) // 2
-    top = max(0, top - d)
-    left = max(0, left - d)
-    bottom = bottom + d
-    right = right + d
+    top -= d
+    left -= d
+    bottom += d
+    right += d
 
-    out_image = image[top:bottom, left:right]
+    height, width = image.shape[0:2]
+    out_image = image[max(0, top):bottom, max(0, left):right]
+    if top < 0 or left < 0 or right > width or bottom > height:
+        out_image = cv2.copyMakeBorder(out_image,
+                                       max(0, -top), max(0, bottom - height),
+                                       max(0, -left), max(0, right - width),
+                                       cv2.BORDER_CONSTANT, None, 0)
 
     im = Image.fromarray(out_image)
     im.thumbnail((out_size, out_size))
