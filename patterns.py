@@ -228,7 +228,8 @@ class Patterns(object):
         self.remove_files(to_remove)
         logging.info(f'Optimized from {len(encs)} to {len(uniq)}.')
 
-    def analyze(self):
+    def __analyze_duplicates(self):
+        logging.info(f'Analyze duplicates')
         fset = {}
         for f in self.__files:
             filename = os.path.split(f)[1]
@@ -238,6 +239,8 @@ class Patterns(object):
             else:
                 fset[filename] = f
 
+    def __analyze_encodings_size(self):
+        logging.info(f'Analyze encodings')
         dct = collections.defaultdict(list)
         for f, (enc, name, time, tp) in self.__files.items():
             dct[len(enc)].append(f)
@@ -251,6 +254,19 @@ class Patterns(object):
             for lst in dct.values():
                 for f in lst:
                     logging.warning(f'wrong encoding: {f}')
+
+    def __analyze_landmarks(self):
+        logging.info(f'Analyze landmarks')
+        for f in self.__files:
+            dscr = tools.load_face_description(f)[0]
+            l = dscr['landmarks']
+            if not tools.test_landmarks(l):
+                logging.warning(f'wrong landmarks: {f}')
+
+    def analyze(self):
+        self.__analyze_duplicates()
+        self.__analyze_encodings_size()
+        self.__analyze_landmarks()
 
     def __calcPersons(self):
         dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
