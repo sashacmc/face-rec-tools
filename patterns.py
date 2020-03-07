@@ -228,7 +228,7 @@ class Patterns(object):
         self.remove_files(to_remove)
         logging.info(f'Optimized from {len(encs)} to {len(uniq)}.')
 
-    def __analyze_duplicates(self):
+    def __analyze_duplicates(self, print_out):
         logging.info(f'Analyze duplicates')
         fset = {}
         for f in self.__files:
@@ -236,10 +236,13 @@ class Patterns(object):
             if filename in fset:
                 logging.warning(
                     f'Duplicate pattern file: {f} ({fset[filename]})')
+                if print_out:
+                    print(f)
+                    print(fset[filename])
             else:
                 fset[filename] = f
 
-    def __analyze_encodings_size(self):
+    def __analyze_encodings_size(self, print_out):
         logging.info(f'Analyze encodings')
         dct = collections.defaultdict(list)
         for f, (enc, name, time, tp) in self.__files.items():
@@ -254,19 +257,34 @@ class Patterns(object):
             for lst in dct.values():
                 for f in lst:
                     logging.warning(f'wrong encoding: {f}')
+                    if print_out:
+                        print(f)
 
-    def __analyze_landmarks(self):
+    def __analyze_landmarks(self, print_out):
         logging.info(f'Analyze landmarks')
         for f in self.__files:
-            dscr = tools.load_face_description(f)[0]
-            l = dscr['landmarks']
+            descr = tools.load_face_description(f)[0]
+            if descr is None:
+                logging.warning(f'missed description: {f}')
+                if print_out:
+                    print(f)
+                continue
+            if 'landmarks' not in descr:
+                logging.warning(f'missed landmarks: {f}')
+                if print_out:
+                    print(f)
+                continue
+            l = descr['landmarks']
             if not tools.test_landmarks(l):
                 logging.warning(f'wrong landmarks: {f}')
+                if print_out:
+                    print(f)
 
-    def analyze(self):
-        self.__analyze_duplicates()
-        self.__analyze_encodings_size()
-        self.__analyze_landmarks()
+    def analyze(self, print_out):
+        self.__analyze_duplicates(print_out)
+        self.__analyze_encodings_size(print_out)
+        self.__analyze_landmarks(print_out)
+        logging.info(f'Analyze done')
 
     def __calcPersons(self):
         dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
@@ -323,6 +341,9 @@ def args_parse():
     parser.add_argument('-r', '--regenerate', help='Regenerate all',
                         action='store_true')
     parser.add_argument('-c', '--config', help='Config file')
+    parser.add_argument('--print-out',
+                        help='Print out problem files during analyze',
+                        action='store_true')
     return parser.parse_args()
 
 
@@ -364,7 +385,7 @@ def main():
         patt.optimize()
     elif args.action == 'analyze':
         patt.load()
-        patt.analyze()
+        patt.analyze(args.print_out)
     elif args.action == 'set_landmarks':
         for f in args.files:
             tools.enable_landmarks(f, True)
