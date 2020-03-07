@@ -189,6 +189,8 @@ class FaceEncoder(object):
         return res, landmarks
 
     def __encode_face_recognition(self, image, boxes):
+        if len(boxes) == 0:
+            return [], []
         if self.__aligner is not None:
             aboxes = self.__aligner_boxes(boxes)
             preds = [pred.astype(int).tolist()
