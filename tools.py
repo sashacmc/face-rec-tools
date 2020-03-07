@@ -140,7 +140,7 @@ def calc_angle(a, b, c):
 
 def test_line_angle(line):
     for i in range(len(line) - 3):
-        if calc_angle(line[i], line[i + 1], line[i + 2]) < 30:
+        if calc_angle(line[i], line[i + 1], line[i + 2]) < 45:
             return False
     return True
 
@@ -153,8 +153,8 @@ def test_landmarks(l):
         test_line_angle(l['chin']) and \
         bound_size(l['left_eye']) < size / 4 and \
         bound_size(l['right_eye']) < size / 4 and \
-        bound_size(l['left_eyebrow']) < size / 3 and \
-        bound_size(l['right_eyebrow']) < size / 3 and \
+        bound_size(l['left_eyebrow']) < size / 2 and \
+        bound_size(l['right_eyebrow']) < size / 2 and \
         bound_size(l['nose_tip']) < size / 4 and \
         bound_size(l['nose_bridge']) < size / 2
 
