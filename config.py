@@ -19,6 +19,7 @@ class Config(object):
             'encoding_model': 'large',
             'distance_metric': 'default',
             'max_workers': 2,
+            'video_batch_size': 8,
             'db': '/mnt/multimedia/recdb/rec.db',
             'cachedb': '/opt/tmp/facereccache.db',
             'patterns': '/mnt/multimedia/recdb/face_rec_patt/',

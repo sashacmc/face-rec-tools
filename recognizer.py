@@ -47,6 +47,7 @@ class Recognizer(threading.Thread):
                  encoding_model='large',
                  distance_metric='default',
                  max_workers=1,
+                 video_batch_size=1,
                  cdb=None):
 
         threading.Thread.__init__(self)
@@ -84,7 +85,7 @@ class Recognizer(threading.Thread):
                 self.__max_workers))
             self.__pattern_names.append(names)
 
-        self.__video_batch_size = 8
+        self.__video_batch_size = int(video_batch_size)
 
     def start_method(self, method, *args):
         self.__status_state(method)
@@ -572,6 +573,7 @@ def createRecognizer(patt, cfg, cdb=None):
                       encoding_model=cfg['main']['encoding_model'],
                       distance_metric=cfg['main']['distance_metric'],
                       max_workers=cfg['main']['max_workers'],
+                      video_batch_size=cfg['main']['video_batch_size'],
                       cdb=cdb)
 
 
