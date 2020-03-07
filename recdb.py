@@ -73,7 +73,8 @@ class RecDB(object):
             check_same_thread=False,
             uri=True)
 
-        self.__conn.executescript(SCHEMA)
+        if not readonly:
+            self.__conn.executescript(SCHEMA)
         self.__readonly = readonly
         atexit.register(self.commit)
         self.__all_encodings = None  # all encodings for searching by face
