@@ -65,7 +65,7 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
             encodings, landmarks = encoder.encode(image, (box,))
             if not tools.test_landmarks(landmarks[0]):
                 logging.warning(
-                    f'bad face detected in {fname}. Skip.')
+                    f'bad face detected in {patt_fname}')
                 continue
 
             enc = {'box': box,
@@ -84,7 +84,8 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
 def update_db(db, rec):
     files_faces = db.get_all()
     logging.info(f'Start reencode {len(files_faces)} files')
-    rec.reeencode_files(files_faces, db, None)
+    rec.reencode_files(files_faces, db)
+    logging.info(f'Reencode done')
 
 
 def args_parse():
