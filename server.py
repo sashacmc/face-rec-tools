@@ -178,7 +178,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 if data is None:
                     raise Exception(f'No data for file {fn}')
                 self.server.patterns().add_file_data(params['name'][0],
-                                                     fn, data)
+                                                     fn, data,
+                                                     params['bad'][0] == '1')
                 self.server.cdb().remove_from_cache(fn)
             self.server.cdb().commit()
         else:
