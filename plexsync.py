@@ -97,12 +97,14 @@ class PlexSync(object):
     def sync_deleted(self, folders):
         logging.info(f'Sync deleted started')
         for folder in folders:
+            logging.info(f'Check {folder}')
             plex_files = set(self.__plexdb.get_files(folder))
             rec_files = set(self.__recdb.get_files(folder))
-            filenames = sorted(plex_files - rec_files)
-            for filename in filenames:
-                logging.info(f'removing from recdb: {filename}')
-                self.__recdb.remove(filename, commit=False)
+            filenames = sorted(rec_files - plex_files)
+            if len(filenames) != 0:
+                for filename in filenames:
+                    logging.info(f'removing from recdb: {filename}')
+                    self.__recdb.remove(filename, commit=False)
             else:
                 logging.info(f'No files to remove from {folder}')
             self.__recdb.commit()
@@ -135,7 +137,7 @@ def main():
     patt = patterns.Patterns(cfg['main']['patterns'],
                              cfg['main']['model'])
     patt.load()
-    names = set(patt.names())
+    names = set([p['name'] for p in patt.persons()])
     names.remove('trash')
 
     rdb = recdb.RecDB(cfg['main']['db'], args.dry_run)
