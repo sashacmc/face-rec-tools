@@ -141,6 +141,7 @@ def args_parse():
         choices=['clean_cache',
                  'list_cache',
                  'save_file',
+                 'remove_from_cache',
                  'speed_test'])
     parser.add_argument('-d', '--database', help='Database file')
     parser.add_argument('-f', '--file', help='File name')
@@ -159,6 +160,8 @@ def main():
             print(f)
     elif args.action == 'save_file':
         db.save_from_cache(args.file, args.out_file)
+    elif args.action == 'remove_from_cache':
+        db.remove_from_cache(args.file)
     elif args.action == 'speed_test':
         speed_test(db)
 
