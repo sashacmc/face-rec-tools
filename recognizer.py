@@ -324,8 +324,9 @@ class Recognizer(threading.Thread):
                 ext = os.path.splitext(filename)[1].lower()
                 if ext in tools.IMAGE_EXTS:
                     self.reencode_image(filename, encoded_faces)
+                    encoded_faces = tools.filter_encoded_faces(encoded_faces)
                 elif ext in tools.VIDEO_EXTS:
-                    encoded_faces = self.recognize_video(filename)
+                    encoded_faces, media = self.recognize_video(filename)
                 else:
                     logging.warning(f'Unknown ext: {ext}')
                     continue
