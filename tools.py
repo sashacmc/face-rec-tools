@@ -129,34 +129,48 @@ def bound_size(line):
             ymin = y
         if y > ymax:
             ymax = y
-    return math.hypot(xmax - xmin, ymax - ymin)
+    size = math.hypot(xmax - xmin, ymax - ymin)
+    return size
 
 
 def calc_angle(a, b, c):
     ang = math.degrees(math.atan2(c[1] - b[1], c[0] - b[0]) -
                        math.atan2(a[1] - b[1], a[0] - b[0]))
-    return ang + 360 if ang < 0 else ang
+    return ang
 
 
 def test_line_angle(line):
     for i in range(len(line) - 3):
-        if calc_angle(line[i], line[i + 1], line[i + 2]) < 45:
+        angle = abs(calc_angle(line[i], line[i + 1], line[i + 2]))
+        if angle < 45:
             return False
     return True
 
 
 def test_landmarks(l):
+    if l is None:
+        logging.debug('Empty landmarks')
+        return False
     if 'chin' not in l:
-        return True
+        logging.debug('landmarks without chin')
+        return False
     size = bound_size(l['chin'])
-    return \
-        test_line_angle(l['chin']) and \
-        bound_size(l['left_eye']) < size / 4 and \
-        bound_size(l['right_eye']) < size / 4 and \
-        bound_size(l['left_eyebrow']) < size / 2 and \
-        bound_size(l['right_eyebrow']) < size / 2 and \
-        bound_size(l['nose_tip']) < size / 4 and \
-        bound_size(l['nose_bridge']) < size / 2
+    if not test_line_angle(l['chin']):
+        logging.debug('landmarks chin angle test failed')
+        return False
+    if bound_size(l['left_eye']) >= size / 4 or \
+       bound_size(l['right_eye']) >= size / 4:
+        logging.debug('landmarks eye size test failed')
+        return False
+    if bound_size(l['left_eyebrow']) >= size / 2 or \
+       bound_size(l['right_eyebrow']) >= size / 2:
+        logging.debug('landmarks eyebrow size test failed')
+        return False
+    if bound_size(l['nose_tip']) >= size / 4 or \
+       bound_size(l['nose_bridge']) >= size / 2:
+        logging.debug('landmarks nose size test failed')
+        return False
+    return True
 
 
 def filter_encoded_faces(encoded_faces):
