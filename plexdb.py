@@ -7,6 +7,7 @@ import sqlite3
 
 class PlexDB(object):
     def __init__(self, filename, readonly=False):
+        logging.debug(f'Connect to {filename} ({readonly})')
         self.__conn = sqlite3.connect(
             'file:' + filename + ('?mode=ro' if readonly else ''),
             uri=True)

@@ -64,6 +64,7 @@ def convert_array(text):
 
 class RecDB(object):
     def __init__(self, filename, readonly=False):
+        logging.debug(f'Connect to {filename} ({readonly})')
         sqlite3.register_adapter(numpy.ndarray, adapt_array)
         sqlite3.register_converter('array', convert_array)
 
