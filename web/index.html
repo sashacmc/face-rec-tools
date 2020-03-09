@@ -265,6 +265,16 @@
             img.prop('src', img.prop('src_orig'));
             img.prop('src_orig', '');
         }
+        
+        function yearFromFileName(filename)
+        {
+            res = filename.match(/\d\d\d\d/g);
+            if (res) {
+                return res[0];
+            } else {
+                return "";
+            }
+        }
 
         function genImagesList(name, images)
         {
@@ -277,6 +287,7 @@
                                 'onmouseout="javascript:onImgMouseOut(event)"/>' +
                             '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclickick="javascript:onImgCheckboxClick(event)" order="' + i + '"/>' +
                             '<img src="srclink.png" class="img_srclink" onclick="javascript:openFaceSrc(\'cache/' + images[i] + '\')"/>' +
+                            '<div class="img_year">' + yearFromFileName(images[i]) + '</div>' +
                         '</div>';
             }
             return html;
@@ -449,6 +460,7 @@
                         '<img src="cache/' + images[i] + '" height="100" width="100" title="' + images[i] + '" ' +
                             'onmouseover="javascript:onImgMouseOver(event)" ' +
                             'onmouseout="javascript:onImgMouseOut(event)"/>' +
+                        '<div class="img_year">' + yearFromFileName(images[i]) + '</div>' +
                     '</div>'
                     images_names += images[i].split('/')[1] + '<br/>';
                 }

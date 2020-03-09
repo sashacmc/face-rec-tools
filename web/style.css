@@ -32,6 +32,16 @@ code {
 .img_container { position: relative; width: 100px; height: 100px; float: left; }
 .img_checkbox { position: absolute; bottom: 0px; right: 0px; }
 .img_srclink { position: absolute; top: 0px; right: 0px; }
+.img_year {
+    position: absolute;
+    top: -3px;
+    left: 2px;
+    font-size: 12px;
+    text-shadow:  1px  1px 1px white,
+                  1px -1px 1px white,
+                 -1px  1px 1px white,
+                 -1px -1px 1px white;
+}
 
 .img_close {
     position: absolute;
