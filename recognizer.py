@@ -375,8 +375,10 @@ class Recognizer(threading.Thread):
         self.__status_count(len(files_faces))
         for ff in files_faces:
             self.__status_step()
-            logging.info(f"match image: {ff['filename']}")
-            self.__match_faces(ff['faces'], False)
+            filename = ff['filename']
+            logging.info(f"match image: {filename}")
+            ext = os.path.splitext(filename)[1].lower()
+            self.__match_faces(ff['faces'], good_only=ext in tools.VIDEO_EXTS)
             for face in ff['faces']:
                 cnt_all += 1
                 changed = False
@@ -389,7 +391,6 @@ class Recognizer(threading.Thread):
                         f"face {face['face_id']} in file '{ff['filename']}' " +
                         f"changed '{face['oldname']}' -> '{face['name']}'")
                 if debug_out_folder and (changed or save_all_faces):
-                    filename = ff['filename']
                     media = tools.load_media(filename, self.__max_size)
                     debug_out_file_name = self.__extract_filename(filename)
                     self.__save_debug_images(
