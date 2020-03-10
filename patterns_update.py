@@ -103,6 +103,8 @@ def main():
     log.initLogger(args.logfile)
     logging.basicConfig(level=logging.DEBUG)
 
+    tools.cuda_init()
+
     db = recdb.RecDB(cfg['main']['db'])
     patt = patterns.Patterns(cfg['main']['patterns'],
                              cfg['main']['model'])

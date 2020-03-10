@@ -352,6 +352,7 @@ class FaceRecServer(http.server.HTTPServer):
             raise Exception('Recognizer already started')
 
         self.__clean_cache()
+        tools.cuda_init()
         self.__recognizer = recognizer.createRecognizer(
             self.__patterns, self.__cfg, self.__cdb)
         self.__recognizer.start_method(method, *args)
@@ -401,6 +402,7 @@ class FaceRecServer(http.server.HTTPServer):
             if self.__status['state'] in ('done', 'error'):
                 self.__recognizer.join()
                 self.__recognizer = None
+                tools.cuda_release()
 
         return self.__status
 

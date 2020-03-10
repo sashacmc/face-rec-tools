@@ -12,6 +12,27 @@ IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')
 VIDEO_EXTS = ('.mp4', '.mpg', '.mpeg', '.mov', '.avi', '.mts')
 
 
+def cuda_init(tf_memory_limit=1536):
+    import tensorflow as tf
+
+    logging.debug('cuda init')
+    gpu = tf.config.experimental.list_physical_devices('GPU')[0]
+    if tf.config.experimental.get_memory_growth(gpu):
+        return
+    tf.config.experimental.set_memory_growth(gpu, True)
+    tf.config.experimental.set_virtual_device_configuration(
+        gpu,
+        [tf.config.experimental.VirtualDeviceConfiguration(
+            memory_limit=tf_memory_limit)])
+
+
+def cuda_release():
+    import torch
+
+    logging.debug('cuda release')
+    torch.cuda.empty_cache()
+
+
 def read_image(image_file, max_size):
     image = cv2.imread(image_file)
     return prepare_image(image, max_size)

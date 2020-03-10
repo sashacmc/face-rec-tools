@@ -5,7 +5,6 @@ import logging
 import os
 import cv2
 import numpy as np
-import tensorflow as tf
 import face_alignment
 import face_recognition
 from tensorflow.keras.preprocessing import image as keras_image
@@ -34,8 +33,6 @@ class FaceEncoder(object):
 
         logging.info(
             f"Using {encoding_model} model and {distance_metric} metric")
-
-        self.__tensorflow_init()
 
         self.__encoding_model = encoding_model
         self.__num_jitters = int(num_jitters)
@@ -88,16 +85,6 @@ class FaceEncoder(object):
                 flip_input=True)
         else:
             self.__aligner = None
-
-    def __tensorflow_init(self):
-        gpu = tf.config.experimental.list_physical_devices('GPU')[0]
-        if tf.config.experimental.get_memory_growth(gpu):
-            return
-        tf.config.experimental.set_memory_growth(gpu, True)
-        tf.config.experimental.set_virtual_device_configuration(
-            gpu,
-            [tf.config.experimental.VirtualDeviceConfiguration(
-                memory_limit=1536)])
 
     def __save_debug(self, image):
         if self.__debug_out_folder is None:

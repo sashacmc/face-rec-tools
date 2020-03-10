@@ -48,6 +48,7 @@ class Patterns(object):
 
         logging.info(f'Patterns generation: {self.__folder} ({regenerate})')
 
+        tools.cuda_init()
         encoder = faceencoder.FaceEncoder(
             encoding_model=self.__encoding_model,
             num_jitters=self.__num_jitters)

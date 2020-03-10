@@ -627,6 +627,7 @@ def main():
     else:
         cdb = None
 
+    tools.cuda_init()
     rec = createRecognizer(patt, cfg, cdb)
 
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
