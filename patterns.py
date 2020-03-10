@@ -98,7 +98,11 @@ class Patterns(object):
                 encoding = None
 
             if encoding is None:
-                image = tools.read_image(image_file, self.__max_size)
+                try:
+                    image = tools.read_image(image_file, self.__max_size)
+                except Exception:
+                    logging.exception(f'read_image failed')
+                    continue
 
                 boxes = face_recognition.face_locations(
                     image, model=self.__model)
