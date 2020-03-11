@@ -41,6 +41,7 @@ class Recognizer(threading.Thread):
                  threshold=0.3,
                  threshold_weak=0.5,
                  threshold_clusterize=0.5,
+                 threshold_equal=0.1,
                  max_image_size=1000,
                  min_face_size=20,
                  debug_out_image_size=100,
@@ -61,6 +62,7 @@ class Recognizer(threading.Thread):
         self.__threshold = float(threshold)
         self.__threshold_weak = float(threshold_weak)
         self.__threshold_clusterize = float(threshold_clusterize)
+        self.__threshold_equal = float(threshold_equal)
         self.__max_size = int(max_image_size)
         self.__min_size = int(min_face_size)
         self.__debug_out_image_size = int(debug_out_image_size)
@@ -309,7 +311,8 @@ class Recognizer(threading.Thread):
                     debug_out_file_name = self.__extract_filename(f)
                     self.__save_debug_images(
                         encoded_faces, media,
-                        debug_out_folder, debug_out_file_name)
+                        debug_out_folder, debug_out_file_name,
+                        skip_eq=ext in tools.VIDEO_EXTS)
             except Exception as ex:
                 logging.exception(f'Image {f} recognition failed')
         db.commit()
@@ -377,8 +380,9 @@ class Recognizer(threading.Thread):
             self.__status_step()
             filename = ff['filename']
             logging.info(f"match image: {filename}")
-            ext = os.path.splitext(filename)[1].lower()
-            self.__match_faces(ff['faces'], good_only=ext in tools.VIDEO_EXTS)
+            is_video = os.path.splitext(
+                filename)[1].lower() in tools.VIDEO_EXTS
+            self.__match_faces(ff['faces'], good_only=is_video)
             for face in ff['faces']:
                 cnt_all += 1
                 changed = False
@@ -395,7 +399,8 @@ class Recognizer(threading.Thread):
                     debug_out_file_name = self.__extract_filename(filename)
                     self.__save_debug_images(
                         (face,), media,
-                        debug_out_folder, debug_out_file_name)
+                        debug_out_folder, debug_out_file_name,
+                        skip_eq=is_video)
         db.commit()
         if self.__cdb is not None:
             self.__cdb.commit()
@@ -410,9 +415,11 @@ class Recognizer(threading.Thread):
             logging.info(f"save faces from image: {filename}")
             media = tools.load_media(filename, self.__max_size)
             debug_out_file_name = self.__extract_filename(filename)
+            is_video = os.path.splitext(
+                filename)[1].lower() in tools.VIDEO_EXTS
             self.__save_debug_images(
                 ff['faces'], media,
-                debug_out_folder, debug_out_file_name)
+                debug_out_folder, debug_out_file_name, skip_eq=is_video)
         if self.__cdb is not None:
             self.__cdb.commit()
 
@@ -468,14 +475,30 @@ class Recognizer(threading.Thread):
         return os.path.splitext(os.path.split(filename)[1])[0]
 
     def __save_debug_images(
-            self, encoded_faces, media, debug_out_folder, debug_out_file_name):
+            self, encoded_faces, media, debug_out_folder, debug_out_file_name,
+            skip_eq=False):
 
+        enc_cache = None
+        skipped_eq = 0
         for enc in encoded_faces:
             name = enc['name']
             if name == SKIP_FACE:
                 continue
             if name == '':
                 name = 'unknown_000'
+
+            if skip_eq:
+                if enc_cache is None:
+                    enc_cache = numpy.array([enc['encoding'], ])
+                else:
+                    dist = numpy.min(self.__encoder.distance(enc_cache,
+                                                             enc['encoding']))
+                    if dist >= self.__threshold_equal:
+                        numpy.append(enc_cache, [enc['encoding'], ])
+                    else:
+                        skipped_eq += 1
+                        continue
+
             out_folder = os.path.join(debug_out_folder, name)
 
             top, right, bottom, left = enc['box']
@@ -502,6 +525,9 @@ class Recognizer(threading.Thread):
                                 self.__debug_out_image_size,
                                 media.filename())
                 logging.debug(f'face saved to: {out_filename}')
+
+        if skipped_eq != 0:
+            logging.debug(f'skipped debug images {skipped_eq}')
 
     def get_faces_by_face(self, db, filename, debug_out_folder,
                           remove_file=False):
