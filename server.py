@@ -205,7 +205,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             self.server.patterns().add_files(params['name'][0],
                                              filenames, True, True,
                                              params['bad'][0] == '1')
-        self.server.updete_persons(params['name'][0])
+        self.server.update_persons(params['name'][0])
         self.__ok_response('')
 
     def __recognize_folder_request(self, params):
@@ -385,7 +385,7 @@ class FaceRecServer(http.server.HTTPServer):
         self.__patterns.generate()
         self.__load_patterns_persons()
 
-    def updete_persons(self, name):
+    def update_persons(self, name):
         if name not in self.__names:
             self.__patterns.generate()
             self.__load_patterns_persons()
