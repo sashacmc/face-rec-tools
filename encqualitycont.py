@@ -65,7 +65,8 @@ class EncodingQualityCont(object):
         files = files_bad + files_good
         labels = labels_bad + labels_good
 
-        images = np.array([self.__load_image(f) for f in files])
+        images = np.array(
+            [self.__load_image(self.__patterns.fullpath(f)) for f in files])
         labels = np.asarray(labels).astype('float32').reshape((-1, 1))
         # labels = to_categorical(labels, 2)
 

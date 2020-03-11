@@ -372,7 +372,8 @@ class FaceRecServer(http.server.HTTPServer):
             p['name'] for p in self.__patterns.persons()
         ]
         self.__name_images = {
-            p['name']: p['image'] for p in self.__patterns.persons()
+            p['name']: self.__patterns.fullpath(p['image'])
+            for p in self.__patterns.persons()
         }
 
     def web_path(self):

@@ -63,9 +63,9 @@ class Patterns(object):
             self.load()
             filtered = {}
             for image_file in image_files:
-                filename_exsists = image_file in self.__files
+                filename_exsists = self.relpath(image_file) in self.__files
                 if not filename_exsists or \
-                   self.__files[image_file][self.FILES_TIME] != \
+                   self.__files[self.relpath(image_file)][self.FILES_TIME] != \
                    image_files[image_file]:
 
                     filtered[image_file] = image_files[image_file]
@@ -119,10 +119,12 @@ class Patterns(object):
 
                 encoding = encodings[0]
 
-            self.__files[image_file] = [encoding,
-                                        name,
-                                        image_files[image_file],
-                                        tp]
+            self.__files[self.relpath(image_file)] = \
+                [encoding,
+                 name,
+                 image_files[image_file],
+                 tp]
+
         self.__save()
 
     def __save(self):
@@ -189,7 +191,7 @@ class Patterns(object):
             f.write(data)
 
     def __remove_file(self, filename):
-        del self.__files[filename]
+        del self.__files[self.relpath(filename)]
         logging.debug(f'File removed: {filename}')
 
     def remove_files(self, filenames):
@@ -237,6 +239,7 @@ class Patterns(object):
         logging.info(f'Analyze duplicates')
         fset = {}
         for f in self.__files:
+            f = self.fullpath(f)
             filename = os.path.split(f)[1]
             if filename in fset:
                 logging.warning(
@@ -251,6 +254,7 @@ class Patterns(object):
         logging.info(f'Analyze encodings')
         dct = collections.defaultdict(list)
         for f, (enc, name, time, tp) in self.__files.items():
+            f = self.fullpath(f)
             dct[len(enc)].append(f)
         if len(dct) != 1:
             logging.warning('Inconsistent encoding: ' + str(dct.keys()))
@@ -268,6 +272,7 @@ class Patterns(object):
     def __analyze_landmarks(self, print_out):
         logging.info(f'Analyze landmarks')
         for f in self.__files:
+            f = self.fullpath(f)
             descr = tools.load_face_description(f)[0]
             if descr is None:
                 logging.warning(f'missed description: {f}')
@@ -301,7 +306,7 @@ class Patterns(object):
         for name in dct:
             face_filename = os.path.join(self.__folder, name, FACE_FILENAME)
             if os.path.exists(face_filename):
-                dct[name]['image'] = face_filename
+                dct[name]['image'] = self.relpath(face_filename)
 
         res = [{'name': k, 'count': v['count'], 'image': v['image']}
                for k, v in dct.items()]
@@ -322,6 +327,12 @@ class Patterns(object):
 
     def persons(self):
         return self.__persons
+
+    def relpath(self, filename):
+        return os.path.relpath(filename, self.__folder)
+
+    def fullpath(self, filename):
+        return os.path.join(self.__folder, filename)
 
 
 def args_parse():
