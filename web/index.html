@@ -195,6 +195,24 @@
         </div>
     </div>
 
+    <div class="modal fade" id="facePattModal" tabindex="-1" role="dialog" aria-labelledby="facePattModalLabel" aria-hidden="true">
+        <div class="modal-dialog mw-100 w-25" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="facePattModalLabel"></h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" id="facePattModalBody">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="findByFaceModal" tabindex="-1" role="dialog" aria-labelledby="facePropModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
@@ -286,7 +304,8 @@
                                 'onmouseover="javascript:onImgMouseOver(event)" ' +
                                 'onmouseout="javascript:onImgMouseOut(event)"/>' +
                             '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclickick="javascript:onImgCheckboxClick(event)" order="' + i + '"/>' +
-                            '<img src="srclink.png" class="img_srclink" onclick="javascript:openFaceSrc(\'cache/' + images[i] + '\')"/>' +
+                            '<img src="srclink.png" class="img_srclink" onclick="javascript:openFaceSrc(\'cache/' + images[i] + '\')" title="Source file"/>' +
+                            '<img src="pattlink.png" class="img_pattlink" onclick="javascript:openFacePatt(\'cache/' + images[i] + '\')" title="Matched pattern"/>' +
                             '<div class="img_year">' + yearFromFileName(images[i]) + '</div>' +
                         '</div>';
             }
@@ -298,6 +317,13 @@
             var html = '<img src="/get_face_src?path=' + facefile + '" height="100%" width="100%"/>'; 
             $("#faceSrcModalBody").html(html);
             $("#faceSrcModal").modal("show");
+        }
+
+        function openFacePatt(facefile)
+        {
+            var html = '<img src="/get_face_pattern?path=' + facefile + '" height="100%" width="100%"/>'; 
+            $("#facePattModalBody").html(html);
+            $("#facePattModal").modal("show");
         }
 
         function getSelectedImages()

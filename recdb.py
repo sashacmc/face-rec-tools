@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS faces (
     "landmarks" TEXT,
     "name" TEXT,
     "dist" FLOAT,
-    "frame" INTEGER default 0
+    "frame" INTEGER default 0,
+    "pattern" TEXT default ""
 );
 
 CREATE TRIGGER IF NOT EXISTS faces_before_delete
@@ -92,7 +93,8 @@ class RecDB(object):
         #     'landmarks': {...},
         #     'name': name,
         #     'dist': dist,
-        #     'frame': frame
+        #     'frame': frame,
+        #     'pattern': pattern
         #    }, ...]
         if self.__readonly:
             for i, face in enumerate(rec_result):
@@ -110,15 +112,17 @@ class RecDB(object):
         for i, face in enumerate(rec_result):
             rec_result[i]['face_id'] = c.execute(
                 'INSERT INTO faces \
-                    (file_id, box, encoding, landmarks, name, dist, frame) \
-                 VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (file_id, box, encoding, landmarks, \
+                     name, dist, frame, pattern) \
+                 VALUES(?, ?, ?, ?, ?, ?, ?, ?)',
                 (file_id,
                  json.dumps(face["box"]),
                  face['encoding'],
                  json.dumps(face['landmarks']),
                  face['name'],
                  face['dist'],
-                 face['frame'])
+                 face['frame'],
+                 face['pattern'])
             ).lastrowid
 
         if commit:
@@ -151,12 +155,12 @@ class RecDB(object):
                  'landmarks': None if r[3] is None else json.loads([3])}
                 for r in res.fetchall()]
 
-    def set_name(self, face_id, name, dist, commit=True):
+    def set_name(self, face_id, name, dist, pattern, commit=True):
         if self.__readonly:
             return
         c = self.__conn.cursor()
-        c.execute('UPDATE faces SET name=?, dist=? WHERE id=?',
-                  (name, dist, face_id))
+        c.execute('UPDATE faces SET name=?, dist=?, pattern=? WHERE id=?',
+                  (name, dist, pattern, face_id))
         if commit:
             self.__conn.commit()
 
@@ -227,7 +231,7 @@ class RecDB(object):
         c = self.__conn.cursor()
         res = c.execute(
             'SELECT filename, faces.id, box, encoding, \
-                    landmarks, name, dist, frame \
+                    landmarks, name, dist, frame, pattern \
              FROM files JOIN faces ON files.id=faces.file_id ' +
             where_clause, args)
         return self.__build_files_faces(res.fetchall())
@@ -252,6 +256,9 @@ class RecDB(object):
 
     def get_faces(self, filename):
         return self.get_files_faces('WHERE filename=?', (filename,))
+
+    def get_face(self, face_id):
+        return self.get_files_faces('WHERE faces.id=?', (face_id,))
 
     def get_unsynced(self):
         return self.get_files_faces('WHERE synced=0')
@@ -278,7 +285,8 @@ class RecDB(object):
                 'landmarks': None if r[4] is None else json.loads(r[4]),
                 'name': r[5],
                 'dist': r[6],
-                'frame': r[7]})
+                'frame': r[7],
+                'pattern': r[8]})
 
         if filename != '':
             files_faces.append({'filename': filename, 'faces': faces})

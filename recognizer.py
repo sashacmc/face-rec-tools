@@ -78,6 +78,7 @@ class Recognizer(threading.Thread):
 
         self.__pattern_encodings = []
         self.__pattern_names = []
+        self.__pattern_files = []
         for tp in (patterns.PATTERN_TYPE_BAD,
                    patterns.PATTERN_TYPE_GOOD,
                    patterns.PATTERN_TYPE_OTHER):
@@ -86,6 +87,7 @@ class Recognizer(threading.Thread):
                 numpy.array(encodings),
                 self.__max_workers))
             self.__pattern_names.append(names)
+            self.__pattern_files.append(files)
 
         self.__video_batch_size = int(video_batch_size)
 
@@ -213,7 +215,9 @@ class Recognizer(threading.Thread):
         if len(distances) == 0:
             return 1, ''
         i = numpy.argmin(distances)
-        return (distances[i], self.__pattern_names[tp][i])
+        return (distances[i],
+                self.__pattern_names[tp][i],
+                self.__pattern_files[tp][i])
 
     def __match_faces(self, encoded_faces, good_only):
         if len(self.__pattern_encodings) == 0:
@@ -221,22 +225,17 @@ class Recognizer(threading.Thread):
 
         for i in range(len(encoded_faces)):
             encoding = encoded_faces[i]['encoding']
-            dist, name = self.__match_face_by_nearest(
+            dist, name, pattern = self.__match_face_by_nearest(
                 encoding, patterns.PATTERN_TYPE_GOOD)
             if not good_only:
-                dist_bad, name_bad = self.__match_face_by_nearest(
+                dist_bad, name_bad, pattern_bad = self.__match_face_by_nearest(
                     encoding, patterns.PATTERN_TYPE_BAD)
-                # dist_other, name_other = self.__match_face_by_nearest(
-                #    encoding, patterns.PATTERN_TYPE_OTHER)
-                dist_other, name_other = 1, ''
-                if dist_other < dist_bad:
-                    dist_bad = dist_other
-                    name_bad = name_other
                 if dist_bad < dist:
                     name = name_bad + '_bad'
                     dist = dist_bad
+                    pattern = pattern_bad
 
-            logging.debug(f'matched: {name}: {dist}')
+            logging.debug(f'matched: {name}: {dist}: {pattern}')
             if 'name' in encoded_faces[i]:
                 encoded_faces[i]['oldname'] = encoded_faces[i]['name']
 
@@ -250,6 +249,7 @@ class Recognizer(threading.Thread):
 
             encoded_faces[i]['name'] = name
             encoded_faces[i]['dist'] = dist
+            encoded_faces[i]['pattern'] = pattern
 
     def __reassign_by_count(self, labels):
         dct = collections.defaultdict(int)
@@ -387,7 +387,8 @@ class Recognizer(threading.Thread):
                 cnt_all += 1
                 changed = False
                 if 'oldname' in face and face['oldname'] != face['name']:
-                    db.set_name(face['face_id'], face['name'], face['dist'],
+                    db.set_name(face['face_id'], face['name'],
+                                face['dist'], face['pattern'],
                                 commit=False)
                     cnt_changed += 1
                     changed = True

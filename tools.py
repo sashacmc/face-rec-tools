@@ -236,6 +236,7 @@ def save_face(out_filename, image, enc, out_size, src_filename):
              'landmarks': face_landmarks,
              'box': enc['box'],
              'frame': enc['frame'],
+             'face_id': enc['face_id'],
              'src': src_filename}
 
     save_with_description(im, descr, thumbnail, out_filename)
