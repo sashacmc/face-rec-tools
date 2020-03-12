@@ -124,6 +124,7 @@ class Patterns(object):
                  name,
                  image_files[image_file],
                  tp]
+            self.__init_basenames()
 
         self.__save()
 
@@ -174,6 +175,7 @@ class Patterns(object):
         for filename in filenames:
             out_filename = os.path.join(out_folder,
                                         self.__calc_out_filename(filename))
+            self.__check_basename(out_filename)
             logging.info(f'adding {filename} to {out_filename}')
             shutil.copyfile(filename, out_filename)
             if move:
@@ -186,12 +188,17 @@ class Patterns(object):
         os.makedirs(out_folder, exist_ok=True)
         out_filename = os.path.join(out_folder,
                                     self.__calc_out_filename(filename))
+        self.__check_basename(out_filename)
         logging.info(f'adding data of {filename} to {out_filename}')
         with open(out_filename, 'wb') as f:
             f.write(data)
 
     def __remove_file(self, filename):
         del self.__files[self.relpath(filename)]
+        try:
+            del self.__basenames[os.path.basename(filename)]
+        except KeyError:
+            pass
         logging.debug(f'File removed: {filename}')
 
     def remove_files(self, filenames):
@@ -205,11 +212,27 @@ class Patterns(object):
                 logging.exception('Skip file removing')
         self.__save()
 
+    def __init_basenames(self):
+        self.__basenames = {os.path.basename(f): f for f in self.__files}
+
+    def __check_basename(self, filename):
+        basename = os.path.basename(filename)
+        if basename in self.__basenames:
+            dup_filename = self.fullpath(self.__basenames[basename])
+            logging.info(f'Duplicate file detected: {basename}')
+            self.__remove_file(dup_filename)
+            try:
+                os.remove(dup_filename)
+            except FileNotFoundError:
+                logging.exception('Skip file removing')
+            self.__save()
+
     def load(self):
         try:
             data = pickle.loads(open(self.__pickle_file, 'rb').read())
             self.__files = data['files']
             self.__persons = data['persons']
+            self.__init_basenames()
         except Exception:
             logging.exception(f'Can''t load patterns: {self.__pickle_file}')
 
@@ -328,10 +351,10 @@ class Patterns(object):
         return self.__persons
 
     def relpath(self, filename):
-        return os.path.relpath(filename, self.__folder)
+        return os.path.relpath(os.path.normpath(filename), self.__folder)
 
     def fullpath(self, filename):
-        return os.path.join(self.__folder, filename)
+        return os.path.normpath(os.path.join(self.__folder, filename))
 
 
 def args_parse():
