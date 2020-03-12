@@ -128,7 +128,7 @@ class Patterns(object):
         self.__save()
 
     def __save(self):
-        self.__persons = self.__calcPersons()
+        self.__persons = self.__calc_persons()
 
         logging.info('Patterns saving')
         data = {
@@ -284,8 +284,7 @@ class Patterns(object):
                 if print_out:
                     print(f)
                 continue
-            l = descr['landmarks']
-            if not tools.test_landmarks(l):
+            if not tools.test_landmarks(descr['landmarks']):
                 logging.warning(f'wrong landmarks: {f}')
                 if print_out:
                     print(f)
@@ -296,7 +295,7 @@ class Patterns(object):
         self.__analyze_landmarks(print_out)
         logging.info(f'Analyze done')
 
-    def __calcPersons(self):
+    def __calc_persons(self):
         dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
         for f in self.__files:
             name = self.__files[f][self.FILES_NAME]
