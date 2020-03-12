@@ -31,11 +31,31 @@ code {
 
 .img_container { position: relative; width: 100px; height: 100px; float: left; }
 .img_checkbox { position: absolute; bottom: 0px; right: 0px; }
-.img_srclink { position: absolute; top: 0px; right: 0px; }
-.img_pattlink { position: absolute; top: 0px; right: 18px; }
+.img_srclink {
+    position: absolute;
+    top: 1px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    filter: drop-shadow( 1px  1px 0px white)
+            drop-shadow( 1px -1px 0px white)
+            drop-shadow(-1px  1px 0px white)
+            drop-shadow(-1px -1px 0px white);
+}
+.img_pattlink {
+    position: absolute;
+    top: 1px;
+    right: 17px;
+    width: 12px;
+    height: 12px;
+    filter: drop-shadow( 1px  1px 0px white)
+            drop-shadow( 1px -1px 0px white)
+            drop-shadow(-1px  1px 0px white)
+            drop-shadow(-1px -1px 0px white);
+}
 .img_year {
     position: absolute;
-    top: -3px;
+    top: -2px;
     left: 2px;
     font-size: 12px;
     text-shadow:  1px  1px 1px white,
