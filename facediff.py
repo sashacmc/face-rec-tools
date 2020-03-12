@@ -7,11 +7,10 @@ import tools
 import faceencoder
 
 
-encoder = faceencoder.FaceEncoder('VGG-Face', 'cosine', align=True)
+encoder = faceencoder.FaceEncoder('large', 'default', align=True)
 
 
 def get_face(fname):
-    """
     try:
         encoding = pickle.loads(
             piexif.load(fname)["0th"][piexif.ImageIFD.ImageDescription])
@@ -19,7 +18,6 @@ def get_face(fname):
         return encoding['encoding']
     except Exception:
         pass
-"""
     try:
         image = tools.read_image(fname, 1000)
     except Exception:
