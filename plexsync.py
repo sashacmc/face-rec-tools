@@ -134,8 +134,7 @@ def main():
     log.initLogger(args.logfile)
     logging.basicConfig(level=logging.DEBUG)
 
-    patt = patterns.Patterns(cfg['main']['patterns'],
-                             cfg['main']['model'])
+    patt = patterns.createPatterns(cfg)
     patt.load()
     names = set([p['name'] for p in patt.persons()])
     names.remove('trash')

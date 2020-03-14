@@ -106,8 +106,7 @@ def main():
     tools.cuda_init()
 
     db = recdb.RecDB(cfg['main']['db'])
-    patt = patterns.Patterns(cfg['main']['patterns'],
-                             cfg['main']['model'])
+    patt = patterns.createPatterns(cfg)
     patt.load()
 
     update(patt, db,

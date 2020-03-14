@@ -392,6 +392,14 @@ class Patterns(object):
         return os.path.normpath(os.path.join(self.__folder, filename))
 
 
+def createPatterns(cfg):
+    return Patterns(cfg['main']['patterns'],
+                    model=cfg['main']['model'],
+                    max_size=cfg['main']['max_image_size'],
+                    num_jitters=cfg['main']['num_jitters'],
+                    encoding_model=cfg['main']['encoding_model'])
+
+
 def args_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -407,7 +415,6 @@ def args_parse():
                  'analyze',
                  'set_landmarks',
                  'clear_landmarks'])
-    parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-n', '--name', help='Person name')
     parser.add_argument('files', nargs='*', help='Files with one face')
@@ -425,11 +432,7 @@ def main():
     cfg = config.Config(args.config)
     log.initLogger(args.logfile)
 
-    patt = Patterns(cfg.get_def('main', 'patterns', args.patterns),
-                    model=cfg['main']['model'],
-                    max_size=cfg['main']['max_image_size'],
-                    num_jitters=cfg['main']['num_jitters'],
-                    encoding_model=cfg['main']['encoding_model'])
+    patt = createPatterns(cfg)
 
     if args.action == 'gen':
         patt.generate(args.regenerate)

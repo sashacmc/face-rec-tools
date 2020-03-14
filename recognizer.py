@@ -620,7 +620,6 @@ def args_parse():
                  'clusterize_unmatched',
                  'save_faces',
                  'get_faces_by_face'])
-    parser.add_argument('-p', '--patterns', help='Patterns file')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-i', '--input', help='Input file or folder')
     parser.add_argument('-o', '--output', help='Output folder for faces')
@@ -642,10 +641,7 @@ def main():
     if args.output and os.path.exists(args.output):
         shutil.rmtree(args.output)
 
-    patt = patterns.Patterns(cfg.get_def('main', 'patterns', args.patterns),
-                             model=cfg['main']['model'],
-                             num_jitters=cfg['main']['num_jitters'],
-                             encoding_model=cfg['main']['encoding_model'])
+    patt = patterns.createPatterns(cfg)
     patt.load()
 
     cachedb_file = cfg['main']['cachedb']

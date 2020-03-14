@@ -205,11 +205,7 @@ def main():
     cfg = config.Config(args.config)
     log.initLogger(args.logfile)
 
-    patt = patterns.Patterns(cfg['main']['patterns'],
-                             model=cfg['main']['model'],
-                             max_size=cfg['main']['max_image_size'],
-                             num_jitters=cfg['main']['num_jitters'],
-                             encoding_model=cfg['main']['encoding_model'])
+    patt = patterns.createPatterns(cfg)
 
     cont = EncodingQualityCont(patt, args.model)
 
