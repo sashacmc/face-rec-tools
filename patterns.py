@@ -211,10 +211,10 @@ class Patterns(object):
         self.load()
         for filename in filenames:
             filename = self.__calc_filename(filename)
-            self.__remove_file(filename)
             try:
+                self.__remove_file(filename)
                 os.remove(filename)
-            except FileNotFoundError:
+            except (FileNotFoundError, KeyError):
                 logging.exception('Skip file removing')
         self.__save()
 
