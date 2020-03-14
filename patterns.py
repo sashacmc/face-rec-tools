@@ -7,6 +7,7 @@ import pickle
 import logging
 import argparse
 import collections
+import numpy as np
 from imutils import paths
 
 import log
@@ -29,7 +30,9 @@ class Patterns(object):
     FILES_TYPE = 3
 
     def __init__(self, folder, model='hog', max_size=1000,
-                 num_jitters=1, encoding_model='large'):
+                 num_jitters=1, encoding_model='large',
+                 distance_metric='default',
+                 threshold_equal=0.17):
         self.__folder = folder
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
         self.__files = {}
@@ -38,6 +41,8 @@ class Patterns(object):
         self.__encoding_model = encoding_model
         self.__max_size = int(max_size)
         self.__num_jitters = int(num_jitters)
+        self.__distance_metric = distance_metric
+        self.__threshold_equal = float(threshold_equal)
 
     def generate(self, regenerate=False):
         try:
@@ -51,7 +56,8 @@ class Patterns(object):
         tools.cuda_init()
         encoder = faceencoder.FaceEncoder(
             encoding_model=self.__encoding_model,
-            num_jitters=self.__num_jitters)
+            num_jitters=self.__num_jitters,
+            distance_metric=self.__distance_metric)
 
         image_files = {}
         for image_file in list(paths.list_images(self.__folder)):
@@ -237,26 +243,55 @@ class Patterns(object):
             logging.exception(f'Can''t load patterns: {self.__pickle_file}')
 
     def optimize(self):
-        import dlib
-        encodings, names, files = self.encodings()
-        encs = [dlib.vector(enc) for enc in encodings]
-        labels = dlib.chinese_whispers_clustering(encs, 0.1)
-        uniq = {}
+        import faceencoder
+        encoder = faceencoder.FaceEncoder(
+            encoding_model=self.__encoding_model,
+            num_jitters=self.__num_jitters,
+            distance_metric=self.__distance_metric)
+
+        # get encodings and reverse to preserve old patterns
+        encs, names, files = self.encodings()
+        encs.reverse()
+        names.reverse()
+        files.reverse()
+
+        # convert to numpy array and get length for optimization reasons
+        encs = np.array(encs)
+        encs_len = len(encs)
+
         to_remove = []
-        for fname, label in zip(files, labels):
-            if label not in uniq:
-                uniq[label] = fname
-            else:
-                name1 = fname.split(os.path.sep)[-2]
-                name2 = uniq[label].split(os.path.sep)[-2]
-                if name1 != name2:
-                    logging.warning(
-                        f'Different person {fname} {uniq[label]}')
-                else:
-                    to_remove.append(fname)
+        while 0 < encs_len:
+            logging.debug(f'to optimize check: {encs_len}')
+            name = names.pop()
+            fname = files.pop()
+
+            # numpy array pop()
+            enc, encs = encs[-1], encs[:-1]
+            encs_len -= 1
+
+            dists = encoder.distance(encs, enc)
+            i = 0
+            while i < encs_len:
+                if dists[i] < self.__threshold_equal:
+                    if name != names[i]:
+                        fn1 = self.fullpath(fname)
+                        fn2 = self.fullpath(files[i])
+                        logging.warning(
+                            f'Different persons {dists[i]} "{fn1}" "{fn2}"')
+                    else:
+                        to_remove.append(self.fullpath(files[i]))
+                        logging.info(f'eq: {fname} {files[i]}')
+
+                        names.pop(i)
+                        files.pop(i)
+
+                        encs = np.delete(encs, i, axis=0)
+                        dists = np.delete(dists, i, axis=0)
+                        encs_len -= 1
+                i += 1
 
         self.remove_files(to_remove)
-        logging.info(f'Optimized from {len(encs)} to {len(uniq)}.')
+        logging.info(f'{len(to_remove)} files was optimized.')
 
     def __analyze_duplicates(self, print_out):
         logging.info(f'Analyze duplicates')
