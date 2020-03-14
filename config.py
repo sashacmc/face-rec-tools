@@ -13,6 +13,7 @@ class Config(object):
             'threshold': 0.3,
             'threshold_weak': 0.35,
             'threshold_clusterize': 0.4,
+            'threshold_equal': 0.17,
             'max_image_size': 1000,
             'min_face_size': 20,
             'debug_out_image_size': 100,

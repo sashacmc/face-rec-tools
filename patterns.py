@@ -397,7 +397,8 @@ def createPatterns(cfg):
                     model=cfg['main']['model'],
                     max_size=cfg['main']['max_image_size'],
                     num_jitters=cfg['main']['num_jitters'],
-                    encoding_model=cfg['main']['encoding_model'])
+                    encoding_model=cfg['main']['encoding_model'],
+                    threshold_equal=cfg['main']['threshold_equal'])
 
 
 def args_parse():
