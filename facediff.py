@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import sys
+import pickle
+import piexif
 import face_recognition
 
 import tools
