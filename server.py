@@ -63,6 +63,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                     self.__not_found_response()
                     logging.debug(f'File in cache not found: {fname}')
                 return
+        elif path.startswith('pattern/'):
+            fname = self.server.patterns().fullpath(path[8:])
         else:
             fname = os.path.join(self.server.web_path(), path)
 
@@ -179,7 +181,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         if pattern_filename == '':
             logging.warning(f'pattern file not specified')
             self.__not_found_response()
-        self.__send_file(self.server.patterns().fullpath(pattern_filename))
+        self.__ok_response(pattern_filename)
 
     def __get_folders(self):
         self.__ok_response(sorted(self.server.db().get_folders()))

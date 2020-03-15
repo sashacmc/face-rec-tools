@@ -321,9 +321,19 @@
 
         function openFacePatt(facefile)
         {
-            var html = '<img src="/get_face_pattern?path=' + facefile + '" height="100%" width="100%"/>'; 
-            $("#facePattModalBody").html(html);
-            $("#facePattModal").modal("show");
+            $.ajax({
+                url: '/get_face_pattern?path=' + facefile,
+                type: 'GET',
+                success: function(data) {
+                    var html = '';
+                    html += '<font size="-2">' + data + '</font><br/>';
+                    html += '<img src="pattern/' + data + '" height="100%" width="100%" ' + 
+                                'onmouseover="javascript:onImgMouseOver(event)" ' +
+                                'onmouseout="javascript:onImgMouseOut(event)"/>';
+                    $("#facePattModalBody").html(html);
+                    $("#facePattModal").modal("show");
+                }
+            })
         }
 
         function getSelectedImages()
