@@ -1,0 +1,6 @@
+#!/usr/bin/python3
+
+import face_rec_tools.patterns
+
+
+face_rec_tools.patterns.main()
