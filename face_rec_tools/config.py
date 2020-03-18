@@ -29,11 +29,11 @@ class Config(object):
             'port': 8081,
             'web_path': 'web',
             'face_cache_path': '/tmp/facereccache/',
-            'log_file': 'face-rec-server.log',
+            'log_file': '/var/log/face-rec-server.log',
         },
         'plex': {
-            'db': '/opt/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db',
-            'folders': '/mnt/multimedia/NEW/Foto:/mnt/multimedia/MediaAlbum/MyAlbum'
+            'db': '/opt/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db',  # noqa
+            'folders': '/mnt/multimedia/NEW/Foto:/mnt/multimedia/MediaAlbum/MyAlbum'  # noqa
         }
     }
 

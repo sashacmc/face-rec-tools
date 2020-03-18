@@ -2,6 +2,7 @@
 
 import io
 import os
+import sys
 import json
 import numpy
 import atexit
@@ -11,7 +12,9 @@ import argparse
 
 from imutils import paths
 
-import log
+sys.path.insert(0, os.path.abspath('..'))
+
+from face_rec_tools import log  # noqa
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS files (

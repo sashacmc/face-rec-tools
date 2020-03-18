@@ -1,0 +1,6 @@
+#!/usr/bin/python3
+
+import face_rec_tools.recognizer
+
+
+face_rec_tools.recognizer.main()

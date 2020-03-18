@@ -1,15 +1,10 @@
 #!/usr/bin/python3
 
-import logging
-
 import os
 import cv2
+import logging
 import numpy as np
-import face_alignment
 import face_recognition
-from tensorflow.keras.preprocessing import image as keras_image
-from deepface.basemodels import VGGFace, OpenFace, Facenet, FbDeepFace
-from deepface.commons import distance as dst
 
 PRED_TYPES = {'face': slice(0, 17),
               'eyebrow1': slice(17, 22),
@@ -44,18 +39,22 @@ class FaceEncoder(object):
         elif encoding_model == 'large':
             self.__encode = self.__encode_face_recognition
         elif encoding_model == 'VGG-Face':
+            from deepface.basemodels import VGGFace
             self.__model = VGGFace.loadModel()
             self.__encode = self.__encode_deepface
             self.__input_shape = (224, 224)
         elif encoding_model == 'OpenFace':
+            from deepface.basemodels import OpenFace
             self.__model = OpenFace.loadModel()
             self.__encode = self.__encode_deepface
             self.__input_shape = (96, 96)
         elif encoding_model == 'Facenet':
+            from deepface.basemodels import Facenet
             self.__model = Facenet.loadModel()
             self.__encode = self.__encode_deepface
             self.__input_shape = (160, 160)
         elif encoding_model == 'DeepFace':
+            from deepface.basemodels import FbDeepFace
             self.__model = FbDeepFace.loadModel()
             self.__encode = self.__encode_deepface
             self.__input_shape = (152, 152)
@@ -65,12 +64,16 @@ class FaceEncoder(object):
         if distance_metric == 'default':
             self.__distance = face_recognition.face_distance
         elif distance_metric == 'cosine':
+            from deepface.commons import distance
             self.__distance = lambda encodings, encoding: \
-                [dst.findCosineDistance(e, encoding) for e in encodings]
+                [distance.findCosineDistance(e, encoding) for e in encodings]
         elif distance_metric == 'euclidean':
+            from deepface.commons import distance
             self.__distance = lambda encodings, encoding: \
-                [dst.findEuclideanDistance(e, encoding) for e in encodings]
+                [distance.findEuclideanDistance(
+                    e, encoding) for e in encodings]
         elif distance_metric == 'euclidean_l2':
+            from deepface.commons import distance as dst
             self.__distance = lambda encodings, encoding: \
                 [dst.findEuclideanDistance(dst.l2_normalize(e),
                                            dst.l2_normalize(encoding))
@@ -79,6 +82,7 @@ class FaceEncoder(object):
             raise ValueError("Invalid distance_metric: ", distance_metric)
 
         if align:
+            import face_alignment
             self.__aligner = face_alignment.FaceAlignment(
                 face_alignment.LandmarksType._2D,
                 device='cuda',
@@ -150,6 +154,8 @@ class FaceEncoder(object):
             for pred in preds]
 
     def __encode_deepface(self, image, boxes):
+        from tensorflow.keras.preprocessing import image as keras_image
+
         res = []
         if self.__aligner is not None:
             preds = self.__aligner.get_landmarks_from_image(

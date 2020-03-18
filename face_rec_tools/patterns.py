@@ -2,6 +2,7 @@
 
 import os
 import re
+import sys
 import shutil
 import pickle
 import logging
@@ -10,9 +11,11 @@ import collections
 import numpy as np
 from imutils import paths
 
-import log
-import tools
-import config
+sys.path.insert(0, os.path.abspath('..'))
+
+from face_rec_tools import log  # noqa
+from face_rec_tools import tools  # noqa
+from face_rec_tools import config  # noqa
 
 FACE_FILENAME = '0_face.jpg'
 BAD_FOLDERNAME = 'bad'

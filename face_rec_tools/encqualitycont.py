@@ -13,7 +13,6 @@ from sklearn.model_selection import train_test_split
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.preprocessing.image import img_to_array
 
@@ -68,7 +67,6 @@ class EncodingQualityCont(object):
         images = np.array(
             [self.__load_image(self.__patterns.fullpath(f)) for f in files])
         labels = np.asarray(labels).astype('float32').reshape((-1, 1))
-        # labels = to_categorical(labels, 2)
 
         logging.info(f'loaded {len(images)} images')
         if self.__test_size != 0:

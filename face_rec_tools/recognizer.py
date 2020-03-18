@@ -3,6 +3,7 @@
 import io
 import os
 import cv2
+import sys
 import dlib
 import numpy
 import random
@@ -13,21 +14,22 @@ import threading
 import itertools
 import collections
 import concurrent.futures
+from imutils import paths
+
+sys.path.insert(0, os.path.abspath('..'))
 
 try:
-    import faceencoder
     import face_recognition
+    from face_rec_tools import faceencoder
 except Exception as ex:
     print('face_recognition not loaded, readonly mode: ' + str(ex))
 
-from imutils import paths
-
-import log
-import recdb
-import tools
-import config
-import cachedb
-import patterns
+from face_rec_tools import log  # noqa
+from face_rec_tools import recdb  # noqa
+from face_rec_tools import tools  # noqa
+from face_rec_tools import config  # noqa
+from face_rec_tools import cachedb  # noqa
+from face_rec_tools import patterns  # noqa
 
 
 SKIP_FACE = 'skip_face'

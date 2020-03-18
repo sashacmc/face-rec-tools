@@ -2,6 +2,7 @@
 
 import os
 import cgi
+import sys
 import json
 import shutil
 import urllib
@@ -12,13 +13,15 @@ import argparse
 import http.server
 import collections
 
-import log
-import recdb
-import tools
-import config
-import cachedb
-import patterns
-import recognizer
+sys.path.insert(0, os.path.abspath('..'))
+
+from face_rec_tools import log  # noqa
+from face_rec_tools import recdb  # noqa
+from face_rec_tools import tools  # noqa
+from face_rec_tools import config  # noqa
+from face_rec_tools import cachedb  # noqa
+from face_rec_tools import patterns  # noqa
+from face_rec_tools import recognizer  # noqa
 
 
 class FaceRecHandler(http.server.BaseHTTPRequestHandler):

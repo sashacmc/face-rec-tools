@@ -1,16 +1,19 @@
 #!/usr/bin/python3
 
 import os
+import sys
 import logging
 import argparse
 
-import log
-import recdb
-import plexdb
-import config
-import cachedb
-import patterns
-import recognizer
+sys.path.insert(0, os.path.abspath('..'))
+
+from face_rec_tools import log  # noqa
+from face_rec_tools import recdb  # noqa
+from face_rec_tools import plexdb  # noqa
+from face_rec_tools import config  # noqa
+from face_rec_tools import cachedb  # noqa
+from face_rec_tools import patterns  # noqa
+from face_rec_tools import recognizer  # noqa
 
 
 TAG_PREFIX = 'person:'
