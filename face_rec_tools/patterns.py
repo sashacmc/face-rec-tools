@@ -170,6 +170,9 @@ class Patterns(object):
             name = os.path.split(path)[1]
             return os.path.join(self.__folder, name,
                                 self.__calc_out_filename(filename))
+        if not os.path.isabs(filename):
+            return self.fullpath(filename)
+
         return filename
 
     def add_files(self, name, filenames, new=False, move=False, bad=False):
@@ -182,11 +185,12 @@ class Patterns(object):
             if not os.path.exists(out_folder):
                 raise Exception(f"Name {name} not exists")
         for filename in filenames:
+            filename = self.__calc_filename(filename)
             out_filename = os.path.join(out_folder,
                                         self.__calc_out_filename(filename))
-            self.__check_basename(out_filename)
             logging.info(f'adding {filename} to {out_filename}')
             shutil.copyfile(filename, out_filename)
+            self.__check_basename(out_filename)
             if move:
                 os.remove(filename)
 
@@ -211,7 +215,6 @@ class Patterns(object):
         logging.debug(f'File removed: {filename}')
 
     def remove_files(self, filenames):
-        self.load()
         for filename in filenames:
             filename = self.__calc_filename(filename)
             try:
