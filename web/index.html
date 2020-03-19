@@ -702,12 +702,13 @@
             $("#runPathModalLabel").html(commandText[cmd]);
             $("#runPathModalSaveFacesDiv").toggle(askSaveFaces);
             $("#runPathModalNameDiv").toggle(askName);
-            $("#runPathModalPath").val(g_addGenPath);
+            $("#runPathModalPath").val(g_urlParams.get('addGenPath'));
             runPathModalSpinner(false);
             $('#runPathModalSubmit').off('click').on('click', function(e) {
                 e.preventDefault();
-                g_addGenPath = $("#runPathModalPath").val();
-                if (g_addGenPath === undefined || g_addGenPath == '') {
+                let addGenPath = $("#runPathModalPath").val();
+                g_urlParams.set('addGenPath', addGenPath);
+                if (addGenPath === undefined || addGenPath == '') {
                     showError('Path not specified');
                     return;
                 }
@@ -720,7 +721,7 @@
                 runPathModalSpinner(true);
                 cleanFacesList();
                 $.ajax({
-                    url: '/' + cmd + '?path=' + g_addGenPath + '&' + opts,
+                    url: '/' + cmd + '?path=' + addGenPath + '&' + opts,
                     type: 'POST',
                     timeout: 0,
                     success: function(data) {
@@ -884,10 +885,34 @@
             get_faces_by_face:      'Find faces'
         }
 
+        
+        class URLParams {
+            constructor() {
+                this.urlParams = new URLSearchParams(window.location.hash.slice(1));
+            }
+            get(name, def) {
+                let val = this.urlParams.get(name);
+                if (val == null) {
+                    return def
+                } else {
+                    return val;
+                }
+            }
+            set(name, val) {
+                if (val) {
+                    this.urlParams.set(name, val);
+                } else {
+                    this.urlParams.delete(name);
+                }
+                window.location.hash = this.urlParams.toString();
+            }
+        }
+
         $(document).ready(function() 
         {
+            g_urlParams = new URLParams();
+
             g_names = [];
-            g_addGenPath = '';
 
             $("#liAdd").click(function(e) {
                 e.preventDefault();
