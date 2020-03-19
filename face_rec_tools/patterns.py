@@ -49,8 +49,8 @@ class Patterns(object):
 
     def generate(self, regenerate=False):
         try:
-            import faceencoder
             import face_recognition
+            from face_rec_tools import faceencoder
         except Exception:
             logging.exception('faceencoder not loaded, readonly mode')
 
