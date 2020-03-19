@@ -46,21 +46,20 @@ class Patterns(object):
         self.__num_jitters = int(num_jitters)
         self.__distance_metric = distance_metric
         self.__threshold_equal = float(threshold_equal)
+        self.__encoder = None
+
+    def __get_encoder(self):
+        if self.__encoder is None:
+            from face_rec_tools import faceencoder
+            tools.cuda_init()
+            self.__encoder = faceencoder.FaceEncoder(
+                encoding_model=self.__encoding_model,
+                num_jitters=self.__num_jitters,
+                distance_metric=self.__distance_metric)
+        return self.__encoder
 
     def generate(self, regenerate=False):
-        try:
-            import face_recognition
-            from face_rec_tools import faceencoder
-        except Exception:
-            logging.exception('faceencoder not loaded, readonly mode')
-
         logging.info(f'Patterns generation: {self.__folder} ({regenerate})')
-
-        tools.cuda_init()
-        encoder = faceencoder.FaceEncoder(
-            encoding_model=self.__encoding_model,
-            num_jitters=self.__num_jitters,
-            distance_metric=self.__distance_metric)
 
         image_files = {}
         for image_file in list(paths.list_images(self.__folder)):
@@ -108,6 +107,7 @@ class Patterns(object):
                 encoding = None
 
             if encoding is None:
+                import face_recognition
                 try:
                     image = tools.read_image(image_file, self.__max_size)
                 except Exception:
@@ -120,7 +120,7 @@ class Patterns(object):
                     logging.warning(
                         f'{len(boxes)} faces detected in {image_file}. Skip.')
                     continue
-                encodings, landmarks = encoder.encode(image, boxes)
+                encodings, landmarks = self.__get_encoder().encode(image, boxes)
                 if not tools.test_landmarks(landmarks[0]):
                     logging.warning(
                         f'bad face detected in {image_file}. Skip.')
@@ -249,11 +249,7 @@ class Patterns(object):
             logging.exception(f'Can''t load patterns: {self.__pickle_file}')
 
     def optimize(self):
-        import faceencoder
-        encoder = faceencoder.FaceEncoder(
-            encoding_model=self.__encoding_model,
-            num_jitters=self.__num_jitters,
-            distance_metric=self.__distance_metric)
+        encoder = self.__get_encoder()
 
         # get encodings and reverse to preserve old patterns
         encs, names, files = self.encodings()
@@ -454,6 +450,7 @@ def main():
         patt.add_files(args.name, args.files)
         patt.generate(args.regenerate)
     elif args.action == 'remove':
+        self.load()
         patt.remove_files(args.files)
     elif args.action == 'list':
         patt.load()
