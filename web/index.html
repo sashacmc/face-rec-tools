@@ -67,10 +67,18 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            Find 
+                            Find
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liFindByFace">Find by face...</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Options
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="#" id="liOptLandmarks">Show/Hide landmarks</a>
                         </div>
                     </li>
                 </ul>
@@ -243,11 +251,12 @@
     <script type="text/javascript">
         function genCard(name, faces, num)
         {
+            var thumb = getThumb();
             var html = 
             '<div class="card">' +
                 '<div class="card-header" id="heading' + num + '">' +
                     '<h2 class="mb-0">' +
-                        '<img src="cache/' + faces[0] + '" height="40" width="40"/>' +
+                        '<img class="person_face" src="cache/' + faces[0] + thumb + '" height="40" width="40"/>' +
                         '<button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse' + num + '" aria-expanded="false" aria-controls="collapse' + num + '">' +
                             'Person: ' + name + ' (' + faces.length + ')' +
                         '</button>' +
@@ -264,14 +273,34 @@
             return html;
         }
 
+        function getThumb() {
+            if (g_urlParams.get('hideLandmarks')) {
+                return '?thumbnail=1';
+            } else {
+                return '';
+            }
+        }
+
+        function invertThumb(src)
+        {
+            var pos = src.indexOf('?thumbnail=1');
+            if (pos > 0) {
+                src = src.substring(0, pos);
+            } else {
+                src += '?thumbnail=1';
+            }
+            return src;
+        }
+
         function onImgMouseOver(e)
         {
             var img = $(e.target);
             if (img.prop('src_orig')) {
                 return;
             }
-            img.prop('src_orig', img.prop('src'));
-            img.prop('src', img.prop('src') + '?thumbnail=1');
+            var src = img.prop('src');
+            img.prop('src_orig', src);
+            img.prop('src', invertThumb(src));
         }
 
         function onImgMouseOut(e)
@@ -296,10 +325,11 @@
 
         function genImagesList(name, images)
         {
+            var thumb = getThumb();
             var html = '';
             for (var i in images) {
                 html += '<div class="img_container">' +
-                            '<img src="cache/' + images[i] + '" height="100" width="100" title="' + images[i] + '" ' + 
+                            '<img class="person_face" src="cache/' + images[i] + thumb + '" height="100" width="100" title="' + images[i] + '" ' + 
                                 'onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\', event)" ' +
                                 'onmouseover="javascript:onImgMouseOver(event)" ' +
                                 'onmouseout="javascript:onImgMouseOut(event)"/>' +
@@ -325,9 +355,10 @@
                 url: '/get_face_pattern?path=' + facefile,
                 type: 'GET',
                 success: function(data) {
+                    var thumb = getThumb();
                     var html = '';
                     html += '<font size="-2">' + data + '</font><br/>';
-                    html += '<img src="pattern/' + data + '" height="100%" width="100%" ' + 
+                    html += '<img src="pattern/' + data + thumb + '" height="100%" width="100%" ' + 
                                 'onmouseover="javascript:onImgMouseOver(event)" ' +
                                 'onmouseout="javascript:onImgMouseOut(event)"/>';
                     $("#facePattModalBody").html(html);
@@ -488,12 +519,12 @@
             function fillContent() {
                 var images_html = '';
                 var images_names = '';
-
+                var thumb = getThumb();
                 for (var i in images) {
                     images_html +=
                     '<div class="img_container">' + 
                         '<a href="#" class="img_close" image="' + images[i] + '">&times;</a>' +
-                        '<img src="cache/' + images[i] + '" height="100" width="100" title="' + images[i] + '" ' +
+                        '<img src="cache/' + images[i] + thumb + '" height="100" width="100" title="' + images[i] + '" ' +
                             'onmouseover="javascript:onImgMouseOver(event)" ' +
                             'onmouseout="javascript:onImgMouseOut(event)"/>' +
                         '<div class="img_year">' + yearFromFileName(images[i]) + '</div>' +
@@ -783,6 +814,19 @@
             $("#findByFaceModal").modal("show");
         }
 
+        function invertLandmarks()
+        {
+            if (g_urlParams.get('hideLandmarks')) {
+                g_urlParams.set('hideLandmarks', 0)
+            } else {
+                g_urlParams.set('hideLandmarks', 1)
+            }
+            $(".person_face").each(function(){
+                var src = $(this).prop('src');
+                $(this).prop("src", invertThumb(src));
+            });
+        }
+
         function updateProgress() {
             $.ajax({  
                 url: 'get_status',
@@ -1002,6 +1046,11 @@
             $("#liFindByFace").click(function(e) {
                 e.preventDefault();
                 runFindByFace();
+            });
+
+            $("#liOptLandmarks").click(function(e) {
+                e.preventDefault();
+                invertLandmarks();
             });
 
             checkProgress();
