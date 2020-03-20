@@ -165,6 +165,8 @@
                         <div class="progress-bar" id="progressModalBar" style="width: 0%">
                         </div>
                     </div>
+                    <div id="progressModalTime">
+                    </div>
                 </div>
             </div>
         </div>
@@ -842,6 +844,21 @@
                         var w = st['current'] / st['count'] * 100;
                         $('#progressModalBar').css('width', w + '%');
                         $('#progressModalBar').html(st['current'] + '/' + st['count']);
+                    
+                        var time =
+                        '<font size="-1">' +
+                            '<table style="width:100%;">' +
+                                '<tr>' +
+                                    '<td>Elapsed time</td>' +
+                                    '<td style="text-align:right;">' + st['elapsed'] + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                    '<td>Estimation time</td>' +
+                                    '<td style="text-align:right;">' + st['estimation'] + '</td>' +
+                                '</tr>' +
+                            '</table>' +
+                        '</font>';
+                        $('#progressModalTime').html(time);
                     }
                 },  
                 error: function(request, status, error) {

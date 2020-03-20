@@ -12,6 +12,13 @@ IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')
 VIDEO_EXTS = ('.mp4', '.mpg', '.mpeg', '.mov', '.avi', '.mts')
 
 
+def seconds_to_str(s):
+    hour = int(s / 3600)
+    mins = int((s - hour * 3600) / 60)
+    secs = int(s - hour * 3600 - mins * 60)
+    return f'{hour}:{mins:02}:{secs:02}'
+
+
 def cuda_init(tf_memory_limit=1536):
     import tensorflow as tf
 

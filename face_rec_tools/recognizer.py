@@ -5,6 +5,7 @@ import os
 import cv2
 import sys
 import dlib
+import time
 import numpy
 import random
 import shutil
@@ -71,7 +72,7 @@ class Recognizer(threading.Thread):
         self.__encoding_model = encoding_model
         self.__cdb = cdb
 
-        self.__status = {'state': '', 'count': 0, 'current': 0}
+        self.__status = {'state': '', 'count': 0, 'current': 0, 'starttime': 0}
         self.__status_lock = threading.Lock()
 
         self.__max_workers = int(max_workers)
@@ -575,6 +576,16 @@ class Recognizer(threading.Thread):
 
     def status(self):
         with self.__status_lock:
+            if self.__status['current'] > 0:
+                elap_time = time.time() - self.__status['starttime']
+                est_time = \
+                    (self.__status['count'] - self.__status['current']) \
+                    / self.__status['current'] * elap_time
+                self.__status['estimation'] = tools.seconds_to_str(est_time)
+                self.__status['elapsed'] = tools.seconds_to_str(elap_time)
+            else:
+                self.__status['estimation'] = ''
+                self.__status['elapsed'] = ''
             return self.__status
 
     def __status_state(self, cmd):
@@ -585,6 +596,7 @@ class Recognizer(threading.Thread):
         with self.__status_lock:
             self.__status['count'] = count
             self.__status['current'] = 0
+            self.__status['starttime'] = time.time()
 
     def __status_step(self):
         with self.__status_lock:
