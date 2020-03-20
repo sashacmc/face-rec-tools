@@ -120,7 +120,8 @@ class Patterns(object):
                     logging.warning(
                         f'{len(boxes)} faces detected in {image_file}. Skip.')
                     continue
-                encodings, landmarks = self.__get_encoder().encode(image, boxes)
+                encodings, landmarks = \
+                    self.__get_encoder().encode(image, boxes)
                 if not tools.test_landmarks(landmarks[0]):
                     logging.warning(
                         f'bad face detected in {image_file}. Skip.')
@@ -450,7 +451,7 @@ def main():
         patt.add_files(args.name, args.files)
         patt.generate(args.regenerate)
     elif args.action == 'remove':
-        self.load()
+        patt.load()
         patt.remove_files(args.files)
     elif args.action == 'list':
         patt.load()
