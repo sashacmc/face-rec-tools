@@ -9,7 +9,6 @@ import logging
 import argparse
 import collections
 import numpy as np
-from imutils import paths
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -62,7 +61,7 @@ class Patterns(object):
         logging.info(f'Patterns generation: {self.__folder} ({regenerate})')
 
         image_files = {}
-        for image_file in list(paths.list_images(self.__folder)):
+        for image_file in tools.list_files(self.__folder, tools.IMAGE_EXTS):
             if os.path.split(image_file)[1] == FACE_FILENAME:
                 continue
             image_files[image_file] = os.stat(image_file).st_mtime

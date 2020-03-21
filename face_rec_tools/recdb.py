@@ -10,11 +10,10 @@ import logging
 import sqlite3
 import argparse
 
-from imutils import paths
-
 sys.path.insert(0, os.path.abspath('..'))
 
 from face_rec_tools import log  # noqa
+from face_rec_tools import tools  # noqa
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS files (
@@ -319,7 +318,8 @@ class RecDB(object):
         return res
 
     def update_filepaths(self, oldfolder, newfolder):
-        newfiles = self.__filenames_to_dict(paths.list_images(newfolder))
+        newfiles = self.__filenames_to_dict(tools.list_files(newfolder,
+                                                             tools.IMAGE_EXTS))
         oldfiles = self.__filenames_to_dict(self.get_files(oldfolder))
         for name, oldpath in oldfiles.items():
             if name not in newfiles:

@@ -7,7 +7,6 @@ import json
 import shutil
 import urllib
 import logging
-import imutils
 import tempfile
 import argparse
 import http.server
@@ -127,7 +126,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         if self.server.cdb() is not None:
             image_files = self.server.cdb().list_cache()
         else:
-            image_files = list(imutils.paths.list_images(cache_path))
+            image_files = tools.list_files(cache_path, tools.IMAGE_EXTS)
 
         result = collections.defaultdict(lambda: [])
         for (i, image_file) in enumerate(image_files):

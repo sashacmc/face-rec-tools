@@ -24,6 +24,7 @@ class Config(object):
             'db': '/mnt/multimedia/recdb/rec.db',
             'cachedb': '/opt/tmp/facereccache.db',
             'patterns': '/mnt/multimedia/recdb/face_rec_patt/',
+            'nomedia_files': '.pexignore:.nomedia',
         },
         'server': {
             'port': 8081,

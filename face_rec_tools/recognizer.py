@@ -15,7 +15,6 @@ import threading
 import itertools
 import collections
 import concurrent.futures
-from imutils import paths
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -52,6 +51,7 @@ class Recognizer(threading.Thread):
                  distance_metric='default',
                  max_workers=1,
                  video_batch_size=1,
+                 nomedia_files=(),
                  cdb=None):
 
         threading.Thread.__init__(self)
@@ -70,6 +70,7 @@ class Recognizer(threading.Thread):
         self.__min_size = int(min_face_size)
         self.__debug_out_image_size = int(debug_out_image_size)
         self.__encoding_model = encoding_model
+        self.__nomedia_files = nomedia_files
         self.__cdb = cdb
 
         self.__status = {'state': '', 'count': 0, 'current': 0, 'starttime': 0}
@@ -458,9 +459,10 @@ class Recognizer(threading.Thread):
             self.__cdb.commit()
 
     def __get_media_from_folder(self, folder):
-        return list(paths.list_files(
+        return tools.list_files(
             folder,
-            validExts=tools.IMAGE_EXTS + tools.VIDEO_EXTS))
+            tools.IMAGE_EXTS + tools.VIDEO_EXTS,
+            self.__nomedia_files)
 
     def __make_debug_out_folder(self, debug_out_folder):
         if debug_out_folder:
@@ -618,6 +620,7 @@ def createRecognizer(patt, cfg, cdb=None):
                       distance_metric=cfg['main']['distance_metric'],
                       max_workers=cfg['main']['max_workers'],
                       video_batch_size=cfg['main']['video_batch_size'],
+                      nomedia_files=cfg['main']['nomedia_files'].split(':'),
                       cdb=cdb)
 
 

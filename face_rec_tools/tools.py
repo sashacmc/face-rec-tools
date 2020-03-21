@@ -19,6 +19,23 @@ def seconds_to_str(s):
     return f'{hour}:{mins:02}:{secs:02}'
 
 
+def list_files(path, exts=None, nomedia_names=[]):
+    files = []
+    dirs = []
+    for e in os.scandir(path):
+        if e.is_file():
+            if e.name in nomedia_names:
+                return []
+            ext = os.path.splitext(e.name)[1].lower()
+            if exts is None or ext in exts:
+                files.append(e.path)
+        elif e.is_dir():
+            dirs.append(e.path)
+    for d in dirs:
+        files += list_files(d, exts, nomedia_names)
+    return files
+
+
 def cuda_init(tf_memory_limit=1536):
     import tensorflow as tf
 
