@@ -45,6 +45,7 @@ class Recognizer(threading.Thread):
                  threshold_clusterize=0.5,
                  threshold_equal=0.1,
                  max_image_size=1000,
+                 max_video_frames=180,
                  min_face_size=20,
                  debug_out_image_size=100,
                  encoding_model='large',
@@ -67,6 +68,7 @@ class Recognizer(threading.Thread):
         self.__threshold_clusterize = float(threshold_clusterize)
         self.__threshold_equal = float(threshold_equal)
         self.__max_size = int(max_image_size)
+        self.__max_video_frames = int(max_video_frames)
         self.__min_size = int(min_face_size)
         self.__debug_out_image_size = int(debug_out_image_size)
         self.__encoding_model = encoding_model
@@ -145,7 +147,9 @@ class Recognizer(threading.Thread):
 
     def recognize_video(self, filename):
         logging.info(f'recognize video: {filename}')
-        video = tools.LazyVideo(filename, self.__max_size)
+        video = tools.LazyVideo(filename,
+                                self.__max_size,
+                                self.__max_video_frames)
         frame_num = 0
         batched_encoded_faces = []
         while frame_num < len(video.frames()):
@@ -289,7 +293,9 @@ class Recognizer(threading.Thread):
 
             if debug_out_folder:
                 filename = files_faces[i]['filename']
-                media = tools.load_media(filename, self.__max_size)
+                media = tools.load_media(filename,
+                                         self.__max_size,
+                                         self.__max_video_frames)
                 debug_out_file_name = self.__extract_filename(filename)
                 self.__save_debug_images(
                     files_faces[i]['faces'], media,
@@ -400,7 +406,9 @@ class Recognizer(threading.Thread):
                         f"face {face['face_id']} in file '{ff['filename']}' " +
                         f"changed '{face['oldname']}' -> '{face['name']}'")
                 if debug_out_folder and (changed or save_all_faces):
-                    media = tools.load_media(filename, self.__max_size)
+                    media = tools.load_media(filename,
+                                             self.__max_size,
+                                             self.__max_video_frames)
                     debug_out_file_name = self.__extract_filename(filename)
                     self.__save_debug_images(
                         (face,), media,
@@ -418,7 +426,9 @@ class Recognizer(threading.Thread):
             self.__status_step()
             filename = ff['filename']
             logging.info(f"save faces from image: {filename}")
-            media = tools.load_media(filename, self.__max_size)
+            media = tools.load_media(filename,
+                                     self.__max_size,
+                                     self.__max_video_frames)
             debug_out_file_name = self.__extract_filename(filename)
             is_video = os.path.splitext(
                 filename)[1].lower() in tools.VIDEO_EXTS
@@ -567,7 +577,9 @@ class Recognizer(threading.Thread):
             self.__status_step()
             fname, face = info
             face['dist'] = dist
-            media = tools.load_media(fname, self.__max_size)
+            media = tools.load_media(fname,
+                                     self.__max_size,
+                                     self.__max_video_frames)
             debug_out_file_name = self.__extract_filename(fname)
             self.__save_debug_images(
                 (face,), media,
@@ -614,6 +626,7 @@ def createRecognizer(patt, cfg, cdb=None):
                       threshold_clusterize=cfg['main']['threshold_clusterize'],
                       threshold_equal=cfg['main']['threshold_equal'],
                       max_image_size=cfg['main']['max_image_size'],
+                      max_video_frames=cfg['main']['max_video_frames'],
                       min_face_size=cfg['main']['min_face_size'],
                       debug_out_image_size=cfg['main']['debug_out_image_size'],
                       encoding_model=cfg['main']['encoding_model'],
