@@ -1,6 +1,7 @@
 import io
 import os
 import cv2
+import glob
 import math
 import piexif
 import pickle
@@ -19,7 +20,7 @@ def seconds_to_str(s):
     return f'{hour}:{mins:02}:{secs:02}'
 
 
-def list_files(path, exts=None, nomedia_names=[]):
+def __list_files(path, exts, nomedia_names):
     files = []
     dirs = []
     for e in os.scandir(path):
@@ -33,6 +34,13 @@ def list_files(path, exts=None, nomedia_names=[]):
             dirs.append(e.path)
     for d in dirs:
         files += list_files(d, exts, nomedia_names)
+    return files
+
+
+def list_files(path, exts=None, nomedia_names=[]):
+    files = []
+    for p in glob.glob(path):
+        files += __list_files(p, exts, nomedia_names)
     return files
 
 
