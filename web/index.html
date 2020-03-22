@@ -346,9 +346,25 @@
 
         function openFaceSrc(facefile)
         {
-            var html = '<img src="get_face_src?path=' + facefile + '" height="100%" width="100%"/>'; 
-            $("#faceSrcModalBody").html(html);
-            $("#faceSrcModal").modal("show");
+            $.ajax({
+                url: 'get_face_src?path=' + facefile + '&type=info',
+                type: 'GET',
+                success: function(data) {
+                    var filename = data['filename'];
+                    var type = data['type'];
+                    var html = '<font size="-2">' + filename + '</font><br/>';
+                    if (type == 'image') { 
+                        html += '<img src="get_face_src?path=' + facefile + '" height="100%" width="100%"/>';
+                    } else if (type == 'video') {
+                        html += '<video src="get_face_src?path=' + facefile + '" height="100%" width="100%" controls/>';
+                    }
+                    $("#faceSrcModalBody").html(html);
+                    $('#faceSrcModal').on('hidden.bs.modal', function () {
+                        $("video").each(function() {this.pause()});
+                    });
+                    $("#faceSrcModal").modal("show");
+                }
+            })
         }
 
         function openFacePatt(facefile)

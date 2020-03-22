@@ -164,7 +164,19 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         src_filename = descr.get('src', None)
         if src_filename is None:
             self.__not_found_response()
-        self.__send_file(src_filename)
+        if 'type' in params and params['type'][0] == 'info':
+            ext = os.path.splitext(src_filename)[1].lower()
+            tp = ''
+            if ext in tools.IMAGE_EXTS:
+                tp = 'image'
+            elif ext in tools.VIDEO_EXTS:
+                tp = 'video'
+            self.__ok_response({
+                'filename': src_filename,
+                'type': tp
+            })
+        else:
+            self.__send_file(src_filename)
 
     def __get_face_pattern(self, params):
         path = params['path'][0]
