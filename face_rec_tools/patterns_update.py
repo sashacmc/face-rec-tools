@@ -84,7 +84,7 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
 def update_db(db, rec):
     files_faces = db.get_all()
     logging.info(f'Start reencode {len(files_faces)} files')
-    rec.reencode_files(files_faces, db)
+    rec.reencode_files(files_faces)
     logging.info(f'Reencode done')
 
 
@@ -115,7 +115,7 @@ def main():
            int(cfg['main']['max_image_size']),
            int(cfg['main']['debug_out_image_size']))
 
-    rec = recognizer.createRecognizer(patt, cfg)
+    rec = recognizer.createRecognizer(patt, cfg, db=db)
 
     update_db(db, rec)
 

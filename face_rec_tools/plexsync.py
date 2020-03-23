@@ -80,7 +80,7 @@ class PlexSync(object):
             cdb = cachedb.CacheDB(cachedb_file)
         else:
             cdb = None
-        rec = recognizer.createRecognizer(patt, cfg, cdb)
+        rec = recognizer.createRecognizer(patt, cfg, cdb, self.__recdb)
 
         for folder in folders:
             plex_files = self.__plexdb.get_files(folder)
@@ -92,7 +92,7 @@ class PlexSync(object):
             count = len(filenames)
             if count != 0:
                 logging.info(f'Adding {count} files from {folder}')
-                rec.recognize_files(filenames, self.__recdb, cache_path)
+                rec.recognize_files(filenames, cache_path)
             else:
                 logging.info(f'No files to add from {folder}')
         self.set_tags()

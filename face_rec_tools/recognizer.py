@@ -9,6 +9,7 @@ import time
 import numpy
 import random
 import shutil
+import signal
 import logging
 import argparse
 import threading
@@ -34,6 +35,10 @@ from face_rec_tools import patterns  # noqa
 
 SKIP_FACE = 'skip_face'
 
+STOP_NONE = 0
+STOP_SAVE = 1
+STOP_DROP = 2
+
 
 class Recognizer(threading.Thread):
     def __init__(self,
@@ -53,7 +58,8 @@ class Recognizer(threading.Thread):
                  max_workers=1,
                  video_batch_size=1,
                  nomedia_files=(),
-                 cdb=None):
+                 cdb=None,
+                 db=None):
 
         threading.Thread.__init__(self)
         self.__patterns = patts
@@ -74,9 +80,11 @@ class Recognizer(threading.Thread):
         self.__encoding_model = encoding_model
         self.__nomedia_files = nomedia_files
         self.__cdb = cdb
+        self.__db = db
 
         self.__status = {'state': '', 'count': 0, 'current': 0, 'starttime': 0}
-        self.__status_lock = threading.Lock()
+        self.__stop = STOP_NONE
+        self.__stage_lock = threading.Lock()
 
         self.__max_workers = int(max_workers)
         self.__executor = concurrent.futures.ThreadPoolExecutor(
@@ -98,7 +106,7 @@ class Recognizer(threading.Thread):
         self.__video_batch_size = int(video_batch_size)
 
     def start_method(self, method, *args):
-        self.__status_state(method)
+        self.__init_stage(method)
         self.__method = method
         self.__args = args
         self.start()
@@ -117,10 +125,10 @@ class Recognizer(threading.Thread):
             elif self.__method == 'get_faces_by_face':
                 self.get_faces_by_face(*self.__args)
             logging.info(f'Thread done: {self.__method}')
-            self.__status_state('done')
+            self.__init_stage('done')
         except Exception as ex:
             logging.exception(ex)
-            self.__status_state('error')
+            self.__init_stage('error')
 
     def recognize_image(self, filename):
         logging.info(f'recognize image: {filename}')
@@ -153,6 +161,8 @@ class Recognizer(threading.Thread):
         frame_num = 0
         batched_encoded_faces = []
         while frame_num < len(video.frames()):
+            if self.__step_stage(step=0):
+                break
             frames = video.frames()[frame_num:
                                     frame_num + self.__video_batch_size]
 
@@ -160,6 +170,8 @@ class Recognizer(threading.Thread):
                 frames, batch_size=len(frames))
 
             for image, boxes in zip(frames, batched_boxes):
+                if self.__step_stage(step=0):
+                    break
                 encodings, landmarks = self.__encoder.encode(image, boxes)
                 encoded_faces = [
                     {'encoding': e,
@@ -232,6 +244,8 @@ class Recognizer(threading.Thread):
             logging.warning('Empty patterns')
 
         for i in range(len(encoded_faces)):
+            if self.__step_stage(step=0):
+                break
             encoding = encoded_faces[i]['encoding']
             dist, name, pattern = self.__match_face_by_nearest(
                 encoding, patterns.PATTERN_TYPE_GOOD)
@@ -283,9 +297,10 @@ class Recognizer(threading.Thread):
 
         labels = self.__reassign_by_count(labels)
         lnum = 0
-        self.__status_count(len(files_faces))
+        self.__start_stage(len(files_faces))
         for i in indexes:
-            self.__status_step()
+            if self.__step_stage():
+                break
             for j in range(len(files_faces[i]['faces'])):
                 files_faces[i]['faces'][j]['name'] = \
                     'unknown_{:04d}'.format(labels[lnum])
@@ -301,12 +316,13 @@ class Recognizer(threading.Thread):
                     files_faces[i]['faces'], media,
                     debug_out_folder, debug_out_file_name)
 
-    def recognize_files(self, filenames, db, debug_out_folder):
+    def recognize_files(self, filenames, debug_out_folder):
         self.__make_debug_out_folder(debug_out_folder)
 
-        self.__status_count(len(filenames))
+        self.__start_stage(len(filenames))
         for f in filenames:
-            self.__status_step()
+            if self.__step_stage():
+                break
             try:
                 ext = os.path.splitext(f)[1].lower()
                 if ext in tools.IMAGE_EXTS:
@@ -316,7 +332,7 @@ class Recognizer(threading.Thread):
                 else:
                     logging.warning(f'Unknown ext: {ext}')
                     continue
-                db.insert(f, encoded_faces, commit=False)
+                self.__db.insert(f, encoded_faces, commit=False)
                 if debug_out_folder:
                     debug_out_file_name = self.__extract_filename(f)
                     self.__save_debug_images(
@@ -325,11 +341,9 @@ class Recognizer(threading.Thread):
                         skip_eq=ext in tools.VIDEO_EXTS)
             except Exception as ex:
                 logging.exception(f'Image {f} recognition failed')
-        db.commit()
-        if self.__cdb is not None:
-            self.__cdb.commit()
+        self.__end_stage()
 
-    def reencode_files(self, files_faces, db):
+    def reencode_files(self, files_faces):
         for ff in files_faces:
             try:
                 encoded_faces = ff['faces']
@@ -343,51 +357,52 @@ class Recognizer(threading.Thread):
                 else:
                     logging.warning(f'Unknown ext: {ext}')
                     continue
-                db.insert(filename, encoded_faces, commit=False)
+                self.__db.insert(filename, encoded_faces, commit=False)
             except Exception as ex:
                 logging.exception(f'{filename} reencoding failed')
-        db.commit()
+        self.__end_stage()
 
-    def __get_files_faces_by_filter(self, db, fltr):
+    def __get_files_faces_by_filter(self, fltr):
         tp = fltr['type']
         if tp == 'unmatched':
-            return db.get_unmatched()
+            return self.__db.get_unmatched()
         elif tp == 'all':
-            return db.get_all()
+            return self.__db.get_all()
         elif tp == 'weak':
-            return db.get_weak(fltr['path'])
+            return self.__db.get_weak(fltr['path'])
         elif tp == 'weak_unmatched':
-            return db.get_weak_unmatched(fltr['path'])
+            return self.__db.get_weak_unmatched(fltr['path'])
         elif tp == 'folder':
-            return db.get_folder(fltr['path'])
+            return self.__db.get_folder(fltr['path'])
         elif tp == 'name':
-            return db.get_by_name(fltr['path'], fltr['name'])
+            return self.__db.get_by_name(fltr['path'], fltr['name'])
         else:
             raise Exception(f'Unknown filter type: {tp}')
 
-    def clusterize(self, db, fltr, debug_out_folder):
-        self.__status_state('clusterize')
-        files_faces = self.__get_files_faces_by_filter(db, fltr)
+    def clusterize(self, fltr, debug_out_folder):
+        self.__init_stage('clusterize')
+        files_faces = self.__get_files_faces_by_filter(fltr)
         self.__clusterize(files_faces, debug_out_folder)
 
-    def match(self, db, fltr, debug_out_folder, save_all_faces):
-        self.__status_state('match')
-        files_faces = self.__get_files_faces_by_filter(db, fltr)
-        self.__match_files_faces(files_faces, db,
+    def match(self, fltr, debug_out_folder, save_all_faces):
+        self.__init_stage('match')
+        files_faces = self.__get_files_faces_by_filter(fltr)
+        self.__match_files_faces(files_faces,
                                  debug_out_folder, save_all_faces)
 
-    def save_faces(self, db, fltr, debug_out_folder):
-        self.__status_state('save_faces')
-        files_faces = self.__get_files_faces_by_filter(db, fltr)
+    def save_faces(self, fltr, debug_out_folder):
+        self.__init_stage('save_faces')
+        files_faces = self.__get_files_faces_by_filter(fltr)
         self.__save_faces(files_faces, debug_out_folder)
 
     def __match_files_faces(
-            self, files_faces, db, debug_out_folder, save_all_faces=False):
+            self, files_faces, debug_out_folder, save_all_faces=False):
         cnt_all = 0
         cnt_changed = 0
-        self.__status_count(len(files_faces))
+        self.__start_stage(len(files_faces))
         for ff in files_faces:
-            self.__status_step()
+            if self.__step_stage():
+                break
             filename = ff['filename']
             logging.info(f"match image: {filename}")
             is_video = os.path.splitext(
@@ -397,9 +412,9 @@ class Recognizer(threading.Thread):
                 cnt_all += 1
                 changed = False
                 if 'oldname' in face and face['oldname'] != face['name']:
-                    db.set_name(face['face_id'], face['name'],
-                                face['dist'], face['pattern'],
-                                commit=False)
+                    self.__db.set_name(face['face_id'], face['name'],
+                                       face['dist'], face['pattern'],
+                                       commit=False)
                     cnt_changed += 1
                     changed = True
                     logging.info(
@@ -414,16 +429,15 @@ class Recognizer(threading.Thread):
                         (face,), media,
                         debug_out_folder, debug_out_file_name,
                         skip_eq=is_video)
-        db.commit()
-        if self.__cdb is not None:
-            self.__cdb.commit()
+        self.__end_stage()
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
     def __save_faces(self, files_faces, debug_out_folder):
-        self.__status_state('save_faces')
-        self.__status_count(len(files_faces))
+        self.__init_stage('save_faces')
+        self.__start_stage(len(files_faces))
         for ff in files_faces:
-            self.__status_step()
+            if self.__start_stage():
+                break
             filename = ff['filename']
             logging.info(f"save faces from image: {filename}")
             media = tools.load_media(filename,
@@ -435,44 +449,43 @@ class Recognizer(threading.Thread):
             self.__save_debug_images(
                 ff['faces'], media,
                 debug_out_folder, debug_out_file_name, skip_eq=is_video)
-        if self.__cdb is not None:
-            self.__cdb.commit()
+        self.__end_stage()
 
-    def recognize_folder(self, folder, db, debug_out_folder, reencode=False):
-        self.__status_state('recognize_folder')
+    def recognize_folder(self, folder, debug_out_folder, reencode=False):
+        self.__init_stage('recognize_folder')
         filenames = self.__get_media_from_folder(folder)
 
         if not reencode:
-            filenames = set(filenames) - set(db.get_files(folder))
+            filenames = set(filenames) - set(self.__db.get_files(folder))
 
         if debug_out_folder is None:
             debug_out_folder = os.path.join(folder, 'tags')
 
-        self.recognize_files(filenames, db, debug_out_folder)
+        self.recognize_files(filenames, debug_out_folder)
 
-    def remove_folder(self, folder, db):
-        self.__status_state('remove_folder')
-        files_faces = db.get_folder(folder)
+    def remove_folder(self, folder):
+        self.__init_stage('remove_folder')
+        files_faces = self.__db.get_folder(folder)
         for ff in files_faces:
-            logging.info(f"remove image: {ff['filename']}")
-            db.remove(ff['filename'], False)
+            logging.info(f"remove from DB: {ff['filename']}")
+            self.__db.remove(ff['filename'], False)
             if self.__cdb is not None:
                 for face in ff['faces']:
                     self.__cdb.remove_face(face['face_id'])
         # delete files without faces
-        files = db.get_files(folder)
+        files = self.__db.get_files(folder)
         for f in files:
             logging.info(f"remove image: {f}")
-            db.remove(f, False)
-        db.commit()
-        if self.__cdb is not None:
-            self.__cdb.commit()
+            self.__db.remove(f, False)
+        self.__end_stage()
 
     def __get_media_from_folder(self, folder):
-        return tools.list_files(
+        files = tools.list_files(
             folder,
             tools.IMAGE_EXTS + tools.VIDEO_EXTS,
             self.__nomedia_files)
+        files.sort()
+        return files
 
     def __make_debug_out_folder(self, debug_out_folder):
         if debug_out_folder:
@@ -545,10 +558,10 @@ class Recognizer(threading.Thread):
         if skipped_eq != 0:
             logging.debug(f'skipped debug images {skipped_eq}')
 
-    def get_faces_by_face(self, db, filename, debug_out_folder,
+    def get_faces_by_face(self, filename, debug_out_folder,
                           remove_file=False):
         logging.info(f'get faces by face: {filename}')
-        self.__status_state('get_faces_by_face')
+        self.__init_stage('get_faces_by_face')
 
         image = tools.LazyImage(filename, self.__max_size)
 
@@ -556,7 +569,7 @@ class Recognizer(threading.Thread):
         face = encoded_faces[0]
         logging.debug(f'found face: {face}')
 
-        all_encodings = db.get_all_encodings(self.__max_workers)
+        all_encodings = self.__db.get_all_encodings(self.__max_workers)
 
         res = [r for r in self.__executor.map(
             self.__encoder.distance,
@@ -572,9 +585,10 @@ class Recognizer(threading.Thread):
 
         logging.debug(f'{len(filtered)} faces matched')
 
-        self.__status_count(len(filtered))
+        self.__start_stage(len(filtered))
         for dist, info in filtered:
-            self.__status_step()
+            if self.__step_stage():
+                break
             fname, face = info
             face['dist'] = dist
             media = tools.load_media(fname,
@@ -589,7 +603,7 @@ class Recognizer(threading.Thread):
             os.remove(filename)
 
     def status(self):
-        with self.__status_lock:
+        with self.__stage_lock:
             if self.__status['current'] > 0:
                 elap_time = time.time() - self.__status['starttime']
                 est_time = \
@@ -602,22 +616,61 @@ class Recognizer(threading.Thread):
                 self.__status['elapsed'] = ''
             return self.__status
 
-    def __status_state(self, cmd):
-        with self.__status_lock:
+    def stop(self, save=False):
+        logging.info(f'Stop called ({save})')
+        with self.__stage_lock:
+            if save:
+                self.__stop = STOP_SAVE
+            else:
+                self.__stop = STOP_DROP
+
+    def __init_stage(self, cmd):
+        with self.__stage_lock:
+            self.__stop = STOP_NONE
             self.__status['state'] = cmd
 
-    def __status_count(self, count):
-        with self.__status_lock:
+    def __start_stage(self, count):
+        with self.__stage_lock:
+            logging.info(
+                f'Stage {self.__status["state"]} for {count} steps started')
             self.__status['count'] = count
             self.__status['current'] = 0
             self.__status['starttime'] = time.time()
 
-    def __status_step(self):
-        with self.__status_lock:
-            self.__status['current'] += 1
+    def __step_stage(self, step=1):
+        with self.__stage_lock:
+            self.__status['current'] += step
+            if self.__stop == STOP_NONE:
+                return False
+            elif self.__stop == STOP_SAVE:
+                logging.info(f'Stop with save')
+                return True
+            elif self.__stop == STOP_DROP:
+                logging.info(f'Stop without save')
+                return True
+            else:
+                logging.warning(f'Incorrect stop value: {self.__stop}')
+                return False
+
+    def __end_stage(self):
+        with self.__stage_lock:
+            drop = self.__stop == STOP_DROP
+
+        if drop:
+            logging.info(f'Rollback transaction')
+            if self.__db is not None:
+                self.__db.rollback()
+            if self.__cdb is not None:
+                self.__cdb.rollback()
+        else:
+            logging.info(f'Commit transaction')
+            if self.__db is not None:
+                self.__db.commit()
+            if self.__cdb is not None:
+                self.__cdb.commit()
 
 
-def createRecognizer(patt, cfg, cdb=None):
+def createRecognizer(patt, cfg, cdb=None, db=None):
     return Recognizer(patt,
                       model=cfg['main']['model'],
                       num_jitters=cfg['main']['num_jitters'],
@@ -634,7 +687,8 @@ def createRecognizer(patt, cfg, cdb=None):
                       max_workers=cfg['main']['max_workers'],
                       video_batch_size=cfg['main']['video_batch_size'],
                       nomedia_files=cfg['main']['nomedia_files'].split(':'),
-                      cdb=cdb)
+                      cdb=cdb,
+                      db=db)
 
 
 def args_parse():
@@ -682,31 +736,31 @@ def main():
         cdb = None
 
     tools.cuda_init()
-    rec = createRecognizer(patt, cfg, cdb)
-
     db = recdb.RecDB(cfg['main']['db'], args.dry_run)
+    rec = createRecognizer(patt, cfg, cdb, db)
+
+    signal.signal(signal.SIGINT, lambda sig, frame: rec.stop())
 
     if args.action == 'recognize_image':
         print(rec.recognize_image(args.input)[0])
     elif args.action == 'recognize_video':
         print(rec.calc_names_in_video(rec.recognize_video(args.input)[0]))
     elif args.action == 'recognize_folder':
-        rec.recognize_folder(args.input, db, args.output, args.reencode)
+        rec.recognize_folder(args.input, args.output, args.reencode)
     elif args.action == 'remove_folder':
-        rec.remove_folder(args.input, db)
+        rec.remove_folder(args.input)
     elif args.action == 'match_unmatched':
-        rec.match(db, {'type': 'unmatched'}, args.output, False)
+        rec.match({'type': 'unmatched'}, args.output, False)
     elif args.action == 'match_all':
-        rec.match(db, {'type': 'all'}, args.output, False)
+        rec.match({'type': 'all'}, args.output, False)
     elif args.action == 'match_folder':
-        rec.match(
-            db, {'type': 'folder', 'path': args.input}, args.output, True)
+        rec.match({'type': 'folder', 'path': args.input}, args.output, True)
     elif args.action == 'clusterize_unmatched':
-        rec.clusterize(db, {'type': 'unmatched'}, args.output)
+        rec.clusterize({'type': 'unmatched'}, args.output)
     elif args.action == 'save_faces':
-        rec.save_faces(db, {'type': 'folder', 'path': args.input}, args.output)
+        rec.save_faces({'type': 'folder', 'path': args.input}, args.output)
     elif args.action == 'get_faces_by_face':
-        rec.get_faces_by_face(db, args.input, args.output)
+        rec.get_faces_by_face(args.input, args.output)
 
 
 if __name__ == '__main__':

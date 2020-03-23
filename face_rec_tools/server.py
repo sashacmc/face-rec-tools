@@ -388,7 +388,7 @@ class FaceRecServer(http.server.HTTPServer):
         self.__clean_cache()
         tools.cuda_init()
         self.__recognizer = recognizer.createRecognizer(
-            self.__patterns, self.__cfg, self.__cdb)
+            self.__patterns, self.__cfg, self.__cdb, self.__db)
         self.__recognizer.start_method(method, *args)
 
     def __generate_patterns(self):
@@ -450,27 +450,27 @@ class FaceRecServer(http.server.HTTPServer):
     def recognize_folder(self, path, reencode):
         self.__generate_patterns()
         self.__start_recognizer('recognize_folder',
-                                path, self.__db, self.__face_cache_path,
+                                path, self.__face_cache_path,
                                 reencode)
 
     def match(self, fltr, save_faces):
         self.__generate_patterns()
         self.__start_recognizer('match',
-                                self.__db, fltr, self.__face_cache_path,
+                                fltr, self.__face_cache_path,
                                 save_faces)
 
     def clusterize(self, fltr):
         self.__generate_patterns()
         self.__start_recognizer('clusterize',
-                                self.__db, fltr, self.__face_cache_path)
+                                fltr, self.__face_cache_path)
 
     def save_faces(self, fltr):
         self.__start_recognizer('save_faces',
-                                self.__db, fltr, self.__face_cache_path)
+                                fltr, self.__face_cache_path)
 
     def get_faces_by_face(self, filename):
         self.__start_recognizer('get_faces_by_face',
-                                self.__db, filename, self.__face_cache_path,
+                                filename, self.__face_cache_path,
                                 True)
 
 
