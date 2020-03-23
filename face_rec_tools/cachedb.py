@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import os
-import time
 import atexit
 import sqlite3
 import argparse
@@ -21,8 +20,6 @@ CREATE TABLE IF NOT EXISTS cache (
 CREATE UNIQUE INDEX IF NOT EXISTS cache_filename ON cache (filename);
 '''
 
-AUTOCOMMIT_TIMEOUT = 60  # sec
-
 
 class CacheDB(object):
     def __init__(self, filename):
@@ -32,7 +29,6 @@ class CacheDB(object):
 
         self.__conn.execute('pragma journal_mode=off;')
         self.__conn.executescript(SCHEMA)
-        self.__autocommit_time = time.time()
         self.__lock = threading.RLock()
         atexit.register(self.commit)
 
@@ -42,13 +38,10 @@ class CacheDB(object):
     def commit(self):
         with self.__lock:
             self.__conn.commit()
-            self.__autocommit_time = time.time()
 
-    def __autocommit(self):
-        tm = time.time()
-        if self.__autocommit_time + AUTOCOMMIT_TIMEOUT < tm:
-            self.__conn.commit()
-            self.__autocommit_time = tm
+    def rollback(self):
+        with self.__lock:
+            self.__conn.rollback()
 
     def save_face(self, face_id, data):
         with self.__lock:
@@ -56,7 +49,6 @@ class CacheDB(object):
             c.execute(
                 'INSERT INTO face_images (face_id, data) \
                  VALUES (?, ?)', (face_id, data))
-            self.__autocommit()
 
     def check_face(self, face_id):
         with self.__lock:
@@ -69,7 +61,6 @@ class CacheDB(object):
         with self.__lock:
             c = self.__conn.cursor()
             c.execute('DELETE FROM face_images WHERE face_id=?', (face_id,))
-            self.__autocommit()
 
     def list_cache(self):
         with self.__lock:
@@ -91,7 +82,6 @@ class CacheDB(object):
             c.execute(
                 'INSERT OR REPLACE INTO cache (face_id, filename) \
                  VALUES (?, ?)', (face_id, filename))
-            self.__autocommit()
 
     def get_from_cache(self, filename):
         with self.__lock:
@@ -116,7 +106,6 @@ class CacheDB(object):
         with self.__lock:
             c = self.__conn.cursor()
             c.execute('DELETE FROM cache WHERE filename=?', (filename,))
-            self.__autocommit()
 
 
 def __speed_test(db):
