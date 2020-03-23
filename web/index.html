@@ -78,7 +78,7 @@
                             Options
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="#" id="liOptLandmarks">Show/Hide landmarks</a>
+                            <a class="dropdown-item" href="#" id="liOptLandmarks">Hide landmarks</a>
                         </div>
                     </li>
                 </ul>
@@ -839,6 +839,7 @@
             } else {
                 g_urlParams.set('hideLandmarks', 1)
             }
+            updateMenuItems();
             $(".person_face").each(function(){
                 var src = $(this).prop('src');
                 $(this).prop("src", invertThumb(src));
@@ -985,6 +986,14 @@
             }
         }
 
+        function updateMenuItems() {
+            if (g_urlParams.get('hideLandmarks')) {
+                $('#liOptLandmarks').html('Show landmarks')
+            } else {
+                $('#liOptLandmarks').html('Hide landmarks')
+            }
+        }
+
         $(document).ready(function() 
         {
             g_urlParams = new URLParams();
@@ -1086,6 +1095,7 @@
                 invertLandmarks();
             });
 
+            updateMenuItems();
             checkProgress();
         });
     </script>
