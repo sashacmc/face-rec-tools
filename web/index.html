@@ -168,6 +168,24 @@
                     <div id="progressModalTime">
                     </div>
                 </div>
+                <div class="modal-footer">
+                    <button id="progressModalStop" type="button" class="btn btn-secondary">Stop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="saveQueryModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Save processed data?</h5>
+                </div>
+                <div class="modal-footer">
+                    <button id="saveQueryModalYes" type="button" class="btn btn-secondary">Yes</button>
+                    <button id="saveQueryModalNo" type="button" class="btn btn-secondary">No</button>
+                    <button id="saveQueryModalCancel" type="button" class="btn btn-primary">Cancel</button>
+                </div>
             </div>
         </div>
     </div>
@@ -886,6 +904,37 @@
 
         function showProgress(caption)
         {
+            $('#progressModalStop').off('click').on('click', function(e) {
+                $('#saveQueryModalYes').off('click').on('click', function(e) {
+                    e.preventDefault();
+                    $.ajax({
+                        url: 'stop?save=1',
+                        type: 'POST',
+                        cache: false,
+                        success: function(json) { 
+                            $('#saveQueryModal').modal('hide');
+                        }
+                    });
+                    $('#saveQueryModal').modal('hide');
+                });
+                $('#saveQueryModalNo').off('click').on('click', function(e) {
+                    e.preventDefault();
+                    $.ajax({
+                        url: 'stop?save=0',
+                        type: 'POST',
+                        cache: false,
+                        success: function(json) { 
+                            $('#saveQueryModal').modal('hide');
+                        }
+                    });
+                    $('#saveQueryModal').modal('hide');
+                });
+                $('#saveQueryModalCancel').off('click').on('click', function(e) {
+                    e.preventDefault();
+                    $('#saveQueryModal').modal('hide');
+                });
+                $("#saveQueryModal").modal("show");
+            });
             $('#progressModalLabel').html(caption);
             $('#progressModalBar').css('width', '0%');
             $('#progressModal').modal('show').on('shown', function() { 

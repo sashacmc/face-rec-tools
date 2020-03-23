@@ -269,6 +269,14 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.server.get_faces_by_face(tf.name)
         self.__ok_response('')
 
+    def __stop_request(self, params):
+        try:
+            save = params['save'][0] == '1'
+        except Exception:
+            save = False
+        self.server.stop(save)
+        self.__ok_response('')
+
     def do_GET(self):
         logging.debug('do_GET: ' + self.path)
         try:
@@ -347,6 +355,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
             if path == '/get_faces_by_face':
                 self.__get_faces_by_face_request(params, self.__form_data())
+                return
+
+            if path == '/stop':
+                self.__stop_request(params)
                 return
 
         except Exception as ex:
@@ -440,6 +452,10 @@ class FaceRecServer(http.server.HTTPServer):
                 tools.cuda_release()
 
         return self.__status
+
+    def stop(self, save):
+        if self.__recognizer:
+            self.__recognizer.stop(save)
 
     def __clean_cache(self):
         if self.__cdb is not None:
