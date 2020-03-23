@@ -88,6 +88,11 @@ class RecDB(object):
             return
         self.__conn.commit()
 
+    def rollback(self):
+        if self.__readonly:
+            return
+        self.__conn.rollback()
+
     def insert(self, filename, rec_result, commit=True):
         # rec_result =
         #   [{'box': (l, b, r, t),
