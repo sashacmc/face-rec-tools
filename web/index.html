@@ -79,6 +79,7 @@
                         </a>
                         <div class="dropdown-menu" aria-labelledby="navbarDropdown">
                             <a class="dropdown-item" href="#" id="liOptLandmarks">Hide landmarks</a>
+                            <a class="dropdown-item" href="#" id="liOptSort">Sort by date</a>
                         </div>
                     </li>
                 </ul>
@@ -864,6 +865,17 @@
             });
         }
 
+        function setListSort()
+        {
+            if (g_urlParams.get('sortByDate')) {
+                g_urlParams.set('sortByDate', 0)
+            } else {
+                g_urlParams.set('sortByDate', 1)
+            }
+            updateMenuItems();
+            init();
+        }
+
         function updateProgress() {
             $.ajax({  
                 url: 'get_status',
@@ -974,8 +986,12 @@
         {
             mainSpinner(true);
 
+            var sort = '';
+            if (g_urlParams.get('sortByDate')) {
+                sort = '?sort=date';
+            }
             $.ajax({  
-                url: "list_cache",
+                url: "list_cache" + sort,
                 cache: false,  
                 success: function(json) {  
                     var data = eval(json);
@@ -1040,6 +1056,11 @@
                 $('#liOptLandmarks').html('Show landmarks')
             } else {
                 $('#liOptLandmarks').html('Hide landmarks')
+            }
+            if (g_urlParams.get('sortByDate')) {
+                $('#liOptSort').html('Sort by similarity')
+            } else {
+                $('#liOptSort').html('Sort by date')
             }
         }
 
@@ -1142,6 +1163,11 @@
             $("#liOptLandmarks").click(function(e) {
                 e.preventDefault();
                 invertLandmarks();
+            });
+
+            $("#liOptSort").click(function(e) {
+                e.preventDefault();
+                setListSort();
             });
 
             updateMenuItems();

@@ -133,7 +133,11 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             name = image_file.split(os.path.sep)[-2]
             result[name].append(os.path.relpath(image_file, cache_path))
 
-        res_list = [(k, sorted(r)) for k, r in result.items()]
+        if 'sort' in params and params['sort'][0] == 'date':
+            def key(s): return s[s.find('_', s.find('_') + 1) + 1:]
+        else:
+            key = None
+        res_list = [(k, sorted(r, key=key)) for k, r in result.items()]
         res_list.sort()
 
         self.__ok_response(res_list)
