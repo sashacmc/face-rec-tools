@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import os
+import re
 import cgi
 import sys
 import json
@@ -134,7 +135,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             result[name].append(os.path.relpath(image_file, cache_path))
 
         if 'sort' in params and params['sort'][0] == 'date':
-            def key(s): return s[s.find('_', s.find('_') + 1) + 1:]
+            def key(s): return re.sub('_\d\d\d_', '_', s)
         else:
             key = None
         res_list = [(k, sorted(r, key=key)) for k, r in result.items()]
