@@ -686,6 +686,11 @@
             $("#facePropModal").modal("show");
         }
 
+        function cardOffset(activeCard)
+        {
+            return $('#' + activeCard).offset().top - $('.navbar').height() - 16;
+        }
+
         function setFacesList(data)
         {
             var html = '';
@@ -696,10 +701,16 @@
             }
             $("#accordionFaces").html(html);
             $('#accordionFaces').on('shown.bs.collapse', function () {
-                var panel = $(this).find('.show').parent();
-                var pos = panel.offset().top - $('.navbar').height() - 16;
-                $('html, body').animate({scrollTop: pos}, 300);
+                var panel = $(this).find('.show');
+                var activeCard = panel.attr('aria-labelledby');
+                $('html, body').animate({scrollTop: cardOffset(activeCard)}, 300);
+                g_urlParams.set('activeCard', activeCard);
             })
+
+            var activeCard = g_urlParams.get('activeCard');
+            if (activeCard) {
+                $(window).scrollTop(cardOffset(activeCard));
+            }
         }
 
         function cleanFacesList()
