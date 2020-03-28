@@ -436,7 +436,7 @@ class Recognizer(threading.Thread):
         self.__init_stage('save_faces')
         self.__start_stage(len(files_faces))
         for ff in files_faces:
-            if self.__start_stage():
+            if self.__step_stage():
                 break
             filename = ff['filename']
             logging.info(f"save faces from image: {filename}")
