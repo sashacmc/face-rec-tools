@@ -316,7 +316,7 @@ class Recognizer(threading.Thread):
                     files_faces[i]['faces'], media,
                     debug_out_folder, debug_out_file_name)
 
-    def recognize_files(self, filenames, debug_out_folder):
+    def recognize_files(self, filenames, debug_out_folder, skip_face_gen=False):
         self.__make_debug_out_folder(debug_out_folder)
 
         self.__start_stage(len(filenames))
@@ -338,7 +338,8 @@ class Recognizer(threading.Thread):
                     self.__save_debug_images(
                         encoded_faces, media,
                         debug_out_folder, debug_out_file_name,
-                        skip_eq=ext in tools.VIDEO_EXTS)
+                        skip_eq=ext in tools.VIDEO_EXTS,
+                        skip_face_gen=skip_face_gen)
             except Exception as ex:
                 logging.exception(f'Image {f} recognition failed')
         self.__end_stage()
@@ -384,11 +385,14 @@ class Recognizer(threading.Thread):
         files_faces = self.__get_files_faces_by_filter(fltr)
         self.__clusterize(files_faces, debug_out_folder)
 
-    def match(self, fltr, debug_out_folder, save_all_faces):
+    def match(self, fltr, debug_out_folder, save_all_faces,
+              skip_face_gen=False):
         self.__init_stage('match')
         files_faces = self.__get_files_faces_by_filter(fltr)
         self.__match_files_faces(files_faces,
-                                 debug_out_folder, save_all_faces)
+                                 debug_out_folder,
+                                 save_all_faces,
+                                 skip_face_gen)
 
     def save_faces(self, fltr, debug_out_folder):
         self.__init_stage('save_faces')
@@ -396,7 +400,8 @@ class Recognizer(threading.Thread):
         self.__save_faces(files_faces, debug_out_folder)
 
     def __match_files_faces(
-            self, files_faces, debug_out_folder, save_all_faces=False):
+            self, files_faces, debug_out_folder,
+            save_all_faces=False, skip_face_gen=False):
         cnt_all = 0
         cnt_changed = 0
         self.__start_stage(len(files_faces))
@@ -428,7 +433,8 @@ class Recognizer(threading.Thread):
                     self.__save_debug_images(
                         (face,), media,
                         debug_out_folder, debug_out_file_name,
-                        skip_eq=is_video)
+                        skip_eq=is_video,
+                        skip_face_gen=skip_face_gen)
         self.__end_stage()
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
@@ -451,7 +457,8 @@ class Recognizer(threading.Thread):
                 debug_out_folder, debug_out_file_name, skip_eq=is_video)
         self.__end_stage()
 
-    def recognize_folder(self, folder, debug_out_folder, reencode=False):
+    def recognize_folder(self, folder, debug_out_folder,
+                         reencode=False, skip_face_gen=False):
         self.__init_stage('recognize_folder')
         filenames = self.__get_media_from_folder(folder)
 
@@ -461,7 +468,7 @@ class Recognizer(threading.Thread):
         if debug_out_folder is None:
             debug_out_folder = os.path.join(folder, 'tags')
 
-        self.recognize_files(filenames, debug_out_folder)
+        self.recognize_files(filenames, debug_out_folder, skip_face_gen)
 
     def remove_folder(self, folder):
         self.__init_stage('remove_folder')
@@ -505,7 +512,7 @@ class Recognizer(threading.Thread):
 
     def __save_debug_images(
             self, encoded_faces, media, debug_out_folder, debug_out_file_name,
-            skip_eq=False):
+            skip_eq=False, skip_face_gen=False):
 
         enc_cache = None
         skipped_eq = 0
@@ -546,9 +553,9 @@ class Recognizer(threading.Thread):
                     self.__cdb.save_face(enc['face_id'],
                                          out_stream.getvalue())
                     logging.debug(f"face {enc['face_id']} cached")
-
-                self.__cdb.add_to_cache(enc['face_id'], out_filename)
-            else:
+                if not skip_face_gen:
+                    self.__cdb.add_to_cache(enc['face_id'], out_filename)
+            elif not skip_face_gen:
                 self.__make_debug_out_folder(out_folder)
                 tools.save_face(out_filename, media.get(enc['frame']), enc,
                                 self.__debug_out_image_size,

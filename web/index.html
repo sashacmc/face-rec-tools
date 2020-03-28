@@ -139,6 +139,14 @@
                             Save all faces (not only changed)
                         </label>
                     </div>
+                    <div id="runPathModalSkipGenDiv">
+                        <br/>
+                        <input type="checkbox" id="runPathModalSkipGenCheck">
+                        </input>
+                        <label class="form-check-label" for="runPathModalSkipGenCheck"> 
+                            Skip faces generation (save current list of faces)
+                        </label>
+                    </div>
                     <div id="runPathModalNameDiv">
                         <br/>
                         Select person
@@ -781,11 +789,12 @@
             $("#mainSpinner").html(html);
         }
 
-        function runPathCommand(cmd, opts, askSaveFaces, askName)
+        function runPathCommand(cmd, opts, askSaveFaces, askName, askSkipGen)
         {
             $("#runPathModalLabel").html(commandText[cmd]);
             $("#runPathModalSaveFacesDiv").toggle(askSaveFaces);
             $("#runPathModalNameDiv").toggle(askName);
+            $("#runPathModalSkipGenDiv").toggle(askSkipGen);
             $("#runPathModalPath").val(g_urlParams.get('addGenPath'));
             runPathModalSpinner(false);
             $('#runPathModalSubmit').off('click').on('click', function(e) {
@@ -802,8 +811,12 @@
                 if (askName) {
                     opts = 'name=' + $('#runPathModalNameCombo').val() + '&' + opts;
                 }
+                if (askSkipGen && $('#runPathModalSkipGenCheck').prop('checked')) {
+                    opts = 'skip_face_gen=1&' + opts;
+                } else {
+                    cleanFacesList();
+                }
                 runPathModalSpinner(true);
-                cleanFacesList();
                 $.ajax({
                     url: cmd + '?path=' + addGenPath + '&' + opts,
                     type: 'POST',
@@ -1088,27 +1101,27 @@
 
             $("#liAdd").click(function(e) {
                 e.preventDefault();
-                runPathCommand('recognize_folder', 'reencode=0', false, false);
+                runPathCommand('recognize_folder', 'reencode=0', false, false, true);
             });
 
             $("#liReencode").click(function(e) {
                 e.preventDefault();
-                runPathCommand('recognize_folder', 'reencode=1', false, false);
+                runPathCommand('recognize_folder', 'reencode=1', false, false, true);
             });
 
             $("#liGenerate").click(function(e) {
                 e.preventDefault();
-                runPathCommand('generate_faces', 'type=folder', false, false);
+                runPathCommand('generate_faces', 'type=folder', false, false, false);
             });
 
             $("#liGenerateName").click(function(e) {
                 e.preventDefault();
-                runPathCommand('generate_faces', 'type=name', false, true);
+                runPathCommand('generate_faces', 'type=name', false, true, false);
             });
 
             $("#liGenerateWeak").click(function(e) {
                 e.preventDefault();
-                runPathCommand('generate_faces', 'type=weak', false, false);
+                runPathCommand('generate_faces', 'type=weak', false, false, false);
             });
 
             $("#liGenerateUnmatched").click(function(e) {
@@ -1133,17 +1146,17 @@
 
             $("#liMatchFolder").click(function(e) {
                 e.preventDefault();
-                runPathCommand('match', 'type=folder', true, false);
+                runPathCommand('match', 'type=folder', true, false, true);
             });
 
             $("#liMatchPerson").click(function(e) {
                 e.preventDefault();
-                runPathCommand('match', 'type=name', true, true);
+                runPathCommand('match', 'type=name', true, true, true);
             });
 
             $("#liMatchWeakUnmatched").click(function(e) {
                 e.preventDefault();
-                runPathCommand('match', 'type=weak_unmatched', false, false);
+                runPathCommand('match', 'type=weak_unmatched', false, false, true);
             });
 
             $("#liClusterizeUnmatched").click(function(e) {
@@ -1158,17 +1171,17 @@
 
             $("#liClusterizeFolder").click(function(e) {
                 e.preventDefault();
-                runPathCommand('clusterize', 'type=name', false, true);
+                runPathCommand('clusterize', 'type=name', false, true, false);
             });
 
             $("#liClusterizeWeakFolder").click(function(e) {
                 e.preventDefault();
-                runPathCommand('clusterize', 'type=weak', false, false);
+                runPathCommand('clusterize', 'type=weak', false, false, false);
             });
 
             $("#liClusterizeWeakUnmatched").click(function(e) {
                 e.preventDefault();
-                runPathCommand('clusterize', 'type=weak_unmatched', false, false);
+                runPathCommand('clusterize', 'type=weak_unmatched', false, false, false);
             });
 
             $("#liFindByFace").click(function(e) {

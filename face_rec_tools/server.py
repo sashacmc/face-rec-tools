@@ -234,7 +234,12 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             reencode = params['reencode'][0] == '1'
         except Exception:
             reencode = False
-        self.server.recognize_folder(params['path'][0], reencode)
+        try:
+            skip_face_gen = params['skip_face_gen'][0] == '1'
+        except Exception:
+            skip_face_gen = False
+        self.server.recognize_folder(
+            params['path'][0], reencode, skip_face_gen)
         self.__ok_response('')
 
     def __params_to_filter(self, params):
@@ -258,8 +263,12 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             save_faces = params['save_faces'][0] == '1'
         except Exception:
             save_faces = False
+        try:
+            skip_face_gen = params['skip_face_gen'][0] == '1'
+        except Exception:
+            skip_face_gen = False
         fltr = self.__params_to_filter(params)
-        self.server.match(fltr, save_faces)
+        self.server.match(fltr, save_faces, skip_face_gen)
         self.__ok_response('')
 
     def __clusterize_request(self, params):
@@ -402,7 +411,6 @@ class FaceRecServer(http.server.HTTPServer):
             logging.warning('Trying to create second recognizer')
             raise Exception('Recognizer already started')
 
-        self.__clean_cache()
         tools.cuda_init()
         self.__recognizer = recognizer.createRecognizer(
             self.__patterns, self.__cfg, self.__cdb, self.__db)
@@ -468,28 +476,37 @@ class FaceRecServer(http.server.HTTPServer):
         if os.path.exists(self.__face_cache_path):
             shutil.rmtree(self.__face_cache_path)
 
-    def recognize_folder(self, path, reencode):
+    def recognize_folder(self, path, reencode, skip_face_gen):
         self.__generate_patterns()
+        if not skip_face_gen:
+            self.__clean_cache()
         self.__start_recognizer('recognize_folder',
                                 path, self.__face_cache_path,
-                                reencode)
+                                reencode,
+                                skip_face_gen)
 
-    def match(self, fltr, save_faces):
+    def match(self, fltr, save_faces, skip_face_gen):
         self.__generate_patterns()
+        if not skip_face_gen:
+            self.__clean_cache()
         self.__start_recognizer('match',
                                 fltr, self.__face_cache_path,
-                                save_faces)
+                                save_faces,
+                                skip_face_gen)
 
     def clusterize(self, fltr):
         self.__generate_patterns()
+        self.__clean_cache()
         self.__start_recognizer('clusterize',
                                 fltr, self.__face_cache_path)
 
     def save_faces(self, fltr):
+        self.__clean_cache()
         self.__start_recognizer('save_faces',
                                 fltr, self.__face_cache_path)
 
     def get_faces_by_face(self, filename):
+        self.__clean_cache()
         self.__start_recognizer('get_faces_by_face',
                                 filename, self.__face_cache_path,
                                 True)
