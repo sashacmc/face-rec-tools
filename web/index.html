@@ -688,7 +688,12 @@
 
         function cardOffset(activeCard)
         {
-            return $('#' + activeCard).offset().top - $('.navbar').height() - 16;
+            var card = $('#' + activeCard);
+            if (card && card.offset()) {
+                return card.offset().top - $('.navbar').height() - 16;
+            } else {
+                return 0;
+            }
         }
 
         function setFacesList(data)
