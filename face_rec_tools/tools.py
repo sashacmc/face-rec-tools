@@ -33,11 +33,12 @@ def __list_files(path, exts, nomedia_names):
         elif e.is_dir():
             dirs.append(e.path)
     for d in dirs:
-        files += list_files(d, exts, nomedia_names)
+        files += __list_files(d, exts, nomedia_names)
     return files
 
 
-def list_files(path, exts=None, nomedia_names=[]):
+def list_files(path, exts=None, nomedia_names=()):
+    logging.debug(f'list_files: {path}, {exts}, {nomedia_names}')
     files = []
     for p in glob.glob(path):
         files += __list_files(p, exts, nomedia_names)
