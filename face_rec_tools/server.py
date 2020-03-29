@@ -234,14 +234,9 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.__ok_response('')
 
     def __recognize_folder_request(self, params):
-        try:
-            reencode = params['reencode'][0] == '1'
-        except Exception:
-            reencode = False
-        try:
-            skip_face_gen = params['skip_face_gen'][0] == '1'
-        except Exception:
-            skip_face_gen = False
+        reencode = params.get('reencode', ('',))[0] == '1'
+        skip_face_gen = params.get('skip_face_gen', ('',))[0] == '1'
+
         self.server.recognize_folder(
             params['path'][0], reencode, skip_face_gen)
         self.__ok_response('')
@@ -249,10 +244,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
     def __params_to_filter(self, params):
         fltr = {}
         for f in ('type', 'path', 'name'):
-            try:
-                fltr[f] = params[f][0]
-            except Exception:
-                fltr[f] = ''
+            fltr[f] = params.get(f, ('',))[0]
+
         if fltr['type'] == '':
             raise Exception('Option type is missing')
         return fltr
@@ -263,14 +256,9 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.__ok_response('')
 
     def __match_request(self, params):
-        try:
-            save_faces = params['save_faces'][0] == '1'
-        except Exception:
-            save_faces = False
-        try:
-            skip_face_gen = params['skip_face_gen'][0] == '1'
-        except Exception:
-            skip_face_gen = False
+        save_faces = params.get('save_faces', ('',))[0] == '1'
+        skip_face_gen = params.get('skip_face_gen', ('',))[0] == '1'
+
         fltr = self.__params_to_filter(params)
         self.server.match(fltr, save_faces, skip_face_gen)
         self.__ok_response('')
@@ -288,10 +276,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.__ok_response('')
 
     def __stop_request(self, params):
-        try:
-            save = params['save'][0] == '1'
-        except Exception:
-            save = False
+        save = params.get('save', ('',))[0] == '1'
         self.server.stop(save)
         self.__ok_response('')
 
