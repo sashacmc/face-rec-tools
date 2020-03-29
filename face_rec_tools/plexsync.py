@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 from face_rec_tools import log  # noqa
 from face_rec_tools import recdb  # noqa
+from face_rec_tools import tools  # noqa
 from face_rec_tools import plexdb  # noqa
 from face_rec_tools import config  # noqa
 from face_rec_tools import cachedb  # noqa
@@ -20,10 +21,11 @@ TAG_PREFIX = 'person:'
 
 
 class PlexSync(object):
-    def __init__(self, names, recdb, plexdb):
+    def __init__(self, names, recdb, plexdb, min_video_face_count):
         self.__names = names
         self.__recdb = recdb
         self.__plexdb = plexdb
+        self.__min_video_face_count = int(min_video_face_count)
 
     def __create_tags(self):
         for name in self.__names:
@@ -45,7 +47,8 @@ class PlexSync(object):
 
         images_count = 0
         faces_count = 0
-        for ff in files_faces:
+        for ff in tools.reduce_faces_from_videos(files_faces,
+                                                 self.__min_video_face_count):
             filename = ff['filename']
             self.__plexdb.clean_tags(filename, tag_prefix=TAG_PREFIX,
                                      commit=False)
@@ -145,7 +148,8 @@ def main():
     rdb = recdb.RecDB(cfg['main']['db'], args.dry_run)
     pdb = plexdb.PlexDB(cfg['plex']['db'], args.dry_run)
 
-    pls = PlexSync(names, rdb, pdb)
+    pls = PlexSync(names, rdb, pdb,
+                   min_video_face_count=cfg['main']['min_video_face_count'])
 
     if args.action == 'set_tags':
         pls.set_tags(resync=args.resync)

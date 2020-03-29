@@ -1,11 +1,13 @@
 import io
 import os
 import cv2
+import sys
 import glob
 import math
 import piexif
 import pickle
 import logging
+import collections
 from PIL import Image, ImageDraw
 
 
@@ -274,6 +276,32 @@ def save_face(out_filename, image, enc, out_size, src_filename):
              'src': src_filename}
 
     save_with_description(im, descr, thumbnail, out_filename)
+
+
+def reduce_faces_from_video(faces, min_count):
+    dct = collections.defaultdict(lambda: {'dist': sys.maxsize, 'count': 0})
+    for face in faces:
+        name = face['name']
+        if face['dist'] < dct[name]['dist']:
+            count = dct[name]['count'] + 1
+            dct[name] = face
+            dct[name]['count'] = count
+    res = []
+    for face in dct.values():
+        logging.debug(f'reduce: {face["name"]}: {face["count"]}')
+        if face['count'] > min_count or face['dist'] < 0.01:
+            res.append(face)
+    return res
+
+
+def reduce_faces_from_videos(files_faces):
+    res = []
+    for ff in files_faces:
+        ext = os.path.splitext(ff['filename'])[1].lower()
+        if ext in VIDEO_EXTS:
+            ff['faces'] = reduce_faces_from_video(ff['faces'])
+        res.append(ff)
+    return res
 
 
 class LazyImage(object):

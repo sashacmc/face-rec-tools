@@ -17,6 +17,7 @@ class Config(object):
             'max_image_size': 1000,
             'max_video_frames': 9000,
             'min_face_size': 20,
+            'min_video_face_count': 5,
             'debug_out_image_size': 100,
             'encoding_model': 'large',
             'distance_metric': 'default',

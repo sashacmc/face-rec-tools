@@ -52,6 +52,7 @@ class Recognizer(threading.Thread):
                  max_image_size=1000,
                  max_video_frames=180,
                  min_face_size=20,
+                 min_video_face_count=10,
                  debug_out_image_size=100,
                  encoding_model='large',
                  distance_metric='default',
@@ -76,6 +77,7 @@ class Recognizer(threading.Thread):
         self.__max_size = int(max_image_size)
         self.__max_video_frames = int(max_video_frames)
         self.__min_size = int(min_face_size)
+        self.__min_video_face_count = int(min_video_face_count)
         self.__debug_out_image_size = int(debug_out_image_size)
         self.__encoding_model = encoding_model
         self.__nomedia_files = nomedia_files
@@ -520,26 +522,16 @@ class Recognizer(threading.Thread):
             self, encoded_faces, media, debug_out_folder, debug_out_file_name,
             skip_eq=False, skip_face_gen=False):
 
-        enc_cache = None
-        skipped_eq = 0
+        if skip_eq:
+            encoded_faces = tools.reduce_faces_from_video(
+                encoded_faces, self.__min_video_face_count)
+
         for enc in encoded_faces:
             name = enc['name']
             if name == SKIP_FACE:
                 continue
             if name == '':
                 name = 'unknown_000'
-
-            if skip_eq:
-                if enc_cache is None:
-                    enc_cache = numpy.array([enc['encoding'], ])
-                else:
-                    dist = numpy.min(self.__encoder.distance(enc_cache,
-                                                             enc['encoding']))
-                    if dist >= self.__threshold_equal:
-                        numpy.append(enc_cache, [enc['encoding'], ])
-                    else:
-                        skipped_eq += 1
-                        continue
 
             out_folder = os.path.join(debug_out_folder, name)
 
@@ -567,9 +559,6 @@ class Recognizer(threading.Thread):
                                 self.__debug_out_image_size,
                                 media.filename())
                 logging.debug(f'face saved to: {out_filename}')
-
-        if skipped_eq != 0:
-            logging.debug(f'skipped debug images {skipped_eq}')
 
     def get_faces_by_face(self, filename, debug_out_folder,
                           remove_file=False):
@@ -694,6 +683,7 @@ def createRecognizer(patt, cfg, cdb=None, db=None):
                       max_image_size=cfg['main']['max_image_size'],
                       max_video_frames=cfg['main']['max_video_frames'],
                       min_face_size=cfg['main']['min_face_size'],
+                      min_video_face_count=cfg['main']['min_video_face_count'],
                       debug_out_image_size=cfg['main']['debug_out_image_size'],
                       encoding_model=cfg['main']['encoding_model'],
                       distance_metric=cfg['main']['distance_metric'],
