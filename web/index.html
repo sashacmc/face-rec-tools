@@ -51,6 +51,7 @@
                             <a class="dropdown-item" href="#" id="liGenerateName">Generate person faces...</a>
                             <a class="dropdown-item" href="#" id="liGenerateWeak">Generate weak faces</a>
                             <a class="dropdown-item" href="#" id="liGenerateUnmatched">Generate unmatched faces</a>
+                            <a class="dropdown-item" href="#" id="liCleanList">Clean list</a>
                         </div>
                     </li>
                     <li class="nav-item dropdown">
@@ -905,6 +906,18 @@
             init();
         }
 
+        function runCleanList()
+        {
+            $.ajax({
+                url: 'clean_cache',
+                type: 'POST',
+                cache: false,
+                success: function(json) { 
+                    cleanFacesList();
+                }
+            });
+        }
+
         function updateProgress() {
             $.ajax({  
                 url: 'get_status',
@@ -1197,6 +1210,11 @@
             $("#liOptSort").click(function(e) {
                 e.preventDefault();
                 setListSort();
+            });
+
+            $("#liCleanList").click(function(e) {
+                e.preventDefault();
+                runCleanList();
             });
 
             updateMenuItems();

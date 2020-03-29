@@ -143,6 +143,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
         self.__ok_response(res_list)
 
+    def __clean_cache(self):
+        self.server.clean_cache()
+        self.__ok_response('')
+
     def __get_names(self):
         self.__ok_response(self.server.names())
 
@@ -375,6 +379,10 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__stop_request(params)
                 return
 
+            if path == '/clean_cache':
+                self.__clean_cache()
+                return
+
         except Exception as ex:
             self.__server_error_response(str(ex))
             logging.exception(ex)
@@ -470,16 +478,16 @@ class FaceRecServer(http.server.HTTPServer):
         if self.__recognizer:
             self.__recognizer.stop(save)
 
-    def __clean_cache(self):
+    def clean_cache(self):
         if self.__cdb is not None:
             self.__cdb.clean_cache()
-        if os.path.exists(self.__face_cache_path):
+        elif os.path.exists(self.__face_cache_path):
             shutil.rmtree(self.__face_cache_path)
 
     def recognize_folder(self, path, reencode, skip_face_gen):
         self.__generate_patterns()
         if not skip_face_gen:
-            self.__clean_cache()
+            self.clean_cache()
         self.__start_recognizer('recognize_folder',
                                 path, self.__face_cache_path,
                                 reencode,
@@ -488,7 +496,7 @@ class FaceRecServer(http.server.HTTPServer):
     def match(self, fltr, save_faces, skip_face_gen):
         self.__generate_patterns()
         if not skip_face_gen:
-            self.__clean_cache()
+            self.clean_cache()
         self.__start_recognizer('match',
                                 fltr, self.__face_cache_path,
                                 save_faces,
@@ -496,17 +504,17 @@ class FaceRecServer(http.server.HTTPServer):
 
     def clusterize(self, fltr):
         self.__generate_patterns()
-        self.__clean_cache()
+        self.clean_cache()
         self.__start_recognizer('clusterize',
                                 fltr, self.__face_cache_path)
 
     def save_faces(self, fltr):
-        self.__clean_cache()
+        self.clean_cache()
         self.__start_recognizer('save_faces',
                                 fltr, self.__face_cache_path)
 
     def get_faces_by_face(self, filename):
-        self.__clean_cache()
+        self.clean_cache()
         self.__start_recognizer('get_faces_by_face',
                                 filename, self.__face_cache_path,
                                 True)
