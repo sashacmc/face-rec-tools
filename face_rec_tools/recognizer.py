@@ -137,9 +137,10 @@ class Recognizer(threading.Thread):
 
         encoded_faces = self.encode_faces(image.get())
 
-        self.__match_faces(encoded_faces, False)
-
-        return encoded_faces, image
+        if self.__match_faces(encoded_faces, False):
+            return encoded_faces, image
+        else:
+            return [], None
 
     def reencode_image(self, filename, encoded_faces):
         logging.info(f'reencode image: {filename}')
@@ -162,7 +163,7 @@ class Recognizer(threading.Thread):
         batched_encoded_faces = []
         while frame_num < len(video.frames()):
             if self.__step_stage(step=0):
-                break
+                return [], None
             frames = video.frames()[frame_num:
                                     frame_num + self.__video_batch_size]
 
@@ -171,7 +172,7 @@ class Recognizer(threading.Thread):
 
             for image, boxes in zip(frames, batched_boxes):
                 if self.__step_stage(step=0):
-                    break
+                    return [], None
                 encodings, landmarks = self.__encoder.encode(image, boxes)
                 encoded_faces = [
                     {'encoding': e,
@@ -245,7 +246,7 @@ class Recognizer(threading.Thread):
 
         for i in range(len(encoded_faces)):
             if self.__step_stage(step=0):
-                break
+                return False
             encoding = encoded_faces[i]['encoding']
             dist, name, pattern = self.__match_face_by_nearest(
                 encoding, patterns.PATTERN_TYPE_GOOD)
@@ -272,6 +273,7 @@ class Recognizer(threading.Thread):
             encoded_faces[i]['name'] = name
             encoded_faces[i]['dist'] = dist
             encoded_faces[i]['pattern'] = pattern
+        return True
 
     def __reassign_by_count(self, labels):
         dct = collections.defaultdict(int)
@@ -316,7 +318,8 @@ class Recognizer(threading.Thread):
                     files_faces[i]['faces'], media,
                     debug_out_folder, debug_out_file_name)
 
-    def recognize_files(self, filenames, debug_out_folder, skip_face_gen=False):
+    def recognize_files(self, filenames, debug_out_folder,
+                        skip_face_gen=False):
         self.__make_debug_out_folder(debug_out_folder)
 
         self.__start_stage(len(filenames))
@@ -331,6 +334,8 @@ class Recognizer(threading.Thread):
                     encoded_faces, media = self.recognize_video(f)
                 else:
                     logging.warning(f'Unknown ext: {ext}')
+                    continue
+                if media is None:
                     continue
                 self.__db.insert(f, encoded_faces, commit=False)
                 if debug_out_folder:
@@ -412,7 +417,8 @@ class Recognizer(threading.Thread):
             logging.info(f"match image: {filename}")
             is_video = os.path.splitext(
                 filename)[1].lower() in tools.VIDEO_EXTS
-            self.__match_faces(ff['faces'], good_only=is_video)
+            if not self.__match_faces(ff['faces'], good_only=is_video):
+                continue
             for face in ff['faces']:
                 cnt_all += 1
                 changed = False
