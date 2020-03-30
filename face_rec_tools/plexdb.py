@@ -4,6 +4,9 @@ import time
 import logging
 import sqlite3
 
+TAG_TYPE_PHOTO = 0
+TAG_TYPE_VIDEO = 2
+
 
 class PlexDB(object):
     def __init__(self, filename, readonly=False):
@@ -27,14 +30,14 @@ class PlexDB(object):
                         (folder + '%',))
         return [row[0] for row in res.fetchall()]
 
-    def set_tags(self, filename, tags, commit=True):
+    def set_tags(self, filename, tags, tag_type, commit=True):
         fid = self.__get_id(filename)
         if fid is None:
             logging.warning(f'Filename not found: {filename}')
             return False
 
         for tag in tags:
-            tag_id = self.__get_tag_id(tag)
+            tag_id = self.__get_tag_id(tag, tag_type)
             if tag_id is None:
                 logging.warning(f'Tag not found: {tag}')
                 continue
@@ -67,8 +70,14 @@ class PlexDB(object):
         res = 0
         if tags is not None:
             for tag in tags:
-                tag_id = self.__get_tag_id(tag)
-                res += self.__clean_tag(fid, tag_id, commit)
+                res += self.__clean_tag(fid,
+                                        self.__get_tag_id(tag,
+                                                          TAG_TYPE_PHOTO),
+                                        commit)
+                res += self.__clean_tag(fid,
+                                        self.__get_tag_id(tag,
+                                                          TAG_TYPE_VIDEO),
+                                        commit)
         if tag_prefix is not None:
             tag_ids = self.__get_tag_ids(tag_prefix)
             for tag_id in tag_ids:
@@ -81,7 +90,7 @@ class PlexDB(object):
 
         return res
 
-    def create_tag(self, tag, commit=True):
+    def create_tag(self, tag, tag_type, commit=True):
         if self.__readonly:
             return
 
@@ -92,16 +101,16 @@ class PlexDB(object):
         res = c.execute(
             'INSERT INTO tags \
              (tag, tag_type, created_at, updated_at) \
-             VALUES (?,0,?,?)',
-            (tag, tm, tm)).lastrowid
+             VALUES (?,?,?,?)',
+            (tag, tag_type, tm, tm)).lastrowid
 
         if commit:
             self.__conn.commit()
 
         return res
 
-    def delete_tag(self, tag, commit=True):
-        tag_id = self.__get_tag_id(tag)
+    def delete_tag(self, tag, tag_type, commit=True):
+        tag_id = self.__get_tag_id(tag, tag_type)
         if tag_id is None:
             return 0
 
@@ -147,8 +156,8 @@ class PlexDB(object):
 
         return res
 
-    def tag_exists(self, tag):
-        return not self.__get_tag_id(tag) is None
+    def tag_exists(self, tag, tag_type):
+        return not self.__get_tag_id(tag, tag_type) is None
 
     def __set_tag(self, fid, tag_id, commit=True):
         if self.__readonly:
@@ -181,12 +190,13 @@ class PlexDB(object):
 
         return res
 
-    def __get_tag_id(self, tag):
+    def __get_tag_id(self, tag, tag_type):
         if tag in self.__tag_cache:
             return self.__tag_cache[tag]
 
         c = self.__conn.cursor()
-        res = c.execute('SELECT id FROM tags WHERE tag=?', (tag,))
+        res = c.execute('SELECT id FROM tags WHERE tag_type=? AND tag=?',
+                        (tag_type, tag))
 
         row = res.fetchone()
         if row:

@@ -30,10 +30,14 @@ class PlexSync(object):
     def __create_tags(self):
         for name in self.__names:
             tag = TAG_PREFIX + name
-            if self.__plexdb.tag_exists(tag):
-                continue
-            self.__plexdb.create_tag(tag, commit=False)
-            logging.info(f'Tag "{tag}" added to plex db')
+            if not self.__plexdb.tag_exists(tag, plexdb.TAG_TYPE_PHOTO):
+                self.__plexdb.create_tag(
+                    tag, plexdb.TAG_TYPE_PHOTO, commit=False)
+                logging.info(f'Photo tag "{tag}" added to plex db')
+            if not self.__plexdb.tag_exists(tag, plexdb.TAG_TYPE_VIDEO):
+                self.__plexdb.create_tag(
+                    tag, plexdb.TAG_TYPE_VIDEO, commit=False)
+                logging.info(f'Video tag "{tag}" added to plex db')
         self.__plexdb.commit()
 
     def set_tags(self, resync=False):
@@ -60,7 +64,15 @@ class PlexSync(object):
 
             logging.debug(f"sync tags for image: {filename}: " + str(tags))
             if len(tags) != 0:
-                self.__plexdb.set_tags(filename, tags, commit=False)
+                ext = tools.get_low_ext(filename)
+                if ext in tools.IMAGE_EXTS:
+                    self.__plexdb.set_tags(filename,
+                                           tags, plexdb.TAG_TYPE_PHOTO,
+                                           commit=False)
+                elif ext in tools.VIDEO_EXTS:
+                    self.__plexdb.set_tags(filename,
+                                           tags, plexdb.TAG_TYPE_VIDEO,
+                                           commit=False)
             self.__recdb.mark_as_synced(filename, commit=False)
             images_count += 1
             faces_count += len(tags)

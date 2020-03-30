@@ -304,6 +304,10 @@ def reduce_faces_from_videos(files_faces, min_count):
     return res
 
 
+def get_low_ext(filename):
+    return os.path.splitext(filename)[1].lower()
+
+
 class LazyImage(object):
     def __init__(self, image_file, max_size):
         self.__image_file = image_file
