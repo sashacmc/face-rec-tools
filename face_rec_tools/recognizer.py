@@ -329,7 +329,7 @@ class Recognizer(threading.Thread):
             if self.__step_stage():
                 break
             try:
-                ext = os.path.splitext(f)[1].lower()
+                ext = tools.get_low_ext(f)
                 if ext in tools.IMAGE_EXTS:
                     encoded_faces, media = self.recognize_image(f)
                 elif ext in tools.VIDEO_EXTS:
@@ -356,7 +356,7 @@ class Recognizer(threading.Thread):
             try:
                 encoded_faces = ff['faces']
                 filename = ff['filename']
-                ext = os.path.splitext(filename)[1].lower()
+                ext = tools.get_low_ext(filename)
                 if ext in tools.IMAGE_EXTS:
                     self.reencode_image(filename, encoded_faces)
                     encoded_faces = tools.filter_encoded_faces(encoded_faces)
@@ -418,8 +418,7 @@ class Recognizer(threading.Thread):
                 break
             filename = ff['filename']
             logging.info(f"match image: {filename}")
-            is_video = os.path.splitext(
-                filename)[1].lower() in tools.VIDEO_EXTS
+            is_video = tools.get_low_ext(filename) in tools.VIDEO_EXTS
             if not self.__match_faces(ff['faces'], good_only=is_video):
                 continue
             for face in ff['faces']:
@@ -459,8 +458,7 @@ class Recognizer(threading.Thread):
                                      self.__max_size,
                                      self.__max_video_frames)
             debug_out_file_name = self.__extract_filename(filename)
-            is_video = os.path.splitext(
-                filename)[1].lower() in tools.VIDEO_EXTS
+            is_video = tools.get_low_ext(filename) in tools.VIDEO_EXTS
             self.__save_debug_images(
                 ff['faces'], media,
                 debug_out_folder, debug_out_file_name, skip_eq=is_video)

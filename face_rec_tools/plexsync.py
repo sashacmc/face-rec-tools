@@ -100,7 +100,7 @@ class PlexSync(object):
         for folder in folders:
             plex_files = self.__plexdb.get_files(folder)
             plex_files = set(
-                filter(lambda f: os.path.splitext(f)[1].lower() in exts,
+                filter(lambda f: tools.get_low_ext(f) in exts,
                        plex_files))
             rec_files = set(self.__recdb.get_files(folder))
             filenames = sorted(plex_files - rec_files)

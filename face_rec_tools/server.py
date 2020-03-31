@@ -75,7 +75,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
     def __send_file(self, fname, params={}):
         try:
-            ext = os.path.splitext(fname)[1].lower()
+            ext = tools.get_low_ext(fname)
             cont = ''
             if ext == '.html':
                 cont = 'text/html'
@@ -174,7 +174,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         if src_filename is None:
             self.__not_found_response()
         if 'type' in params and params['type'][0] == 'info':
-            ext = os.path.splitext(src_filename)[1].lower()
+            ext = tools.get_low_ext(src_filename)
             tp = ''
             if ext in tools.IMAGE_EXTS:
                 tp = 'image'
@@ -320,7 +320,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__not_found_response()
                 return
 
-            ext = os.path.splitext(path)[1].lower()
+            ext = tools.get_low_ext(path)
             if ext in ('.html', '.js', '.css', '.png', '.jpg'):
                 self.__file_request(path, params)
                 return

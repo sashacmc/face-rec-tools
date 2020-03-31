@@ -29,7 +29,7 @@ def __list_files(path, exts, nomedia_names):
         if e.is_file():
             if e.name in nomedia_names:
                 return []
-            ext = os.path.splitext(e.name)[1].lower()
+            ext = get_low_ext(e.name)
             if exts is None or ext in exts:
                 files.append(e.path)
         elif e.is_dir():
@@ -303,8 +303,7 @@ def reduce_faces_from_video(faces, min_count):
 def reduce_faces_from_videos(files_faces, min_count):
     res = []
     for ff in files_faces:
-        ext = os.path.splitext(ff['filename'])[1].lower()
-        if ext in VIDEO_EXTS:
+        if get_low_ext(ff['filename']) in VIDEO_EXTS:
             ff['faces'] = reduce_faces_from_video(ff['faces'], min_count)
         res.append(ff)
     return res
@@ -353,7 +352,7 @@ class LazyVideo(object):
 
 
 def load_media(media_file, max_size, max_video_frames):
-    ext = os.path.splitext(media_file)[1].lower()
+    ext = get_low_ext(media_file)
     if ext in IMAGE_EXTS:
         return LazyImage(media_file, max_size)
     elif ext in VIDEO_EXTS:
