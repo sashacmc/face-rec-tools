@@ -488,7 +488,6 @@ class FaceRecServer(http.server.HTTPServer):
                                 skip_face_gen)
 
     def clusterize(self, fltr):
-        self.__generate_patterns()
         self.clean_cache()
         self.__start_recognizer('clusterize',
                                 fltr, self.__face_cache_path)
