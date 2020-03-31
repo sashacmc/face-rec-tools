@@ -227,6 +227,8 @@ class RecDB(object):
     def get_files(self, folder=None):
         if folder is None:
             folder = ''
+        elif len(folder) > 0 and folder[-1] == '*':
+            folder = folder[:-1]
         c = self.__conn.cursor()
         res = c.execute(
             'SELECT filename FROM files \
