@@ -389,7 +389,8 @@ class Recognizer(threading.Thread):
 
     def clusterize(self, fltr, debug_out_folder):
         self.__init_stage('clusterize')
-        files_faces = self.__get_files_faces_by_filter(fltr)
+        files_faces = tools.filter_images(
+            self.__get_files_faces_by_filter(fltr))
         self.__clusterize(files_faces, debug_out_folder)
 
     def match(self, fltr, debug_out_folder, save_all_faces,

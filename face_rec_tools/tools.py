@@ -278,6 +278,12 @@ def save_face(out_filename, image, enc, out_size, src_filename):
     save_with_description(im, descr, thumbnail, out_filename)
 
 
+def filter_images(files_faces):
+    return list(filter(
+        lambda ff: get_low_ext(ff['filename']) in IMAGE_EXTS,
+        files_faces))
+
+
 def reduce_faces_from_video(faces, min_count):
     dct = collections.defaultdict(lambda: {'dist': sys.maxsize, 'count': 0})
     for face in faces:
