@@ -25,6 +25,8 @@ def seconds_to_str(s):
 def __list_files(path, exts, nomedia_names):
     files = []
     dirs = []
+    if os.path.isfile(path):
+        return (path,)
     for e in os.scandir(path):
         if e.is_file():
             if e.name in nomedia_names:
