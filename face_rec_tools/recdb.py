@@ -261,6 +261,8 @@ class RecDB(object):
             (folder + '%',))
 
     def get_folder(self, folder):
+        if len(folder) > 0 and folder[-1] == '*':
+            folder = folder[:-1]
         return self.get_files_faces('WHERE filename LIKE ?', (folder + '%',))
 
     def get_faces(self, filename):
