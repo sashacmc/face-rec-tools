@@ -470,7 +470,8 @@ class Recognizer(threading.Thread):
         filenames = self.__get_media_from_folder(folder)
 
         if not reencode:
-            filenames = set(filenames) - set(self.__db.get_files(folder))
+            filenames = list(set(filenames) - set(self.__db.get_files(folder)))
+            filenames.sort()
 
         if debug_out_folder is None:
             debug_out_folder = os.path.join(folder, 'tags')
