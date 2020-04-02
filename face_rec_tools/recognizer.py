@@ -236,7 +236,7 @@ class Recognizer(threading.Thread):
                                               itertools.repeat(encoding))]
         distances = numpy.concatenate(res)
         if len(distances) == 0:
-            return 1, ''
+            return 1, '', ''
         i = numpy.argmin(distances)
         return (distances[i],
                 self.__pattern_names[tp][i],
