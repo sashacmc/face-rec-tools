@@ -12,7 +12,6 @@ import shutil
 import signal
 import logging
 import argparse
-import threading
 import itertools
 import collections
 import concurrent.futures
@@ -35,12 +34,8 @@ from face_rec_tools import patterns  # noqa
 
 SKIP_FACE = 'skip_face'
 
-STOP_NONE = 0
-STOP_SAVE = 1
-STOP_DROP = 2
 
-
-class Recognizer(threading.Thread):
+class Recognizer(object):
     def __init__(self,
                  patts,
                  model='hog',
@@ -60,9 +55,9 @@ class Recognizer(threading.Thread):
                  video_batch_size=1,
                  nomedia_files=(),
                  cdb=None,
-                 db=None):
+                 db=None,
+                 status=None):
 
-        threading.Thread.__init__(self)
         self.__patterns = patts
         self.__model = model
         self.__encoder = faceencoder.FaceEncoder(
@@ -84,9 +79,11 @@ class Recognizer(threading.Thread):
         self.__cdb = cdb
         self.__db = db
 
-        self.__status = {'state': '', 'count': 0, 'current': 0, 'starttime': 0}
-        self.__stop = STOP_NONE
-        self.__stage_lock = threading.Lock()
+        if status is None:
+            self.__status = {'state': '', 'stop': False,
+                             'count': 0, 'current': 0}
+        else:
+            self.__status = status
 
         self.__max_workers = int(max_workers)
         self.__executor = concurrent.futures.ThreadPoolExecutor(
@@ -106,31 +103,6 @@ class Recognizer(threading.Thread):
             self.__pattern_files.append(files)
 
         self.__video_batch_size = int(video_batch_size)
-
-    def start_method(self, method, *args):
-        self.__init_stage(method)
-        self.__method = method
-        self.__args = args
-        self.start()
-
-    def run(self):
-        try:
-            logging.info(f'Run in thread: {self.__method}{self.__args}')
-            if self.__method == 'recognize_folder':
-                self.recognize_folder(*self.__args)
-            elif self.__method == 'match':
-                self.match(*self.__args)
-            elif self.__method == 'clusterize':
-                self.clusterize(*self.__args)
-            elif self.__method == 'save_faces':
-                self.save_faces(*self.__args)
-            elif self.__method == 'get_faces_by_face':
-                self.get_faces_by_face(*self.__args)
-            logging.info(f'Thread done: {self.__method}')
-            self.__init_stage('done')
-        except Exception as ex:
-            logging.exception(ex)
-            self.__init_stage('error')
 
     def recognize_image(self, filename):
         logging.info(f'recognize image: {filename}')
@@ -604,75 +576,42 @@ class Recognizer(threading.Thread):
             logging.debug(f'removing temp file: {filename}')
             os.remove(filename)
 
-    def status(self):
-        with self.__stage_lock:
-            if self.__status['current'] > 0:
-                elap_time = time.time() - self.__status['starttime']
-                est_time = \
-                    (self.__status['count'] - self.__status['current']) \
-                    / self.__status['current'] * elap_time
-                self.__status['estimation'] = tools.seconds_to_str(est_time)
-                self.__status['elapsed'] = tools.seconds_to_str(elap_time)
-            else:
-                self.__status['estimation'] = ''
-                self.__status['elapsed'] = ''
-            return self.__status
-
     def stop(self, save=False):
         logging.info(f'Stop called ({save})')
-        with self.__stage_lock:
-            if save:
-                self.__stop = STOP_SAVE
-            else:
-                self.__stop = STOP_DROP
+        self.__status['stop'] = True
+        self.__status['save'] = save
 
     def __init_stage(self, cmd):
-        with self.__stage_lock:
-            self.__stop = STOP_NONE
-            self.__status['state'] = cmd
+        self.__status['stop'] = False
+        self.__status['state'] = cmd
 
     def __start_stage(self, count):
-        with self.__stage_lock:
-            logging.info(
-                f'Stage {self.__status["state"]} for {count} steps started')
-            self.__status['count'] = count
-            self.__status['current'] = 0
-            self.__status['starttime'] = time.time()
+        logging.info(
+            f'Stage {self.__status["state"]} for {count} steps started')
+        self.__status['count'] = count
+        self.__status['current'] = 0
+        self.__status['starttime'] = time.time()
 
     def __step_stage(self, step=1):
-        with self.__stage_lock:
-            self.__status['current'] += step
-            if self.__stop == STOP_NONE:
-                return False
-            elif self.__stop == STOP_SAVE:
-                logging.info(f'Stop with save')
-                return True
-            elif self.__stop == STOP_DROP:
-                logging.info(f'Stop without save')
-                return True
-            else:
-                logging.warning(f'Incorrect stop value: {self.__stop}')
-                return False
+        self.__status['current'] += step
+        return self.__status['stop']
 
     def __end_stage(self):
-        with self.__stage_lock:
-            drop = self.__stop == STOP_DROP
-
-        if drop:
-            logging.info(f'Rollback transaction')
-            if self.__db is not None:
-                self.__db.rollback()
-            if self.__cdb is not None:
-                self.__cdb.rollback()
-        else:
+        if self.__status.get('save', True):
             logging.info(f'Commit transaction')
             if self.__db is not None:
                 self.__db.commit()
             if self.__cdb is not None:
                 self.__cdb.commit()
+        else:
+            logging.info(f'Rollback transaction')
+            if self.__db is not None:
+                self.__db.rollback()
+            if self.__cdb is not None:
+                self.__cdb.rollback()
 
 
-def createRecognizer(patt, cfg, cdb=None, db=None):
+def createRecognizer(patt, cfg, cdb=None, db=None, status=None):
     return Recognizer(patt,
                       model=cfg['main']['model'],
                       num_jitters=cfg['main']['num_jitters'],
@@ -691,7 +630,8 @@ def createRecognizer(patt, cfg, cdb=None, db=None):
                       video_batch_size=cfg['main']['video_batch_size'],
                       nomedia_files=cfg['main']['nomedia_files'].split(':'),
                       cdb=cdb,
-                      db=db)
+                      db=db,
+                      status=status)
 
 
 def args_parse():

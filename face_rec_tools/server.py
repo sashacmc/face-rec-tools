@@ -21,7 +21,7 @@ from face_rec_tools import tools  # noqa
 from face_rec_tools import config  # noqa
 from face_rec_tools import cachedb  # noqa
 from face_rec_tools import patterns  # noqa
-from face_rec_tools import recognizer  # noqa
+from face_rec_tools import recognizer_runner  # noqa
 
 
 class FaceRecHandler(http.server.BaseHTTPRequestHandler):
@@ -384,14 +384,7 @@ class FaceRecServer(http.server.HTTPServer):
         self.__load_patterns_persons()
 
         self.__db = recdb.RecDB(cfg['main']['db'])
-
-        cachedb_file = cfg['main']['cachedb']
-        if cachedb_file:
-            logging.info(f'Using cachedb: {cachedb_file}')
-            self.__cdb = cachedb.CacheDB(cachedb_file)
-        else:
-            logging.info(f'Not using cachedb')
-            self.__cdb = None
+        self.__cdb = cachedb.createCacheDB(cfg)
 
         port = int(cfg['server']['port'])
         self.__web_path = cfg['server']['web_path']
@@ -404,10 +397,9 @@ class FaceRecServer(http.server.HTTPServer):
             logging.warning('Trying to create second recognizer')
             raise Exception('Recognizer already started')
 
-        tools.cuda_init()
-        self.__recognizer = recognizer.createRecognizer(
-            self.__patterns, self.__cfg, self.__cdb, self.__db)
-        self.__recognizer.start_method(method, *args)
+        self.__recognizer = recognizer_runner.RecognizerRunner(
+            self.__cfg.filename(), method, *args)
+        self.__recognizer.start()
 
     def __generate_patterns(self):
         self.__status = {'state': 'patterns_generation'}
@@ -455,7 +447,6 @@ class FaceRecServer(http.server.HTTPServer):
             if self.__status['state'] in ('done', 'error'):
                 self.__recognizer.join()
                 self.__recognizer = None
-                tools.cuda_release()
 
         return self.__status
 
@@ -528,7 +519,9 @@ def main():
         logging.info("Face rec server up.")
         server.serve_forever()
     except KeyboardInterrupt:
-        server.socket.close()
+        server.stop()
+        server.status()
+        server.server_close()
         logging.info("Face rec server down.")
 
 

@@ -3,6 +3,7 @@
 import os
 import atexit
 import sqlite3
+import logging
 import argparse
 import threading
 
@@ -27,7 +28,6 @@ class CacheDB(object):
             filename,
             check_same_thread=False)
 
-        self.__conn.execute('pragma journal_mode=off;')
         self.__conn.executescript(SCHEMA)
         self.__lock = threading.RLock()
         atexit.register(self.commit)
@@ -121,6 +121,16 @@ def speed_test(db):
 
     cProfile.runctx('__speed_test(db)',
                     {'__speed_test': __speed_test, 'db': db}, {})
+
+
+def createCacheDB(cfg):
+    cachedb_file = cfg['main']['cachedb']
+    if cachedb_file:
+        logging.info(f'Using cachedb: {cachedb_file}')
+        return CacheDB(cachedb_file)
+    else:
+        logging.info(f'Not using cachedb')
+        return None
 
 
 def args_parse():

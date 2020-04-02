@@ -47,6 +47,7 @@ class Config(object):
         self.__config = configparser.ConfigParser()
         self.__config.read_dict(self.DEFAULTS)
         self.__config.read([filename, ])
+        self.__filename = filename
 
         if create:
             self.__create_if_not_exists()
@@ -66,6 +67,9 @@ class Config(object):
             return default
 
         return self.__config[sect][name]
+
+    def filename(self):
+        return self.__filename
 
 
 if __name__ == "__main__":

@@ -74,7 +74,6 @@ class RecDB(object):
         self.__conn = sqlite3.connect(
             'file:' + filename + ('?mode=ro' if readonly else ''),
             detect_types=sqlite3.PARSE_DECLTYPES,
-            check_same_thread=False,
             uri=True)
 
         if not readonly:
