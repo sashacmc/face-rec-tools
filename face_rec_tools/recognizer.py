@@ -445,9 +445,6 @@ class Recognizer(object):
             filenames = list(set(filenames) - set(self.__db.get_files(folder)))
             filenames.sort()
 
-        if debug_out_folder is None:
-            debug_out_folder = os.path.join(folder, 'tags')
-
         self.recognize_files(filenames, debug_out_folder, skip_face_gen)
 
     def remove_folder(self, folder):
