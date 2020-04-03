@@ -181,15 +181,18 @@ class RecDB(object):
 
     def print_details(self, filename):
         c = self.__conn.cursor()
+        res = c.execute('SELECT * FROM files WHERE filename=?', (filename,))
+        if len(res.fetchall()) == 0:
+            print('File not found')
+            return
         res = c.execute(
-            'SELECT faces.id, faces.box, faces.name \
+            'SELECT faces.id, faces.frame, faces.box, faces.name, faces.dist \
              FROM files JOIN faces ON files.id=faces.file_id \
              WHERE filename=?', (filename,))
 
         print(f'File: {filename}')
         for r in res.fetchall():
-            print(f'\tBox: {r[1]}')
-            print(f'\tName: {r[2]}')
+            print(f'\tFrame: {r[1]}\tBox: {r[2]}\tName: {r[3]}\tDist: {r[4]}')
 
     def print_stat(self):
         c = self.__conn.cursor()
