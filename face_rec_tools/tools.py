@@ -287,17 +287,35 @@ def filter_images(files_faces):
 
 
 def reduce_faces_from_video(faces, min_count):
+    def test_face(face):
+        return face['name'] != '' and \
+            (face['count'] > min_count or face['dist'] < 0.01)
+
     dct = collections.defaultdict(lambda: {'dist': sys.maxsize, 'count': 0})
     for face in faces:
         name = face['name']
+        count = dct[name]['count'] + 1
         if face['dist'] < dct[name]['dist']:
-            count = dct[name]['count'] + 1
             dct[name] = face
-            dct[name]['count'] = count
+        dct[name]['count'] = count
     res = []
     for face in dct.values():
-        logging.debug(f'reduce: {face["name"]}: {face["count"]}')
-        if face['count'] > min_count or face['dist'] < 0.01:
+        ok = True
+        if face['name'].endswith('_weak'):
+            n = face['name'][:-5]
+            if n in dct:
+                if test_face(dct[n]):
+                    # skip weak because of name already persist in current file
+                    ok = False
+                    logging.debug(f'skip weak: {n}')
+                else:
+                    # extend weak count by already persisted name
+                    face['count'] += dct[n]['count']
+                    logging.debug(f'extend weak: {n}')
+        if ok:
+            ok = test_face(face)
+        logging.debug(f'faces in video: {face["name"]}: {face["count"]}: {ok}')
+        if ok:
             res.append(face)
     return res
 
