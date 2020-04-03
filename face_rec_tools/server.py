@@ -519,7 +519,7 @@ def main():
         logging.info("Face rec server up.")
         server.serve_forever()
     except KeyboardInterrupt:
-        server.stop()
+        server.stop(False)
         server.status()
         server.server_close()
         logging.info("Face rec server down.")
