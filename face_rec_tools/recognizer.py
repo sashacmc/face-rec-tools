@@ -317,7 +317,7 @@ class Recognizer(object):
                     self.__save_debug_images(
                         encoded_faces, media,
                         debug_out_folder, debug_out_file_name,
-                        skip_eq=ext in tools.VIDEO_EXTS,
+                        is_video=ext in tools.VIDEO_EXTS,
                         skip_face_gen=skip_face_gen)
             except Exception as ex:
                 logging.exception(f'Image {f} recognition failed')
@@ -413,7 +413,7 @@ class Recognizer(object):
                     self.__save_debug_images(
                         (face,), media,
                         debug_out_folder, debug_out_file_name,
-                        skip_eq=is_video,
+                        is_video=is_video,
                         skip_face_gen=skip_face_gen)
         self.__end_stage()
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
@@ -433,7 +433,7 @@ class Recognizer(object):
             is_video = tools.get_low_ext(filename) in tools.VIDEO_EXTS
             self.__save_debug_images(
                 ff['faces'], media,
-                debug_out_folder, debug_out_file_name, skip_eq=is_video)
+                debug_out_folder, debug_out_file_name, is_video=is_video)
         self.__end_stage()
 
     def recognize_folder(self, folder, debug_out_folder,
@@ -489,9 +489,9 @@ class Recognizer(object):
 
     def __save_debug_images(
             self, encoded_faces, media, debug_out_folder, debug_out_file_name,
-            skip_eq=False, skip_face_gen=False):
+            is_video=False, skip_face_gen=False):
 
-        if skip_eq:
+        if is_video:
             encoded_faces = tools.reduce_faces_from_video(
                 encoded_faces, self.__min_video_face_count)
 
