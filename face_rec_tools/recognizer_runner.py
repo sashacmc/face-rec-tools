@@ -19,7 +19,8 @@ class RecognizerRunner(multiprocessing.Process):
         self.__args = args
         self.__manager = multiprocessing.Manager()
         self.__status = self.__manager.dict(
-            {'state': '', 'count': 0, 'current': 0, 'starttime': 0})
+            {'state': '', 'count': 0, 'current': 0,
+             'starttime': 0, 'stop': False})
 
     def run(self):
         try:

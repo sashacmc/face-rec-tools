@@ -354,14 +354,16 @@ class Recognizer(object):
             raise Exception(f'Unknown filter type: {tp}')
 
     def clusterize(self, fltr, debug_out_folder):
-        self.__init_stage('clusterize')
+        if self.__init_stage('clusterize', locals()):
+            return
         files_faces = tools.filter_images(
             self.__get_files_faces_by_filter(fltr))
         self.__clusterize(files_faces, debug_out_folder)
 
     def match(self, fltr, debug_out_folder, save_all_faces,
               skip_face_gen=False):
-        self.__init_stage('match')
+        if self.__init_stage('match', locals()):
+            return
         files_faces = self.__get_files_faces_by_filter(fltr)
         self.__match_files_faces(files_faces,
                                  debug_out_folder,
@@ -369,7 +371,8 @@ class Recognizer(object):
                                  skip_face_gen)
 
     def save_faces(self, fltr, debug_out_folder):
-        self.__init_stage('save_faces')
+        if self.__init_stage('save_faces', locals()):
+            return
         files_faces = self.__get_files_faces_by_filter(fltr)
         self.__save_faces(files_faces, debug_out_folder)
 
@@ -413,7 +416,6 @@ class Recognizer(object):
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
     def __save_faces(self, files_faces, debug_out_folder):
-        self.__init_stage('save_faces')
         self.__start_stage(len(files_faces))
         for ff in files_faces:
             if self.__step_stage():
@@ -432,7 +434,8 @@ class Recognizer(object):
 
     def recognize_folder(self, folder, debug_out_folder,
                          reencode=False, skip_face_gen=False):
-        self.__init_stage('recognize_folder')
+        if self.__init_stage('recognize_folder', locals()):
+            return
         filenames = self.__get_media_from_folder(folder)
 
         if not reencode:
@@ -442,7 +445,8 @@ class Recognizer(object):
         self.recognize_files(filenames, debug_out_folder, skip_face_gen)
 
     def remove_folder(self, folder):
-        self.__init_stage('remove_folder')
+        if self.__init_stage('remove_folder', locals()):
+            return
         files_faces = self.__db.get_folder(folder)
         for ff in files_faces:
             logging.info(f"remove from DB: {ff['filename']}")
@@ -523,8 +527,8 @@ class Recognizer(object):
 
     def get_faces_by_face(self, filename, debug_out_folder,
                           remove_file=False):
-        logging.info(f'get faces by face: {filename}')
-        self.__init_stage('get_faces_by_face')
+        if self.__init_stage('get_faces_by_face', locals()):
+            return
 
         image = tools.LazyImage(filename, self.__max_size)
 
@@ -570,9 +574,11 @@ class Recognizer(object):
         self.__status['stop'] = True
         self.__status['save'] = save
 
-    def __init_stage(self, cmd):
-        self.__status['stop'] = False
+    def __init_stage(self, cmd, args):
         self.__status['state'] = cmd
+        del args['self']
+        self.__status['args'] = args
+        return self.__status['stop']
 
     def __start_stage(self, count):
         logging.info(
@@ -598,6 +604,7 @@ class Recognizer(object):
                 self.__db.rollback()
             if self.__cdb is not None:
                 self.__cdb.rollback()
+        self.__status['stop'] = False
 
 
 def createRecognizer(patt, cfg, cdb=None, db=None, status=None):
