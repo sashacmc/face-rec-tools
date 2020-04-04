@@ -953,6 +953,8 @@
                     
                         var details = '<table style="width:100%;">';
                         var args = st['args'];
+                        args['count'] = st['count'];
+                        args['current'] = st['current'];
                         for (var arg in args) {
                             details += 
                             '<tr>' +
