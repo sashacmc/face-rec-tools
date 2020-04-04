@@ -175,8 +175,17 @@
                         <div class="progress-bar" id="progressModalBar" style="width: 0%">
                         </div>
                     </div>
-                    <div id="progressModalTime">
-                    </div>
+                    <font size="-1">
+                        <a data-toggle="collapse" href="#progressModalCollapse" role="button" aria-expanded="false" aria-controls="progressModalCollapse">
+                            details... 
+                        </a>
+                        <div class="collapse" id="progressModalCollapse">
+                            <div class="card card-body" id="progressModalDetails">
+                            </div>
+                        </div>
+                        <div id="progressModalTime">
+                        </div>
+                    </font>
                 </div>
                 <div class="modal-footer">
                     <button id="progressModalStop" type="button" class="btn btn-secondary">Stop</button>
@@ -942,19 +951,29 @@
                         $('#progressModalBar').css('width', w + '%');
                         $('#progressModalBar').html(st['current'] + '/' + st['count']);
                     
+                        var details = '<table style="width:100%;">';
+                        var args = st['args'];
+                        for (var arg in args) {
+                            details += 
+                            '<tr>' +
+                                '<td>' + arg + '</td>' +
+                                '<td style="text-align:right;">' + args[arg] + '</td>' +
+                            '</tr>';
+                        }
+                        details += '</table>';
+                        $('#progressModalDetails').html(details);
+
                         var time =
-                        '<font size="-1">' +
-                            '<table style="width:100%;">' +
-                                '<tr>' +
-                                    '<td>Elapsed time</td>' +
-                                    '<td style="text-align:right;">' + st['elapsed'] + '</td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                    '<td>Estimation time</td>' +
-                                    '<td style="text-align:right;">' + st['estimation'] + '</td>' +
-                                '</tr>' +
-                            '</table>' +
-                        '</font>';
+                        '<table style="width:100%;">' +
+                            '<tr>' +
+                                '<td>Elapsed time</td>' +
+                                '<td style="text-align:right;">' + st['elapsed'] + '</td>' +
+                            '</tr>' +
+                            '<tr>' +
+                                '<td>Estimation time</td>' +
+                                '<td style="text-align:right;">' + st['estimation'] + '</td>' +
+                            '</tr>' +
+                        '</table>';
                         $('#progressModalTime').html(time);
                     }
                 },  
