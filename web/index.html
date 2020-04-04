@@ -380,12 +380,20 @@
                 success: function(data) {
                     var filename = data['filename'];
                     var type = data['type'];
-                    var html = '<font size="-2">' + filename + '</font><br/>';
+                    var names = data['names'];
+                    var html = '';
+                    for (var name in names) {
+                        html += name + ': ' + names[name] + ', ';
+                    }
+                    if (html.length) {
+                        html = html.slice(0,-2);
+                    }
                     if (type == 'image') { 
                         html += '<img src="get_face_src?path=' + facefile + '" height="100%" width="100%"/>';
                     } else if (type == 'video') {
                         html += '<video src="get_face_src?path=' + facefile + '" height="100%" width="100%" controls/>';
                     }
+                    $("#faceSrcModalLabel").html(filename);
                     $("#faceSrcModalBody").html(html);
                     $('#faceSrcModal').on('hidden.bs.modal', function () {
                         $("video").each(function() {this.pause()});

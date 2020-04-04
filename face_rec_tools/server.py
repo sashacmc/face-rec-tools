@@ -182,7 +182,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 tp = 'video'
             self.__ok_response({
                 'filename': src_filename,
-                'type': tp
+                'type': tp,
+                'names': self.server.db().get_names(src_filename)
             })
         else:
             self.__send_file(src_filename)

@@ -9,6 +9,7 @@ import atexit
 import logging
 import sqlite3
 import argparse
+import collections
 
 sys.path.insert(0, os.path.abspath('..'))
 
@@ -177,7 +178,10 @@ class RecDB(object):
              FROM files JOIN faces ON files.id=faces.file_id \
              WHERE filename=?', (filename,))
 
-        return [r[0] for r in res.fetchall()]
+        dct = collections.defaultdict(int)
+        for name in [r[0] for r in res.fetchall()]:
+            dct[name] += 1
+        return dict(dct)
 
     def print_details(self, filename):
         c = self.__conn.cursor()
