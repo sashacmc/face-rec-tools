@@ -32,9 +32,6 @@ from face_rec_tools import cachedb  # noqa
 from face_rec_tools import patterns  # noqa
 
 
-SKIP_FACE = 'skip_face'
-
-
 class Recognizer(object):
     def __init__(self,
                  patts,
@@ -157,9 +154,6 @@ class Recognizer(object):
                 encoded_faces = tools.filter_encoded_faces(encoded_faces)
 
                 self.__match_faces(encoded_faces, True)
-                for face in encoded_faces:
-                    if face['dist'] >= self.__threshold:
-                        face['name'] = SKIP_FACE
                 batched_encoded_faces += encoded_faces
                 frame_num += 1
 
@@ -497,8 +491,6 @@ class Recognizer(object):
 
         for enc in encoded_faces:
             name = enc['name']
-            if name == SKIP_FACE:
-                continue
             if name == '':
                 name = 'unknown_000'
 
