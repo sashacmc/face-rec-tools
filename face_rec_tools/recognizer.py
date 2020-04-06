@@ -108,7 +108,7 @@ class Recognizer(object):
 
         encoded_faces = self.encode_faces(image.get())
 
-        if self.__match_faces(encoded_faces, False):
+        if self.__match_faces(encoded_faces):
             return encoded_faces, image
         else:
             return [], None
@@ -153,7 +153,7 @@ class Recognizer(object):
                     for e, l, b in zip(encodings, landmarks, boxes)]
                 encoded_faces = tools.filter_encoded_faces(encoded_faces)
 
-                self.__match_faces(encoded_faces, True)
+                self.__match_faces(encoded_faces)
                 batched_encoded_faces += encoded_faces
                 frame_num += 1
 
@@ -208,7 +208,7 @@ class Recognizer(object):
                 self.__pattern_names[tp][i],
                 self.__pattern_files[tp][i])
 
-    def __match_faces(self, encoded_faces, good_only):
+    def __match_faces(self, encoded_faces):
         if len(self.__pattern_encodings) == 0:
             logging.warning('Empty patterns')
 
@@ -218,10 +218,11 @@ class Recognizer(object):
             encoding = encoded_faces[i]['encoding']
             dist, name, pattern = self.__match_face_by_nearest(
                 encoding, patterns.PATTERN_TYPE_GOOD)
-            if not good_only:
+            if dist > 0.001:  # skip zero match
                 dist_bad, name_bad, pattern_bad = self.__match_face_by_nearest(
                     encoding, patterns.PATTERN_TYPE_BAD)
-                if dist_bad < dist:
+                # match to bad only equal faces
+                if dist_bad < self.__threshold_equal and dist_bad < dist:
                     name = name_bad + '_bad'
                     dist = dist_bad
                     pattern = pattern_bad
@@ -388,7 +389,7 @@ class Recognizer(object):
             filename = ff['filename']
             logging.info(f"match image: {filename}")
             is_video = tools.get_low_ext(filename) in tools.VIDEO_EXTS
-            if not self.__match_faces(ff['faces'], good_only=is_video):
+            if not self.__match_faces(ff['faces']):
                 continue
             for face in ff['faces']:
                 cnt_all += 1
