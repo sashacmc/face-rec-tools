@@ -23,6 +23,7 @@ class RecognizerRunner(multiprocessing.Process):
              'starttime': 0, 'stop': False})
 
     def run(self):
+        os.nice(10)
         try:
             from face_rec_tools import recdb  # noqa
             from face_rec_tools import config  # noqa
