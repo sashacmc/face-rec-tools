@@ -659,6 +659,12 @@
                 submitImageProps();
             });
 
+            $('img[id^=radioImg]').each(function() {
+                $(this).dblclick(function() {
+                    submitImageProps();
+                });
+            });
+
             var text_buff = '';
             var filtered = [];
 
