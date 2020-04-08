@@ -1043,6 +1043,8 @@
             });
             $('#progressModalLabel').html(caption);
             $('#progressModalBar').css('width', '0%');
+            $('#progressModalDetails').html('');
+            $('#progressModalTime').html('');
             $('#progressModal').modal('show').on('shown', function() { 
                 updateProgress();
             });
