@@ -402,8 +402,10 @@
                     var type = data['type'];
                     var names = data['names'];
                     var html = '';
-                    for (var name in names) {
-                        html += name + ': ' + names[name] + ', ';
+                    var keys = Object.keys(names);
+                    keys.sort();
+                    for (var i = 0; i < keys.length; i++) {
+                        html += keys[i] + ': ' + names[keys[i]] + ', ';
                     }
                     if (html.length) {
                         html = html.slice(0,-2);
@@ -974,11 +976,13 @@
                         var args = st['args'];
                         args['count'] = st['count'];
                         args['current'] = st['current'];
-                        for (var arg in args) {
+                        var keys = Object.keys(args);
+                        keys.sort();
+                        for (var i = 0; i < keys.length; i++) {
                             details += 
                             '<tr>' +
-                                '<td>' + arg + '</td>' +
-                                '<td style="text-align:right; word-break: break-all;">' + args[arg] + '</td>' +
+                                '<td>' + keys[i] + '</td>' +
+                                '<td style="text-align:right; word-break: break-all;">' + args[keys[i]] + '</td>' +
                             '</tr>';
                         }
                         details += '</table>';
