@@ -362,6 +362,16 @@
             }
         }
 
+        function styleFromFileName(filename)
+        {
+            var pos = filename.indexOf('_000_');
+            if (pos > 0) {
+                return 'style="border:2px solid green;"'
+            } else {
+                return '';
+            }
+        }
+
         function genImagesList(name, images)
         {
             var thumb = getThumb();
@@ -369,6 +379,7 @@
             for (var i in images) {
                 html += '<div class="img_container">' +
                             '<img class="person_face" src="cache/' + images[i] + thumb + '" height="100" width="100" title="' + images[i] + '" ' + 
+                                styleFromFileName(images[i]) + ' ' +
                                 'onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\', event)" ' +
                                 'onmouseover="javascript:onImgMouseOver(event)" ' +
                                 'onmouseout="javascript:onImgMouseOut(event)"/>' +
