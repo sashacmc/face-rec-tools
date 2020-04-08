@@ -408,11 +408,13 @@
                     if (html.length) {
                         html = html.slice(0,-2);
                     }
+                    html += '<div>';
                     if (type == 'image') { 
                         html += '<img src="get_face_src?path=' + facefile + '" height="100%" width="100%"/>';
                     } else if (type == 'video') {
                         html += '<video src="get_face_src?path=' + facefile + '" height="100%" width="100%" controls/>';
                     }
+                    html += '</div>';
                     $("#faceSrcModalLabel").html(filename);
                     $("#faceSrcModalBody").html(html);
                     $('#faceSrcModal').on('hidden.bs.modal', function () {
