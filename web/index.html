@@ -362,13 +362,13 @@
             }
         }
 
-        function styleFromFileName(filename)
+        function pattLinkClassFromFileName(filename)
         {
             var pos = filename.indexOf('_000_');
             if (pos > 0) {
-                return 'style="border:2px solid green;"'
+                return 'img_pattlink_eq'
             } else {
-                return '';
+                return 'img_pattlink';
             }
         }
 
@@ -379,13 +379,12 @@
             for (var i in images) {
                 html += '<div class="img_container">' +
                             '<img class="person_face" src="cache/' + images[i] + thumb + '" height="100" width="100" title="' + images[i] + '" ' + 
-                                styleFromFileName(images[i]) + ' ' +
                                 'onclick="javascript:showImageProps(\'' + name + '\', \'' + images[i] + '\', event)" ' +
                                 'onmouseover="javascript:onImgMouseOver(event)" ' +
                                 'onmouseout="javascript:onImgMouseOut(event)"/>' +
                             '<input type="checkbox" class="img_checkbox" personname="' + name + '" imgname="' + images[i] + '" onclickick="javascript:onImgCheckboxClick(event)" order="' + i + '"/>' +
                             '<img src="srclink.png" class="img_srclink" onclick="javascript:openFaceSrc(\'cache/' + images[i] + '\')" title="Source file"/>' +
-                            '<img src="pattlink.png" class="img_pattlink" onclick="javascript:openFacePatt(\'cache/' + images[i] + '\')" title="Matched pattern"/>' +
+                            '<img src="pattlink.png" class="' + pattLinkClassFromFileName(images[i]) + '" onclick="javascript:openFacePatt(\'cache/' + images[i] + '\')" title="Matched pattern"/>' +
                             '<div class="img_year">' + yearFromFileName(images[i]) + '</div>' +
                         '</div>';
             }

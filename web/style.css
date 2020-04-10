@@ -53,6 +53,17 @@ code {
             drop-shadow(-1px  1px 0px white)
             drop-shadow(-1px -1px 0px white);
 }
+.img_pattlink_eq {
+    position: absolute;
+    top: 1px;
+    right: 17px;
+    width: 12px;
+    height: 12px;
+    filter: drop-shadow( 1px  1px 0px green)
+            drop-shadow( 1px -1px 0px green)
+            drop-shadow(-1px  1px 0px green)
+            drop-shadow(-1px -1px 0px green);
+}
 .img_year {
     position: absolute;
     top: -2px;
