@@ -255,6 +255,7 @@ class Recognizer(object):
         return [trans[old_label] for old_label in labels]
 
     def __clusterize(self, files_faces, debug_out_folder=None):
+        self.__start_stage(len(files_faces))
         encs = []
         indexes = list(range(len(files_faces)))
         random.shuffle(indexes)
@@ -268,13 +269,12 @@ class Recognizer(object):
 
         labels = self.__reassign_by_count(labels)
         lnum = 0
-        self.__start_stage(len(files_faces))
         for i in indexes:
             if self.__step_stage():
                 break
             for j in range(len(files_faces[i]['faces'])):
                 files_faces[i]['faces'][j]['name'] = \
-                    'unknown_{:04d}'.format(labels[lnum])
+                    'unknown_{:05d}'.format(labels[lnum])
                 lnum += 1
 
             if debug_out_folder:
@@ -286,6 +286,7 @@ class Recognizer(object):
                 self.__save_debug_images(
                     files_faces[i]['faces'], media,
                     debug_out_folder, debug_out_file_name)
+        self.__end_stage()
 
     def recognize_files(self, filenames, debug_out_folder,
                         skip_face_gen=False):
@@ -338,6 +339,7 @@ class Recognizer(object):
         self.__end_stage()
 
     def __get_files_faces_by_filter(self, fltr):
+        logging.debug(f'Get by filter: {fltr}')
         tp = fltr['type']
         if tp == 'unmatched':
             return self.__db.get_unmatched()
@@ -497,7 +499,7 @@ class Recognizer(object):
         for enc in encoded_faces:
             name = enc['name']
             if name == '':
-                name = 'unknown_000'
+                name = 'unknown_00000'
 
             out_folder = os.path.join(debug_out_folder, name)
 

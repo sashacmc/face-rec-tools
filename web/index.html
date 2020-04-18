@@ -354,9 +354,9 @@
         
         function yearFromFileName(filename)
         {
-            res = filename.match(/\d\d\d\d/g);
+            res = filename.match(/_(\d\d\d\d)-/);
             if (res) {
-                return res[0];
+                return res[1];
             } else {
                 return "";
             }
