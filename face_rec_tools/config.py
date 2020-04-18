@@ -15,7 +15,7 @@ class Config(object):
             'threshold_clusterize': 0.4,
             'threshold_equal': 0.17,
             'max_image_size': 1000,
-            'max_video_frames': 9000,
+            'max_video_frames': 3600,  # 2 min
             'min_face_size': 20,
             'min_video_face_count': 5,
             'debug_out_image_size': 100,
