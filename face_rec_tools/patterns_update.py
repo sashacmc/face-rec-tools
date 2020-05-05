@@ -44,7 +44,8 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
         num_jitters=num_jitters,
         align=True)
 
-    files_faces = db.get_all()
+    # TODO: add skip encoding loading or something like it
+    files_faces = list(db.get_all()[1])
 
     encodings, names, filenames = patt.encodings()
     for patt_fname, enc in zip(filenames, encodings):
@@ -82,8 +83,8 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
 
 
 def update_db(db, rec):
-    files_faces = db.get_all()
-    logging.info(f'Start reencode {len(files_faces)} files')
+    count, files_faces = db.get_all()
+    logging.info(f'Start reencode {count} files')
     rec.reencode_files(files_faces)
     logging.info(f'Reencode done')
 

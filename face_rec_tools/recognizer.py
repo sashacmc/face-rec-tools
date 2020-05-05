@@ -359,15 +359,16 @@ class Recognizer(object):
     def clusterize(self, fltr, debug_out_folder):
         if self.__init_stage('clusterize', locals()):
             return
-        files_faces = tools.filter_images(
-            self.__get_files_faces_by_filter(fltr))
+        count, files_faces = self.__get_files_faces_by_filter(fltr)
+        files_faces = list(tools.filter_images(files_faces))
         self.__clusterize(files_faces, debug_out_folder)
 
     def match(self, fltr, debug_out_folder, save_all_faces,
               skip_face_gen=False):
         if self.__init_stage('match', locals()):
             return
-        files_faces = self.__get_files_faces_by_filter(fltr)
+        count, files_faces = self.__get_files_faces_by_filter(fltr)
+        self.__start_stage(count)
         self.__match_files_faces(files_faces,
                                  debug_out_folder,
                                  save_all_faces,
@@ -376,7 +377,8 @@ class Recognizer(object):
     def save_faces(self, fltr, debug_out_folder):
         if self.__init_stage('save_faces', locals()):
             return
-        files_faces = self.__get_files_faces_by_filter(fltr)
+        count, files_faces = self.__get_files_faces_by_filter(fltr)
+        self.__start_stage(count)
         self.__save_faces(files_faces, debug_out_folder)
 
     def __match_files_faces(
@@ -384,7 +386,6 @@ class Recognizer(object):
             save_all_faces=False, skip_face_gen=False):
         cnt_all = 0
         cnt_changed = 0
-        self.__start_stage(len(files_faces))
         for ff in files_faces:
             if self.__step_stage():
                 break
@@ -419,7 +420,6 @@ class Recognizer(object):
         logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
     def __save_faces(self, files_faces, debug_out_folder):
-        self.__start_stage(len(files_faces))
         for ff in files_faces:
             if self.__step_stage():
                 break

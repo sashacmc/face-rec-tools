@@ -45,9 +45,9 @@ class PlexSync(object):
         self.__create_tags()
 
         if resync:
-            files_faces = self.__recdb.get_all()
+            count, files_faces = self.__recdb.get_all()
         else:
-            files_faces = self.__recdb.get_unsynced()
+            count, files_faces = self.__recdb.get_unsynced()
 
         images_count = 0
         faces_count = 0

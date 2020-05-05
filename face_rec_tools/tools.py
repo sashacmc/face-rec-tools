@@ -281,9 +281,9 @@ def save_face(out_filename, image, enc, out_size, src_filename):
 
 
 def filter_images(files_faces):
-    return list(filter(
+    return filter(
         lambda ff: get_low_ext(ff['filename']) in IMAGE_EXTS,
-        files_faces))
+        files_faces)
 
 
 def reduce_faces_from_video(faces, min_count):
@@ -321,12 +321,10 @@ def reduce_faces_from_video(faces, min_count):
 
 
 def reduce_faces_from_videos(files_faces, min_count):
-    res = []
     for ff in files_faces:
         if get_low_ext(ff['filename']) in VIDEO_EXTS:
             ff['faces'] = reduce_faces_from_video(ff['faces'], min_count)
-        res.append(ff)
-    return res
+        yield ff
 
 
 def get_low_ext(filename):
@@ -379,3 +377,12 @@ def load_media(media_file, max_size, max_video_frames):
         return LazyVideo(media_file, max_size, max_video_frames)
     else:
         raise Exception(f'Unknown ext: {ext}')
+
+
+def cursor_iterator(cursor, count=1000):
+    while True:
+        res = cursor.fetchmany(count)
+        if not res:
+            break
+        for r in res:
+            yield r

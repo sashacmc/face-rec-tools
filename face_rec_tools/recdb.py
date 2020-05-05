@@ -4,6 +4,7 @@ import io
 import os
 import sys
 import json
+import time
 import numpy
 import atexit
 import logging
@@ -242,14 +243,31 @@ class RecDB(object):
 
         return [r[0] for r in res.fetchall()]
 
-    def get_files_faces(self, where_clause, args=()):
+    def get_files_faces(self, where_clause, args=(), get_count=True):
         c = self.__conn.cursor()
+        if get_count:
+            start = time.time()
+            res = c.execute('SELECT COUNT(DISTINCT filename) \
+                            FROM files JOIN faces ON files.id=faces.file_id ' +
+                            where_clause, args)
+            count = res.fetchone()[0]
+            elapsed = time.time() - start
+            logging.debug(
+                f'Count of "{where_clause}" fetched in {elapsed} sec: {count}')
+            if count == 0:
+                return 0, iter(())
+        else:
+            count = -1
+
+        start = time.time()
         res = c.execute(
             'SELECT filename, faces.id, box, encoding, \
                     landmarks, name, dist, frame, pattern \
              FROM files JOIN faces ON files.id=faces.file_id ' +
             where_clause, args)
-        return self.__build_files_faces(res.fetchall())
+        elapsed = time.time() - start
+        logging.debug(f'"{where_clause}" fetched in {elapsed} sec')
+        return count, self.__yield_files_faces(tools.cursor_iterator(res))
 
     def get_unmatched(self):
         return self.get_files_faces('WHERE name=""')
@@ -284,15 +302,14 @@ class RecDB(object):
         return self.get_files_faces(
             'WHERE filename LIKE ? AND name=?', (folder + '%', name))
 
-    def __build_files_faces(self, res):
-        files_faces = []
+    def __yield_files_faces(self, res):
         filename = ''
         faces = []
 
         for r in res:
             if r[0] != filename:
                 if filename != '':
-                    files_faces.append({'filename': filename, 'faces': faces})
+                    yield {'filename': filename, 'faces': faces}
                 filename = r[0]
                 faces = []
             faces.append({
@@ -306,9 +323,7 @@ class RecDB(object):
                 'pattern': r[8]})
 
         if filename != '':
-            files_faces.append({'filename': filename, 'faces': faces})
-
-        return files_faces
+            yield {'filename': filename, 'faces': faces}
 
     def mark_as_synced(self, filename, commit=True):
         if self.__readonly:
@@ -351,7 +366,7 @@ class RecDB(object):
     def get_all_encodings(self, encodings_split=1):
         if self.__all_encodings is None:
             logging.debug(f'loading all encodings...')
-            files_faces = self.get_all()
+            files_faces = tools.filter_images(self.get_all()[1])
             encodings = []
             info = []
             for ff in files_faces:
