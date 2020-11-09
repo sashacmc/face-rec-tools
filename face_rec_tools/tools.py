@@ -218,15 +218,15 @@ def test_landmarks(l):
         logging.debug('landmarks chin angle test failed')
         return False
     if bound_size(l['left_eye']) >= size / 4 or \
-       bound_size(l['right_eye']) >= size / 4:
+            bound_size(l['right_eye']) >= size / 4:
         logging.debug('landmarks eye size test failed')
         return False
     if bound_size(l['left_eyebrow']) >= size / 2 or \
-       bound_size(l['right_eyebrow']) >= size / 2:
+            bound_size(l['right_eyebrow']) >= size / 2:
         logging.debug('landmarks eyebrow size test failed')
         return False
     if bound_size(l['nose_tip']) >= size / 4 or \
-       bound_size(l['nose_bridge']) >= size / 2:
+            bound_size(l['nose_bridge']) >= size / 2:
         logging.debug('landmarks nose size test failed')
         return False
     return True
