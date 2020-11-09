@@ -43,6 +43,7 @@ class Recognizer(object):
                  threshold_equal=0.1,
                  max_image_size=1000,
                  max_video_frames=180,
+                 video_frames_step=1,
                  min_face_size=20,
                  min_video_face_count=10,
                  debug_out_image_size=100,
@@ -68,6 +69,7 @@ class Recognizer(object):
         self.__threshold_equal = float(threshold_equal)
         self.__max_size = int(max_image_size)
         self.__max_video_frames = int(max_video_frames)
+        self.__video_frames_step = int(video_frames_step)
         self.__min_size = int(min_face_size)
         self.__min_video_face_count = int(min_video_face_count)
         self.__debug_out_image_size = int(debug_out_image_size)
@@ -129,19 +131,26 @@ class Recognizer(object):
         logging.info(f'recognize video: {filename}')
         video = tools.LazyVideo(filename,
                                 self.__max_size,
-                                self.__max_video_frames)
-        frame_num = 0
+                                self.__max_video_frames,
+                                self.__video_frames_step)
+
+        all_frames = list(video.frames().items())
+
         batched_encoded_faces = []
-        while frame_num < len(video.frames()):
+        cnt = 0
+        while cnt < len(all_frames):
             if self.__step_stage(step=0):
                 return [], None
-            frames = video.frames()[frame_num:
-                                    frame_num + self.__video_batch_size]
+
+            frame_numbers, frames = zip(
+                *all_frames[cnt: cnt + self.__video_batch_size])
 
             batched_boxes = face_recognition.batch_face_locations(
-                frames, batch_size=len(frames))
+                list(frames), batch_size=len(frames))
 
-            for image, boxes in zip(frames, batched_boxes):
+            for image, boxes, frame_num in zip(frames,
+                                               batched_boxes,
+                                               frame_numbers):
                 if self.__step_stage(step=0):
                     return [], None
                 encodings, landmarks = self.__encoder.encode(image, boxes)
@@ -155,9 +164,9 @@ class Recognizer(object):
 
                 self.__match_faces(encoded_faces)
                 batched_encoded_faces += encoded_faces
-                frame_num += 1
+                cnt += 1
 
-        logging.info(f'done {frame_num} frames: {filename}')
+        logging.info(f'done {cnt} frames: {filename}')
         return batched_encoded_faces, video
 
     def calc_names_in_video(self, encoded_faces):
@@ -281,7 +290,8 @@ class Recognizer(object):
                 filename = files_faces[i]['filename']
                 media = tools.load_media(filename,
                                          self.__max_size,
-                                         self.__max_video_frames)
+                                         self.__max_video_frames,
+                                         self.__video_frames_step)
                 debug_out_file_name = self.__extract_filename(filename)
                 self.__save_debug_images(
                     files_faces[i]['faces'], media,
@@ -409,7 +419,8 @@ class Recognizer(object):
                 if debug_out_folder and (changed or save_all_faces):
                     media = tools.load_media(filename,
                                              self.__max_size,
-                                             self.__max_video_frames)
+                                             self.__max_video_frames,
+                                             self.__video_frames_step)
                     debug_out_file_name = self.__extract_filename(filename)
                     self.__save_debug_images(
                         (face,), media,
@@ -427,7 +438,8 @@ class Recognizer(object):
             logging.info(f"save faces from image: {filename}")
             media = tools.load_media(filename,
                                      self.__max_size,
-                                     self.__max_video_frames)
+                                     self.__max_video_frames,
+                                     self.__video_frames_step)
             debug_out_file_name = self.__extract_filename(filename)
             is_video = tools.get_low_ext(filename) in tools.VIDEO_EXTS
             self.__save_debug_images(
@@ -563,7 +575,8 @@ class Recognizer(object):
             face['dist'] = dist
             media = tools.load_media(fname,
                                      self.__max_size,
-                                     self.__max_video_frames)
+                                     self.__max_video_frames,
+                                     self.__video_frames_step)
             debug_out_file_name = self.__extract_filename(fname)
             self.__save_debug_images(
                 (face,), media,
@@ -623,6 +636,7 @@ def createRecognizer(patt, cfg, cdb=None, db=None, status=None):
                       threshold_equal=cfg['main']['threshold_equal'],
                       max_image_size=cfg['main']['max_image_size'],
                       max_video_frames=cfg['main']['max_video_frames'],
+                      video_frames_step=cfg['main']['video_frames_step'],
                       min_face_size=cfg['main']['min_face_size'],
                       min_video_face_count=cfg['main']['min_video_face_count'],
                       debug_out_image_size=cfg['main']['debug_out_image_size'],

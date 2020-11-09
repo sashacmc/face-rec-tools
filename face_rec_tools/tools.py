@@ -75,16 +75,23 @@ def read_image(image_file, max_size):
     return prepare_image(image, max_size)
 
 
-def read_video(video_file, max_size, max_video_frames):
+def read_video(video_file, max_size, max_video_frames, video_frames_step):
+    if video_frames_step <= 0:
+        logging.error('video_frames_step must be > 0')
+        return {}
+    if video_frames_step > max_video_frames:
+        logging.error('video_frames_step must less then max_video_frames')
+        return {}
     video = cv2.VideoCapture(video_file)
-    frames = []
-    ret = True
-    while ret and max_video_frames != 0:
-        max_video_frames -= 1
+    frames = {}
+    for fnum in range(max_video_frames):
         ret, frame = video.read()
-        if ret:
-            frame = prepare_image(frame, max_size)
-            frames.append(frame)
+        if not ret:
+            break
+        if fnum % video_frames_step:
+            continue
+        frame = prepare_image(frame, max_size)
+        frames[fnum] = frame
     return frames
 
 
@@ -348,10 +355,15 @@ class LazyImage(object):
 
 
 class LazyVideo(object):
-    def __init__(self, video_file, max_size, max_video_frames):
+    def __init__(self,
+                 video_file,
+                 max_size,
+                 max_video_frames,
+                 video_frames_step):
         self.__video_file = video_file
         self.__max_size = max_size
         self.__max_video_frames = max_video_frames
+        self.__video_frames_step = video_frames_step
         self.__frames = None
 
     def frames(self):
@@ -359,7 +371,8 @@ class LazyVideo(object):
             logging.debug(f'LazyVideo load: {self.__video_file}')
             self.__frames = read_video(self.__video_file,
                                        self.__max_size,
-                                       self.__max_video_frames)
+                                       self.__max_video_frames,
+                                       self.__video_frames_step)
         return self.__frames
 
     def get(self, frame_num):
@@ -369,12 +382,13 @@ class LazyVideo(object):
         return self.__video_file
 
 
-def load_media(media_file, max_size, max_video_frames):
+def load_media(media_file, max_size, max_video_frames, video_frames_step):
     ext = get_low_ext(media_file)
     if ext in IMAGE_EXTS:
         return LazyImage(media_file, max_size)
     elif ext in VIDEO_EXTS:
-        return LazyVideo(media_file, max_size, max_video_frames)
+        return LazyVideo(media_file, max_size,
+                         max_video_frames, video_frames_step)
     else:
         raise Exception(f'Unknown ext: {ext}')
 

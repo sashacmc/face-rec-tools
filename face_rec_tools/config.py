@@ -16,6 +16,7 @@ class Config(object):
             'threshold_equal': 0.17,
             'max_image_size': 1000,
             'max_video_frames': 3600,  # 2 min
+            'video_frames_step': 10,
             'min_face_size': 20,
             'min_video_face_count': 5,
             'debug_out_image_size': 100,
