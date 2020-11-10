@@ -335,16 +335,12 @@ class RecDB(object):
 
     def __filenames_to_dict(self, filenames):
         res = {}
-        dupl = False
         for f in filenames:
             path, name = os.path.split(f)
             if name in res:
-                dupl = True
-                logging.error(
+                logging.warn(
                     f'Duplicate file {name} in {path} and {res[name]}')
             res[name] = path
-        if dupl:
-            raise Exception(f'Duplicate files')
         return res
 
     def update_filepaths(self, oldfolder, newfolder):
