@@ -138,7 +138,7 @@ def args_parse():
                  'sync_deleted'])
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-c', '--config', help='Config file')
-    parser.add_argument('-r', '--resync', help='Resync all',
+    parser.add_argument('-r', '--resync', help='Resync all (only for set_tags)',
                         action='store_true')
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
