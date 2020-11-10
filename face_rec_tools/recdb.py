@@ -387,6 +387,7 @@ def args_parse():
                  'print_stat',
                  'get_folders',
                  'get_files',
+                 'remove_file',
                  'update_filepaths'])
     parser.add_argument('-d', '--database', help='Database file')
     parser.add_argument('-f', '--file', help='File or folder')
@@ -418,6 +419,8 @@ def main():
         files = db.get_files(args.file)
         for f in files:
             print(f)
+    elif args.action == 'remove_file':
+        db.remove(args.file)
     elif args.action == 'update_filepaths':
         db.update_filepaths(args.file, args.file)
 
