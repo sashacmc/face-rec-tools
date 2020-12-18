@@ -376,6 +376,24 @@ class RecDB(object):
             logging.debug(f'{len(info)} encodings was loaded')
         return self.__all_encodings
 
+    def find_files_by_names(self, names, subfolder=None):
+        if subfolder is None:
+            subfolder = ''
+        files = None
+        c = self.__conn.cursor()
+        for name in names.split(','):
+            res = c.execute(
+                'SELECT filename \
+                 FROM files JOIN faces ON files.id=faces.file_id \
+                 WHERE filename LIKE ? AND name=?',
+                ('%' + subfolder + '%', name))
+            res_files = set([r[0] for r in res.fetchall()])
+            if files is None:
+                files = res_files
+            else:
+                files = files.intersection(res_files)
+        return sorted(files)
+
 
 def args_parse():
     parser = argparse.ArgumentParser()
@@ -387,11 +405,14 @@ def args_parse():
                  'print_stat',
                  'get_folders',
                  'get_files',
+                 'find_files_by_names',
                  'remove_file',
                  'update_filepaths'])
     parser.add_argument('-d', '--database', help='Database file')
     parser.add_argument('-f', '--file', help='File or folder')
     parser.add_argument('-l', '--logfile', help='Log file')
+    parser.add_argument(
+        '-n', '--names', help='Comma separated names for find_files_by_names')
     parser.add_argument('--dry-run', help='Do''t modify DB',
                         action='store_true')
     return parser.parse_args()
@@ -417,6 +438,10 @@ def main():
             print(f)
     elif args.action == 'get_files':
         files = db.get_files(args.file)
+        for f in files:
+            print(f)
+    elif args.action == 'find_files_by_names':
+        files = db.find_files_by_names(args.names, args.file)
         for f in files:
             print(f)
     elif args.action == 'remove_file':
