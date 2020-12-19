@@ -46,6 +46,7 @@ def list_files(path, exts=None, nomedia_names=()):
     files = []
     for p in glob.glob(path):
         files += __list_files(p, exts, nomedia_names)
+    logging.debug(f'list_files: found {len(files)} files')
     return files
 
 

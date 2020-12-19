@@ -193,18 +193,22 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         descr = self.__get_face_file_description(path)
         if descr is None:
             self.__not_found_response()
+            return
         face_id = descr.get('face_id', None)
         if face_id is None:
             logging.warning(f'face file {path} without face_id')
             self.__not_found_response()
-        ff = self.server.db().get_face(face_id)
-        if ff is None:
+            return
+        count, ff = self.server.db().get_face(face_id)
+        if count == 0:
             logging.warning(f'face with id {face_id} not found')
             self.__not_found_response()
-        pattern_filename = ff[0]['faces'][0]['pattern']
+            return
+        pattern_filename = next(ff)['faces'][0]['pattern']
         if pattern_filename == '':
             logging.warning(f'pattern file not specified')
             self.__not_found_response()
+            return
         self.__ok_response(pattern_filename)
 
     def __get_folders(self):
