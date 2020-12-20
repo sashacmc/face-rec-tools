@@ -45,6 +45,7 @@ class Recognizer(object):
                  max_video_frames=180,
                  video_frames_step=1,
                  min_face_size=20,
+                 max_face_profile_angle=90,
                  min_video_face_count=10,
                  debug_out_image_size=100,
                  encoding_model='large',
@@ -71,6 +72,7 @@ class Recognizer(object):
         self.__max_video_frames = int(max_video_frames)
         self.__video_frames_step = int(video_frames_step)
         self.__min_size = int(min_face_size)
+        self.__max_face_profile_angle = int(max_face_profile_angle)
         self.__min_video_face_count = int(min_video_face_count)
         self.__debug_out_image_size = int(debug_out_image_size)
         self.__encoding_model = encoding_model
@@ -121,11 +123,13 @@ class Recognizer(object):
         image = tools.LazyImage(filename, self.__max_size)
 
         boxes = [f['box'] for f in encoded_faces]
-        encodings, landmarks = self.__encoder.encode(image.get(), boxes)
+        encodings, landmarks, profile_angles = self.__encoder.encode(
+            image.get(), boxes)
 
         for i in range(len(encoded_faces)):
             encoded_faces[i]['encoding'] = encodings[i]
             encoded_faces[i]['landmarks'] = landmarks[i]
+            encoded_faces[i]['profile_angle'] = profile_angles[i]
 
     def recognize_video(self, filename):
         logging.info(f'recognize video: {filename}')
@@ -153,14 +157,17 @@ class Recognizer(object):
                                                frame_numbers):
                 if self.__step_stage(step=0):
                     return [], None
-                encodings, landmarks = self.__encoder.encode(image, boxes)
+                encodings, landmarks, profile_angles = self.__encoder.encode(
+                    image, boxes)
                 encoded_faces = [
                     {'encoding': e,
                      'box': b,
                      'frame': frame_num,
-                     'landmarks': l}
-                    for e, l, b in zip(encodings, landmarks, boxes)]
-                encoded_faces = tools.filter_encoded_faces(encoded_faces)
+                     'landmarks': l,
+                     'profile_angle': pa}
+                    for e, l, b, pa in zip(encodings, landmarks,
+                                           boxes, profile_angles)]
+                encoded_faces = self.__filter_encoded_faces(encoded_faces)
 
                 self.__match_faces(encoded_faces)
                 batched_encoded_faces += encoded_faces
@@ -196,10 +203,16 @@ class Recognizer(object):
             filtered_boxes.append(box)
 
         if len(filtered_boxes):
-            encodings, landmarks = self.__encoder.encode(image, filtered_boxes)
-            res = [{'encoding': e, 'box': b, 'frame': 0, 'landmarks': l}
-                   for e, l, b in zip(encodings, landmarks, filtered_boxes)]
-            res = tools.filter_encoded_faces(res)
+            encodings, landmarks, profile_angles = self.__encoder.encode(
+                image, filtered_boxes)
+            res = [{'encoding': e,
+                    'box': b,
+                    'frame': 0,
+                    'landmarks': l,
+                    'profile_angle': pa}
+                   for e, l, b, pa in zip(encodings, landmarks,
+                                          filtered_boxes, profile_angles)]
+            res = self.__filter_encoded_faces(res)
         else:
             res = []
 
@@ -337,7 +350,7 @@ class Recognizer(object):
                 ext = tools.get_low_ext(filename)
                 if ext in tools.IMAGE_EXTS:
                     self.reencode_image(filename, encoded_faces)
-                    encoded_faces = tools.filter_encoded_faces(encoded_faces)
+                    encoded_faces = self.__filter_encoded_faces(encoded_faces)
                 elif ext in tools.VIDEO_EXTS:
                     encoded_faces, media = self.recognize_video(filename)
                 else:
@@ -446,6 +459,20 @@ class Recognizer(object):
                 ff['faces'], media,
                 debug_out_folder, debug_out_file_name, is_video=is_video)
         self.__end_stage()
+
+    def __filter_encoded_faces(self, encoded_faces):
+        res = []
+        for enc in encoded_faces:
+            if 'profile_angle' in enc and \
+                    enc['profile_angle'] > self.__max_face_profile_angle:
+                logging.debug(f"Skip profile face: {enc['profile_angle']}")
+                continue
+            if not tools.test_landmarks(enc['landmarks']):
+                logging.debug(f'Skip incorrect landmark')
+                continue
+            res.append(enc)
+            logging.debug(f"profile face: {enc['profile_angle']}")
+        return res
 
     def recognize_folder(self, folder, debug_out_folder,
                          reencode=False, skip_face_gen=False):
@@ -638,6 +665,8 @@ def createRecognizer(patt, cfg, cdb=None, db=None, status=None):
                       max_video_frames=cfg['main']['max_video_frames'],
                       video_frames_step=cfg['main']['video_frames_step'],
                       min_face_size=cfg['main']['min_face_size'],
+                      max_face_profile_angle=cfg['main'][
+                          'max_face_profile_angle'],
                       min_video_face_count=cfg['main']['min_video_face_count'],
                       debug_out_image_size=cfg['main']['debug_out_image_size'],
                       encoding_model=cfg['main']['encoding_model'],

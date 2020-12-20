@@ -19,6 +19,7 @@ class Config(object):
             'video_frames_step': 10,
             'min_face_size': 20,
             'min_video_face_count': 5,
+            'max_face_profile_angle': 90,  # degries
             'debug_out_image_size': 100,
             'encoding_model': 'large',
             'distance_metric': 'default',

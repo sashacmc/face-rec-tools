@@ -2,6 +2,7 @@
 
 import os
 import cv2
+import math
 import logging
 import numpy as np
 import face_recognition
@@ -84,7 +85,7 @@ class FaceEncoder(object):
         if align:
             import face_alignment
             self.__aligner = face_alignment.FaceAlignment(
-                face_alignment.LandmarksType._2D,
+                face_alignment.LandmarksType._3D,
                 device='cuda',
                 flip_input=True)
         else:
@@ -153,6 +154,25 @@ class FaceEncoder(object):
             "bottom_lip": pred[PRED_TYPES['teeth']].tolist()}
             for pred in preds]
 
+    def __convert_to_2D(self, preds):
+        if preds is None or len(preds) == 0:
+            return None
+        return [pred.astype(int).tolist()
+                for pred in np.delete(preds, np.s_[2:], 2)]
+
+    def __get_eyes_angle(self, pred):
+        leftEyePts = pred[PRED_TYPES['eye2']]
+        rightEyePts = pred[PRED_TYPES['eye1']]
+        leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
+        rightEyeCenter = rightEyePts.mean(axis=0).astype("int")
+        dist_2d = math.hypot(leftEyeCenter[0] - rightEyeCenter[0],
+                             leftEyeCenter[1] - rightEyeCenter[1])
+        dist_z = abs(leftEyeCenter[2] - rightEyeCenter[2])
+        return np.degrees(np.arctan2(dist_z, dist_2d))
+
+    def __profile_angles(self, preds):
+        return [float(self.__get_eyes_angle(pred)) for pred in preds]
+
     def __encode_deepface(self, image, boxes):
         from tensorflow.keras.preprocessing import image as keras_image
 
@@ -179,31 +199,31 @@ class FaceEncoder(object):
             img_pixels = np.expand_dims(img_pixels, axis=0)
             img_pixels /= 255
             res.append(self.__model.predict(img_pixels)[0, :])
-        return res, landmarks
+        return res, landmarks, self.__profile_angles(preds)
 
     def __encode_face_recognition(self, image, boxes):
         if len(boxes) == 0:
             return [], []
         if self.__aligner is not None:
-            aboxes = self.__aligner_boxes(boxes)
-            preds = [pred.astype(int).tolist()
-                     for pred in self.__aligner.get_landmarks_from_image(
-                         image,
-                         aboxes)]
+            preds = self.__aligner.get_landmarks_from_image(
+                image, self.__aligner_boxes(boxes))
         else:
             preds = None
+
+        preds2d = self.__convert_to_2D(preds)
 
         encodings = face_recognition.face_encodings(
             image, boxes, self.__num_jitters,
             model=self.__encoding_model,
-            landmark_points=preds)
+            landmark_points=preds2d)
 
         landmarks = face_recognition.face_landmarks(
             image,
             face_locations=boxes,
             model=self.__encoding_model,
-            landmark_points=preds)
-        return encodings, landmarks
+            landmark_points=preds2d)
+
+        return encodings, landmarks, self.__profile_angles(preds)
 
     def encode(self, image, boxes):
         return self.__encode(image, boxes)

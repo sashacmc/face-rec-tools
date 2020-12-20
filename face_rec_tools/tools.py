@@ -240,11 +240,6 @@ def test_landmarks(l):
     return True
 
 
-def filter_encoded_faces(encoded_faces):
-    return list(filter(
-        lambda enc: test_landmarks(enc['landmarks']), encoded_faces))
-
-
 def save_face(out_filename, image, enc, out_size, src_filename):
     top, right, bottom, left = enc['box']
     d = (bottom - top) // 2
