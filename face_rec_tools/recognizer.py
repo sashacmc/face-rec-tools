@@ -193,12 +193,12 @@ class Recognizer(object):
             face_image = image[top:bottom, left:right]
             (height, width) = face_image.shape[:2]
             if height < self.__min_size or width < self.__min_size:
-                logging.debug(f'Too small face: {height}x{width}')
+                logging.debug(f'Skip too small face: {height}x{width}')
                 continue
             gray = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)
             fm = cv2.Laplacian(gray, cv2.CV_64F).var()
             if fm < 50:
-                logging.debug(f'Too blurry face: {fm}')
+                logging.debug(f'Skip too blurry face: {fm}')
                 continue
             filtered_boxes.append(box)
 
