@@ -124,7 +124,7 @@ def speed_test(db):
 
 
 def createCacheDB(cfg):
-    cachedb_file = cfg['main']['cachedb']
+    cachedb_file = cfg['files']['cachedb']
     if cachedb_file:
         logging.info(f'Using cachedb: {cachedb_file}')
         return CacheDB(cachedb_file)

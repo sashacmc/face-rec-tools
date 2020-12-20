@@ -388,7 +388,7 @@ class FaceRecServer(http.server.HTTPServer):
         self.__patterns.load()
         self.__load_patterns_persons()
 
-        self.__db = recdb.RecDB(cfg['main']['db'])
+        self.__db = recdb.RecDB(cfg['files']['db'])
         self.__cdb = cachedb.createCacheDB(cfg)
 
         port = int(cfg['server']['port'])

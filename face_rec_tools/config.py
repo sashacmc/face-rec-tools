@@ -7,24 +7,28 @@ import configparser
 class Config(object):
     DEFAULT_CONFIG_FILE = os.path.expanduser('~/.face-rec.cfg')
     DEFAULTS = {
-        'main': {
+        'recognition': {
             'model': 'cnn',
+            'encoding_model': 'large',
+            'distance_metric': 'default',
             'num_jitters': 100,
             'threshold': 0.3,
             'threshold_weak': 0.35,
             'threshold_clusterize': 0.4,
             'threshold_equal': 0.17,
+            'min_face_size': 20,  # pixels
+            'max_face_profile_angle': 90,  # degries
+            'min_video_face_count': 3,
+        },
+        'processing': {
             'max_image_size': 1000,
+            'debug_out_image_size': 100,
             'max_video_frames': 3600,  # 2 min
             'video_frames_step': 10,
-            'min_face_size': 20,
-            'min_video_face_count': 5,
-            'max_face_profile_angle': 90,  # degries
-            'debug_out_image_size': 100,
-            'encoding_model': 'large',
-            'distance_metric': 'default',
-            'max_workers': 2,
             'video_batch_size': 8,
+            'max_workers': 2,
+        },
+        'files': {
             'db': '/mnt/multimedia/recdb/rec.db',
             'cachedb': '/opt/tmp/facereccache.db',
             'patterns': '/mnt/multimedia/recdb/face_rec_patt/',

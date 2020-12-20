@@ -106,15 +106,15 @@ def main():
 
     tools.cuda_init()
 
-    db = recdb.RecDB(cfg['main']['db'])
+    db = recdb.RecDB(cfg['files']['db'])
     patt = patterns.createPatterns(cfg)
     patt.load()
 
     update(patt, db,
-           int(cfg['main']['num_jitters']),
-           cfg['main']['encoding_model'],
-           int(cfg['main']['max_image_size']),
-           int(cfg['main']['debug_out_image_size']))
+           int(cfg['recognition']['num_jitters']),
+           cfg['recognition']['encoding_model'],
+           int(cfg['processing']['max_image_size']),
+           int(cfg['processing']['debug_out_image_size']))
 
     rec = recognizer.createRecognizer(patt, cfg, db=db)
 

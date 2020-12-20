@@ -655,25 +655,28 @@ class Recognizer(object):
 
 def createRecognizer(patt, cfg, cdb=None, db=None, status=None):
     return Recognizer(patt,
-                      model=cfg['main']['model'],
-                      num_jitters=cfg['main']['num_jitters'],
-                      threshold=cfg['main']['threshold'],
-                      threshold_weak=cfg['main']['threshold_weak'],
-                      threshold_clusterize=cfg['main']['threshold_clusterize'],
-                      threshold_equal=cfg['main']['threshold_equal'],
-                      max_image_size=cfg['main']['max_image_size'],
-                      max_video_frames=cfg['main']['max_video_frames'],
-                      video_frames_step=cfg['main']['video_frames_step'],
-                      min_face_size=cfg['main']['min_face_size'],
-                      max_face_profile_angle=cfg['main'][
+                      model=cfg['recognition']['model'],
+                      num_jitters=cfg['recognition']['num_jitters'],
+                      threshold=cfg['recognition']['threshold'],
+                      threshold_weak=cfg['recognition']['threshold_weak'],
+                      threshold_clusterize=cfg['recognition'][
+                          'threshold_clusterize'],
+                      threshold_equal=cfg['recognition']['threshold_equal'],
+                      max_image_size=cfg['processing']['max_image_size'],
+                      max_video_frames=cfg['processing']['max_video_frames'],
+                      video_frames_step=cfg['processing']['video_frames_step'],
+                      min_face_size=cfg['recognition']['min_face_size'],
+                      max_face_profile_angle=cfg['recognition'][
                           'max_face_profile_angle'],
-                      min_video_face_count=cfg['main']['min_video_face_count'],
-                      debug_out_image_size=cfg['main']['debug_out_image_size'],
-                      encoding_model=cfg['main']['encoding_model'],
-                      distance_metric=cfg['main']['distance_metric'],
-                      max_workers=cfg['main']['max_workers'],
-                      video_batch_size=cfg['main']['video_batch_size'],
-                      nomedia_files=cfg['main']['nomedia_files'].split(':'),
+                      min_video_face_count=cfg['recognition'][
+                          'min_video_face_count'],
+                      debug_out_image_size=cfg['processing'][
+                          'debug_out_image_size'],
+                      encoding_model=cfg['recognition']['encoding_model'],
+                      distance_metric=cfg['recognition']['distance_metric'],
+                      max_workers=cfg['processing']['max_workers'],
+                      video_batch_size=cfg['processing']['video_batch_size'],
+                      nomedia_files=cfg['files']['nomedia_files'].split(':'),
                       cdb=cdb,
                       db=db,
                       status=status)
@@ -717,14 +720,14 @@ def main():
     patt = patterns.createPatterns(cfg)
     patt.load()
 
-    cachedb_file = cfg['main']['cachedb']
+    cachedb_file = cfg['files']['cachedb']
     if cachedb_file:
         cdb = cachedb.CacheDB(cachedb_file)
     else:
         cdb = None
 
     tools.cuda_init()
-    db = recdb.RecDB(cfg['main']['db'], args.dry_run)
+    db = recdb.RecDB(cfg['files']['db'], args.dry_run)
     rec = createRecognizer(patt, cfg, cdb, db)
 
     signal.signal(signal.SIGINT, lambda sig, frame: rec.stop())

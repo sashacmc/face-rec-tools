@@ -35,7 +35,7 @@ class RecognizerRunner(multiprocessing.Process):
 
             patterns = patterns.createPatterns(cfg)
 
-            db = recdb.RecDB(cfg['main']['db'])
+            db = recdb.RecDB(cfg['files']['db'])
             cdb = cachedb.createCacheDB(cfg)
 
             patterns.load()

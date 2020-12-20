@@ -395,12 +395,12 @@ class Patterns(object):
 
 
 def createPatterns(cfg):
-    return Patterns(cfg['main']['patterns'],
-                    model=cfg['main']['model'],
-                    max_size=cfg['main']['max_image_size'],
-                    num_jitters=cfg['main']['num_jitters'],
-                    encoding_model=cfg['main']['encoding_model'],
-                    threshold_equal=cfg['main']['threshold_equal'])
+    return Patterns(cfg['files']['patterns'],
+                    model=cfg['recognition']['model'],
+                    max_size=cfg['processing']['max_image_size'],
+                    num_jitters=cfg['recognition']['num_jitters'],
+                    encoding_model=cfg['recognition']['encoding_model'],
+                    threshold_equal=cfg['recognition']['threshold_equal'])
 
 
 def args_parse():

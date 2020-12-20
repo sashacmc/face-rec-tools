@@ -89,7 +89,7 @@ class PlexSync(object):
 
     def sync_new(self, cfg, patt, folders, exts):
         logging.info(f'Sync new started')
-        cachedb_file = cfg['main']['cachedb']
+        cachedb_file = cfg['files']['cachedb']
         cache_path = cfg['server']['face_cache_path']
         if cachedb_file:
             cdb = cachedb.CacheDB(cachedb_file)
@@ -157,11 +157,12 @@ def main():
     names = set([p['name'] for p in patt.persons()])
     names.remove('trash')
 
-    rdb = recdb.RecDB(cfg['main']['db'], args.dry_run)
+    rdb = recdb.RecDB(cfg['files']['db'], args.dry_run)
     pdb = plexdb.PlexDB(cfg['plex']['db'], args.dry_run)
 
     pls = PlexSync(names, rdb, pdb,
-                   min_video_face_count=cfg['main']['min_video_face_count'])
+                   min_video_face_count= cfg['recognition'][
+                       'min_video_face_count'])
 
     if args.action == 'set_tags':
         pls.set_tags(resync=args.resync)
