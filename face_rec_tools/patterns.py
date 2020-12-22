@@ -36,9 +36,11 @@ class Patterns(object):
                  distance_metric='default',
                  threshold_equal=0.17):
         self.__folder = folder
+        os.makedirs(self.__folder, exist_ok=True)
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
         self.__files = {}
         self.__persons = []
+        self.__basenames = {}
         self.__model = model
         self.__encoding_model = encoding_model
         self.__max_size = int(max_size)
