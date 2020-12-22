@@ -248,7 +248,7 @@ class Patterns(object):
             self.__persons = data['persons']
             self.__init_basenames()
         except Exception:
-            logging.exception(f'Can''t load patterns: {self.__pickle_file}')
+            logging.exception(f"Can't load patterns: {self.__pickle_file}")
 
     def optimize(self):
         encoder = self.__get_encoder()
