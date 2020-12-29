@@ -392,7 +392,13 @@ class FaceRecServer(http.server.HTTPServer):
         self.__cdb = cachedb.createCacheDB(cfg)
 
         port = int(cfg['server']['port'])
+
         self.__web_path = cfg['server']['web_path']
+        if not os.path.isabs(self.__web_path):
+            self.__web_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                self.__web_path)
+
         self.__face_cache_path = cfg['server']['face_cache_path']
         super().__init__(('', port), FaceRecHandler)
 
