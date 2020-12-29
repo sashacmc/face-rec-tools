@@ -37,6 +37,7 @@ class RecognizerRunner(multiprocessing.Process):
 
             db = recdb.RecDB(cfg['files']['db'])
             cdb = cachedb.createCacheDB(cfg)
+            cuda_memory_limit = int(cfg['processing']['cuda_memory_limit'])
 
             patterns.load()
             recognizer = recognizer.createRecognizer(
@@ -45,17 +46,17 @@ class RecognizerRunner(multiprocessing.Process):
             logging.info(f'Run in process: {self.__method}{self.__args}')
 
             if self.__method == 'recognize_folder':
-                tools.cuda_init()
+                tools.cuda_init(cuda_memory_limit)
                 recognizer.recognize_folder(*self.__args)
             elif self.__method == 'match':
-                tools.cuda_init()
+                tools.cuda_init(cuda_memory_limit)
                 recognizer.match(*self.__args)
             elif self.__method == 'clusterize':
                 recognizer.clusterize(*self.__args)
             elif self.__method == 'save_faces':
                 recognizer.save_faces(*self.__args)
             elif self.__method == 'get_faces_by_face':
-                tools.cuda_init()
+                tools.cuda_init(cuda_memory_limit)
                 recognizer.get_faces_by_face(*self.__args)
             logging.info(f'Process done: {self.__method}')
             self.__status['state'] = 'done'

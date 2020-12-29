@@ -50,7 +50,7 @@ def list_files(path, exts=None, nomedia_names=()):
     return files
 
 
-def cuda_init(tf_memory_limit=1536):
+def cuda_init(tf_memory_limit=0):
     import tensorflow as tf
 
     logging.debug('cuda init')
@@ -58,10 +58,11 @@ def cuda_init(tf_memory_limit=1536):
     if tf.config.experimental.get_memory_growth(gpu):
         return
     tf.config.experimental.set_memory_growth(gpu, True)
-    tf.config.experimental.set_virtual_device_configuration(
-        gpu,
-        [tf.config.experimental.VirtualDeviceConfiguration(
-            memory_limit=tf_memory_limit)])
+    if tf_memory_limit:
+        tf.config.experimental.set_virtual_device_configuration(
+            gpu,
+            [tf.config.experimental.VirtualDeviceConfiguration(
+                memory_limit=tf_memory_limit)])
 
 
 def cuda_release():

@@ -27,6 +27,7 @@ class Config(object):
             'video_frames_step': 10,
             'video_batch_size': 8,
             'max_workers': 2,
+            'cuda_memory_limit': 1536,  # MB
         },
         'files': {
             'db': 'face-rec/rec.db',

@@ -104,7 +104,7 @@ def main():
     log.initLogger(args.logfile)
     logging.basicConfig(level=logging.DEBUG)
 
-    tools.cuda_init()
+    tools.cuda_init(int(cfg['processing']['cuda_memory_limit']))
 
     db = recdb.RecDB(cfg['files']['db'])
     patt = patterns.createPatterns(cfg)

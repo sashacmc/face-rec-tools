@@ -31,10 +31,14 @@ class Patterns(object):
     FILES_TIME = 2
     FILES_TYPE = 3
 
-    def __init__(self, folder, model='hog', max_size=1000,
-                 num_jitters=1, encoding_model='large',
+    def __init__(self, folder,
+                 model='hog',
+                 max_size=1000,
+                 num_jitters=1,
+                 encoding_model='large',
                  distance_metric='default',
-                 threshold_equal=0.17):
+                 threshold_equal=0.17,
+                 cuda_memory_limit=0):
         self.__folder = folder
         os.makedirs(self.__folder, exist_ok=True)
         self.__pickle_file = os.path.join(folder, 'patterns.pickle')
@@ -47,12 +51,13 @@ class Patterns(object):
         self.__num_jitters = int(num_jitters)
         self.__distance_metric = distance_metric
         self.__threshold_equal = float(threshold_equal)
+        self.__cuda_memory_limit = cuda_memory_limit
         self.__encoder = None
 
     def __get_encoder(self):
         if self.__encoder is None:
             from face_rec_tools import faceencoder
-            tools.cuda_init()
+            tools.cuda_init(self.__cuda_memory_limit)
             self.__encoder = faceencoder.FaceEncoder(
                 encoding_model=self.__encoding_model,
                 num_jitters=self.__num_jitters,
@@ -402,7 +407,9 @@ def createPatterns(cfg):
                     max_size=cfg['processing']['max_image_size'],
                     num_jitters=cfg['recognition']['num_jitters'],
                     encoding_model=cfg['recognition']['encoding_model'],
-                    threshold_equal=cfg['recognition']['threshold_equal'])
+                    threshold_equal=cfg['recognition']['threshold_equal'],
+                    cuda_memory_limit=int(
+                        cfg['processing']['cuda_memory_limit']))
 
 
 def args_parse():

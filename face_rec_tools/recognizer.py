@@ -726,7 +726,7 @@ def main():
     else:
         cdb = None
 
-    tools.cuda_init()
+    tools.cuda_init(int(cfg['processing']['cuda_memory_limit']))
     db = recdb.RecDB(cfg['files']['db'], args.dry_run)
     rec = createRecognizer(patt, cfg, cdb, db)
 
