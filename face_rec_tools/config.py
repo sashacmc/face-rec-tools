@@ -29,20 +29,20 @@ class Config(object):
             'max_workers': 2,
         },
         'files': {
-            'db': '/mnt/multimedia/recdb/rec.db',
-            'cachedb': '/opt/tmp/facereccache.db',
-            'patterns': '/mnt/multimedia/recdb/face_rec_patt/',
+            'db': 'face-rec/rec.db',
+            'cachedb': 'face-rec/cache.db',
+            'patterns': 'face-rec/patterns/',
             'nomedia_files': '.plexignore:.nomedia',
         },
         'server': {
             'port': 8081,
             'web_path': 'web',
             'face_cache_path': '/tmp/facereccache/',
-            'log_file': '/var/log/face-rec-server.log',
+            'log_file': 'face-rec/face-rec-server.log',
         },
         'plex': {
             'db': '/opt/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db',  # noqa
-            'folders': '/mnt/multimedia/NEW/Foto:/mnt/multimedia/MediaAlbum/MyAlbum'  # noqa
+            'folders': '~/Pictures:~/Videos'  # noqa
         }
     }
 
