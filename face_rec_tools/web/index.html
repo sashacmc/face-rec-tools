@@ -93,6 +93,13 @@
     <main role="main" class="container">
         <div class="accordion" id="accordionFaces">
         </div>
+        <a data-toggle="collapse" href="#infoCollapse" role="button" aria-expanded="false" aria-controls="infoCollapse">
+            <hr style="height:10px">
+        </a>
+        <div class="collapse" id="infoCollapse">
+            <div class="card card-body div_info" id="info">
+            </div>
+        </div>
     </main>
 
     <div class="modal" id="facePropModal" tabindex="-1" role="dialog" aria-labelledby="facePropModalLabel" aria-hidden="true">
@@ -955,6 +962,28 @@
             });
         }
 
+        function statusToHTML(st, final) {
+            var details = '<table style="width:100%;">';
+            var args = st['args'];
+            args['count'] = st['count'];
+            if (final) {
+                args['time'] = st['elapsed'];
+            } else {
+                args['current'] = st['current'];
+            }
+            var keys = Object.keys(args);
+            keys.sort();
+            for (var i = 0; i < keys.length; i++) {
+                details += 
+                '<tr>' +
+                    '<td>' + keys[i] + '</td>' +
+                    '<td style="text-align:right; word-break: break-all;">' + args[keys[i]] + '</td>' +
+                '</tr>';
+            }
+            details += '</table>';
+            return details;
+        }
+
         function updateProgress() {
             $.ajax({  
                 url: 'get_status',
@@ -966,26 +995,16 @@
                         $('#progressModal').modal('hide');
                         clearInterval(updateProgressInterval);
                         init();
+                        if (st['state'] == 'done') {
+                            $("#info").html(statusToHTML(st, true));
+                        } else if (st['state'] == 'error') {
+                            showError(st['error']);
+                        }
                     } else {
                         var w = st['current'] / st['count'] * 100;
                         $('#progressModalBar').css('width', w + '%');
                         $('#progressModalBar').html(st['current'] + '/' + st['count']);
-                    
-                        var details = '<table style="width:100%;">';
-                        var args = st['args'];
-                        args['count'] = st['count'];
-                        args['current'] = st['current'];
-                        var keys = Object.keys(args);
-                        keys.sort();
-                        for (var i = 0; i < keys.length; i++) {
-                            details += 
-                            '<tr>' +
-                                '<td>' + keys[i] + '</td>' +
-                                '<td style="text-align:right; word-break: break-all;">' + args[keys[i]] + '</td>' +
-                            '</tr>';
-                        }
-                        details += '</table>';
-                        $('#progressModalDetails').html(details);
+                        $('#progressModalDetails').html(statusToHTML(st, false));
 
                         var time =
                         '<table style="width:100%;">' +
@@ -1069,6 +1088,11 @@
                     var st = eval(json);
                     var state = st['state'];
                     if (state == 'done' || state == 'error' || state == '') {
+                        if (st['state'] == 'done') {
+                            $("#info").html(statusToHTML(st, true));
+                        } else if (st['state'] == 'error') {
+                            showError(st['error']);
+                        }
                         init();
                     } else {
                         showProgress(commandText[state]);

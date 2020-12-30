@@ -123,5 +123,11 @@ code {
 }
 
 .error-modal {
-   background-color: salmon;
+    background-color: salmon;
 } 
+
+.div_info {
+    margin: auto;
+    font-size: 80%;
+    width: 50%;
+}

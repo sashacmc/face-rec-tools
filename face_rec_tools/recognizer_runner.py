@@ -19,7 +19,7 @@ class RecognizerRunner(multiprocessing.Process):
         self.__args = args
         self.__manager = multiprocessing.Manager()
         self.__status = self.__manager.dict(
-            {'state': '', 'count': 0, 'current': 0,
+            {'state': '', 'count': 0, 'current': 0, 'args': {},
              'starttime': 0, 'stop': False})
 
     def run(self):
@@ -63,6 +63,7 @@ class RecognizerRunner(multiprocessing.Process):
         except Exception as ex:
             logging.exception(ex)
             self.__status['state'] = 'error'
+            self.__status['error'] = str(ex)
 
     def status(self):
         status = dict(self.__status)
