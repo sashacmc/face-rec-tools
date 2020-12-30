@@ -314,7 +314,7 @@
 
         function getThumb() {
             if (g_urlParams.get('hideLandmarks')) {
-                return '?thumbnail=1';
+                return '?thumbnail=on';
             } else {
                 return '';
             }
@@ -322,11 +322,11 @@
 
         function invertThumb(src)
         {
-            var pos = src.indexOf('?thumbnail=1');
+            var pos = src.indexOf('?thumbnail=on');
             if (pos > 0) {
                 src = src.substring(0, pos);
             } else {
-                src += '?thumbnail=1';
+                src += '?thumbnail=on';
             }
             return src;
         }

@@ -97,7 +97,12 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
     def __send_blob(self, data, cont, params):
         if 'thumbnail' in params:
-            data = tools.load_face_thumbnail(data)
+            if params['thumbnail'][0] == 'on':
+                data = tools.load_face_thumbnail(data)
+            elif params['thumbnail'][0] == 'prefer':
+                th_data = tools.load_face_thumbnail(data)
+                if th_data:
+                    data = th_data
         self.send_response(200)
         self.send_header('Content-type', cont)
         self.end_headers()
@@ -152,7 +157,8 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
     def __get_name_image(self, params):
         name = params['name'][0]
-        self.__send_file(self.server.name_image(name))
+        self.__send_file(self.server.name_image(name),
+                         {'thumbnail': ['prefer']})
 
     def __get_face_file_description(self, path):
         if path.startswith('cache/'):
