@@ -19,6 +19,7 @@ from face_rec_tools import config  # noqa
 FACE_FILENAME = '0_face.jpg'
 BAD_FOLDERNAME = 'bad'
 OTHER_FOLDERNAME = 'other'
+TRASH_FOLDERNAME = 'trash'
 
 PATTERN_TYPE_BAD = 0
 PATTERN_TYPE_GOOD = 1
@@ -38,10 +39,18 @@ class Patterns(object):
                  encoding_model='large',
                  distance_metric='default',
                  threshold_equal=0.17,
-                 cuda_memory_limit=0):
+                 cuda_memory_limit=0,
+                 trash_face_file=None):
         self.__folder = folder
-        os.makedirs(self.__folder, exist_ok=True)
-        self.__pickle_file = os.path.join(folder, 'patterns.pickle')
+        if not os.path.exists(self.__folder):
+            os.makedirs(self.__folder)
+            logging.debug(f'trash_face_file: {trash_face_file}')
+            if trash_face_file is not None and os.path.exists(trash_face_file):
+                trash_folder = os.path.join(self.__folder, TRASH_FOLDERNAME)
+                os.mkdir(trash_folder)
+                shutil.copyfile(trash_face_file,
+                                os.path.join(trash_folder, FACE_FILENAME))
+
         self.__files = {}
         self.__persons = []
         self.__basenames = {}
@@ -53,6 +62,9 @@ class Patterns(object):
         self.__threshold_equal = float(threshold_equal)
         self.__cuda_memory_limit = cuda_memory_limit
         self.__encoder = None
+        self.__pickle_file = os.path.join(folder, 'patterns.pickle')
+        if not os.path.exists(self.__pickle_file):
+            self.generate(True)
 
     def __get_encoder(self):
         if self.__encoder is None:
@@ -140,13 +152,12 @@ class Patterns(object):
                  name,
                  image_files[image_file],
                  tp]
-            self.__init_basenames()
 
+        self.__init_basenames()
+        self.__persons = self.__calc_persons()
         self.__save()
 
     def __save(self):
-        self.__persons = self.__calc_persons()
-
         logging.info('Patterns saving')
         data = {
             'files': self.__files,
@@ -363,7 +374,13 @@ class Patterns(object):
         logging.info(f'Analyze done')
 
     def __calc_persons(self):
-        dct = collections.defaultdict(lambda: {'count': 0, 'image': 'Z'})
+        dct = {}
+        with os.scandir(self.__folder) as it:
+            for e in it:
+                if e.is_dir():
+                    name = os.path.split(e.path)[1]
+                    dct[name] = {'count': 0, 'image': chr(0xFFFF)}
+
         for f in self.__files:
             name = self.__files[f][self.FILES_NAME]
             dct[name]['count'] += 1
@@ -409,7 +426,10 @@ def createPatterns(cfg):
                     encoding_model=cfg['recognition']['encoding_model'],
                     threshold_equal=cfg['recognition']['threshold_equal'],
                     cuda_memory_limit=int(
-                        cfg['processing']['cuda_memory_limit']))
+                        cfg['processing']['cuda_memory_limit']),
+                    trash_face_file=os.path.join(
+                        cfg.get_data_path('server', 'web_path'),
+        'trash_face.jpg'))
 
 
 def args_parse():

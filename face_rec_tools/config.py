@@ -75,6 +75,13 @@ class Config(object):
 
         return self.__config[sect][name]
 
+    def get_data_path(self, sect, name):
+        path = self.__config[sect][name]
+        if not os.path.isabs(path):
+            path = os.path.join(os.path.dirname(
+                os.path.abspath(__file__)), path)
+        return path
+
     def filename(self):
         return self.__filename
 
