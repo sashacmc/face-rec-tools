@@ -155,7 +155,7 @@ class Recognizer(object):
             for image, boxes, frame_num in zip(frames,
                                                batched_boxes,
                                                frame_numbers):
-                if self.__step_stage(step=0):
+                if self.__step_stage_face(len(boxes)):
                     return [], None
                 encodings, landmarks, profile_angles = self.__encoder.encode(
                     image, boxes)
@@ -203,6 +203,8 @@ class Recognizer(object):
             filtered_boxes.append(box)
 
         if len(filtered_boxes):
+            if self.__step_stage_face(len(filtered_boxes)):
+                return []
             encodings, landmarks, profile_angles = self.__encoder.encode(
                 image, filtered_boxes)
             res = [{'encoding': e,
@@ -235,7 +237,7 @@ class Recognizer(object):
             logging.warning('Empty patterns')
 
         for i in range(len(encoded_faces)):
-            if self.__step_stage(step=0):
+            if self.__step_stage_face():
                 return False
             encoding = encoded_faces[i]['encoding']
             dist, name, pattern = self.__match_face_by_nearest(
@@ -343,6 +345,7 @@ class Recognizer(object):
         self.__end_stage()
 
     def reencode_files(self, files_faces):
+        self.__start_stage(len(files_faces))
         for ff in files_faces:
             try:
                 encoded_faces = ff['faces']
@@ -418,6 +421,8 @@ class Recognizer(object):
             if not self.__match_faces(ff['faces']):
                 continue
             for face in ff['faces']:
+                if self.__step_stage_face():
+                    break
                 cnt_all += 1
                 changed = False
                 if 'oldname' in face and face['oldname'] != face['name']:
@@ -631,10 +636,19 @@ class Recognizer(object):
             f'Stage {self.__status["state"]} for {count} steps started')
         self.__status['count'] = count
         self.__status['current'] = 0
+        self.__status['faces_count'] = 0
+        self.__status['faces_per_second'] = 0
         self.__status['starttime'] = time.time()
 
     def __step_stage(self, step=1):
         self.__status['current'] += step
+        return self.__status['stop']
+
+    def __step_stage_face(self, step=1):
+        self.__status['faces_count'] += step
+        self.__status['faces_per_second'] = round(
+            self.__status['faces_count'] /
+            (time.time() - self.__status['starttime']), 2)
         return self.__status['stop']
 
     def __end_stage(self):
@@ -651,6 +665,8 @@ class Recognizer(object):
             if self.__cdb is not None:
                 self.__cdb.rollback()
         self.__status['stop'] = False
+        self.__status['endtime'] = time.time()
+        logging.info(f'end stage: {self.__status}')
 
 
 def createRecognizer(patt, cfg, cdb=None, db=None, status=None):

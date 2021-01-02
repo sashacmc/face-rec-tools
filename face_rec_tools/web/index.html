@@ -774,6 +774,7 @@
         function cleanFacesList()
         {
             $("#accordionFaces").html("");
+            $("#info").html("");
         }
 
         function setFoldersList(data)
@@ -966,6 +967,8 @@
             var details = '<table style="width:100%;">';
             var args = st['args'];
             args['count'] = st['count'];
+            args['faces_count'] = st['faces_count'];
+            args['faces_per_second'] = st['faces_per_second'];
             if (final) {
                 args['time'] = st['elapsed'];
             } else {
