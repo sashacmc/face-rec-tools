@@ -138,7 +138,8 @@ def args_parse():
                  'sync_deleted'])
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument('-c', '--config', help='Config file')
-    parser.add_argument('-r', '--resync', help='Resync all (only for set_tags)',
+    parser.add_argument('-r', '--resync',
+                        help='Resync all (only for set_tags)',
                         action='store_true')
     parser.add_argument('-d', '--dry-run', help='Do''t modify DB',
                         action='store_true')
@@ -161,7 +162,7 @@ def main():
     pdb = plexdb.PlexDB(cfg['plex']['db'], args.dry_run)
 
     pls = PlexSync(names, rdb, pdb,
-                   min_video_face_count= cfg['recognition'][
+                   min_video_face_count=cfg['recognition'][
                        'min_video_face_count'])
 
     if args.action == 'set_tags':
