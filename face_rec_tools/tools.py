@@ -50,7 +50,16 @@ def list_files(path, exts=None, nomedia_names=()):
     return files
 
 
+def has_cuda():
+    import torch
+
+    return torch.cuda.is_available()
+
+
 def cuda_init(tf_memory_limit=0):
+    if not has_cuda():
+        return
+
     import tensorflow as tf
 
     logging.debug('cuda init')
