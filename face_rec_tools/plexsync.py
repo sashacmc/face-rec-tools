@@ -89,8 +89,8 @@ class PlexSync(object):
 
     def sync_new(self, cfg, patt, folders, exts):
         logging.info(f'Sync new started')
-        cachedb_file = cfg['files']['cachedb']
-        cache_path = cfg['server']['face_cache_path']
+        cachedb_file = cfg.get_path('files', 'cachedb')
+        cache_path = cfg.get_path('server', 'face_cache_path')
         if cachedb_file:
             cdb = cachedb.CacheDB(cachedb_file)
         else:
@@ -158,8 +158,8 @@ def main():
     names = set([p['name'] for p in patt.persons()])
     names.remove('trash')
 
-    rdb = recdb.RecDB(cfg['files']['db'], args.dry_run)
-    pdb = plexdb.PlexDB(cfg['plex']['db'], args.dry_run)
+    rdb = recdb.RecDB(cfg.get_path('files', 'db'), args.dry_run)
+    pdb = plexdb.PlexDB(cfg.get_path('plex', 'db'), args.dry_run)
 
     pls = PlexSync(names, rdb, pdb,
                    min_video_face_count=cfg['recognition'][
@@ -170,10 +170,10 @@ def main():
     elif args.action == 'remove_tags':
         pls.remove_tags()
     elif args.action == 'sync_new':
-        folders = cfg['plex']['folders'].split(':')
+        folders = cfg.get_path('plex', 'folders')
         pls.sync_new(cfg, patt, folders, ('.jpg',))
     elif args.action == 'sync_deleted':
-        folders = cfg['plex']['folders'].split(':')
+        folders = cfg.get_path('plex', 'folders')
         pls.sync_deleted(folders)
 
 

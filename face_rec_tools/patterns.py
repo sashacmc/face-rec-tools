@@ -419,7 +419,7 @@ class Patterns(object):
 
 
 def createPatterns(cfg):
-    return Patterns(cfg['files']['patterns'],
+    return Patterns(cfg.get_path('files', 'patterns'),
                     model=cfg['recognition']['model'],
                     max_size=cfg['processing']['max_image_size'],
                     num_jitters=cfg['recognition']['num_jitters'],

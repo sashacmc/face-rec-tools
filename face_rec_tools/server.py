@@ -249,7 +249,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         skip_face_gen = params.get('skip_face_gen', ('',))[0] == '1'
 
         self.server.recognize_folder(
-            params['path'][0], reencode, skip_face_gen)
+            os.path.expanduser(params['path'][0]), reencode, skip_face_gen)
         self.__ok_response('')
 
     def __params_to_filter(self, params):
@@ -394,7 +394,7 @@ class FaceRecServer(http.server.HTTPServer):
         self.__patterns.load()
         self.__load_patterns_persons()
 
-        self.__db = recdb.RecDB(cfg['files']['db'])
+        self.__db = recdb.RecDB(cfg.get_path('files', 'db'))
         self.__cdb = cachedb.createCacheDB(cfg)
 
         port = int(cfg['server']['port'])
@@ -523,7 +523,7 @@ def main():
     if args.logfile:
         logfile = args.logfile
     else:
-        logfile = cfg['server']['log_file']
+        logfile = cfg.get_path('server', 'log_file')
 
     log.initLogger(logfile)
 

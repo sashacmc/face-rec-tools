@@ -106,7 +106,7 @@ def main():
 
     tools.cuda_init(int(cfg['processing']['cuda_memory_limit']))
 
-    db = recdb.RecDB(cfg['files']['db'])
+    db = recdb.RecDB(cfg.get_path('files', 'db'))
     patt = patterns.createPatterns(cfg)
     patt.load()
 

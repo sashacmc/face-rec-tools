@@ -82,6 +82,13 @@ class Config(object):
                 os.path.abspath(__file__)), path)
         return path
 
+    def get_path(self, sect, name):
+        path = self.__config[sect][name]
+        res = [os.path.expanduser(f) for f in path.split(':')]
+        if len(res) == 1:
+            return res[0]
+        return res
+
     def filename(self):
         return self.__filename
 

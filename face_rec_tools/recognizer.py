@@ -736,14 +736,14 @@ def main():
     patt = patterns.createPatterns(cfg)
     patt.load()
 
-    cachedb_file = cfg['files']['cachedb']
+    cachedb_file = cfg.get_path('files', 'cachedb')
     if cachedb_file:
         cdb = cachedb.CacheDB(cachedb_file)
     else:
         cdb = None
 
     tools.cuda_init(int(cfg['processing']['cuda_memory_limit']))
-    db = recdb.RecDB(cfg['files']['db'], args.dry_run)
+    db = recdb.RecDB(cfg.get_path('files', 'db'), args.dry_run)
     rec = createRecognizer(patt, cfg, cdb, db)
 
     signal.signal(signal.SIGINT, lambda sig, frame: rec.stop())

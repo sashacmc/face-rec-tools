@@ -35,7 +35,7 @@ class RecognizerRunner(multiprocessing.Process):
 
             patterns = patterns.createPatterns(cfg)
 
-            db = recdb.RecDB(cfg['files']['db'])
+            db = recdb.RecDB(cfg.get_path('files', 'db'))
             cdb = cachedb.createCacheDB(cfg)
             cuda_memory_limit = int(cfg['processing']['cuda_memory_limit'])
 
