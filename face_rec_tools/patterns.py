@@ -5,7 +5,6 @@ import re
 import sys
 import shutil
 import pickle
-import logging
 import argparse
 import collections
 import numpy as np
@@ -44,7 +43,7 @@ class Patterns(object):
         self.__folder = folder
         if not os.path.exists(self.__folder):
             os.makedirs(self.__folder)
-            logging.debug(f'trash_face_file: {trash_face_file}')
+            log.debug(f'trash_face_file: {trash_face_file}')
             if trash_face_file is not None and os.path.exists(trash_face_file):
                 trash_folder = os.path.join(self.__folder, TRASH_FOLDERNAME)
                 os.mkdir(trash_folder)
@@ -77,7 +76,7 @@ class Patterns(object):
         return self.__encoder
 
     def generate(self, regenerate=False):
-        logging.info(f'Patterns generation: {self.__folder} ({regenerate})')
+        log.info(f'Patterns generation: {self.__folder} ({regenerate})')
 
         image_files = {}
         for image_file in tools.list_files(self.__folder, tools.IMAGE_EXTS):
@@ -99,7 +98,7 @@ class Patterns(object):
                         self.__remove_file(image_file)
 
             if len(filtered) == 0:
-                logging.info('Nothing changed')
+                log.info('Nothing changed')
                 return
 
             image_files = filtered
@@ -116,7 +115,7 @@ class Patterns(object):
             else:
                 tp = PATTERN_TYPE_GOOD
 
-            logging.info(f'{i + 1}/{len(image_files)} file: {image_file}')
+            log.info(f'{i + 1}/{len(image_files)} file: {image_file}')
 
             descr, thumbnail = tools.load_face_description(image_file)
             try:
@@ -129,19 +128,19 @@ class Patterns(object):
                 try:
                     image = tools.read_image(image_file, self.__max_size)
                 except Exception:
-                    logging.exception(f'read_image failed')
+                    log.exception(f'read_image failed')
                     continue
 
                 boxes = face_recognition.face_locations(
                     image, model=self.__model)
                 if len(boxes) != 1:
-                    logging.warning(
+                    log.warning(
                         f'{len(boxes)} faces detected in {image_file}. Skip.')
                     continue
                 encodings, landmarks = \
                     self.__get_encoder().encode(image, boxes)
                 if not tools.test_landmarks(landmarks[0]):
-                    logging.warning(
+                    log.warning(
                         f'bad face detected in {image_file}. Skip.')
                     continue
 
@@ -158,7 +157,7 @@ class Patterns(object):
         self.__save()
 
     def __save(self):
-        logging.info('Patterns saving')
+        log.info('Patterns saving')
         data = {
             'files': self.__files,
             'persons': self.__persons}
@@ -167,7 +166,7 @@ class Patterns(object):
         with open(self.__pickle_file, 'wb') as f:
             f.write(dump)
 
-        logging.info(
+        log.info(
             f'Patterns done: {self.__pickle_file} ({len(dump)} bytes)')
 
     def __calc_out_filename(self, filename):
@@ -206,7 +205,7 @@ class Patterns(object):
             filename = self.__calc_filename(filename)
             out_filename = os.path.join(out_folder,
                                         self.__calc_out_filename(filename))
-            logging.info(f'adding {filename} to {out_filename}')
+            log.info(f'adding {filename} to {out_filename}')
             shutil.copyfile(filename, out_filename)
             self.__check_basename(out_filename)
             if move:
@@ -220,7 +219,7 @@ class Patterns(object):
         out_filename = os.path.join(out_folder,
                                     self.__calc_out_filename(filename))
         self.__check_basename(out_filename)
-        logging.info(f'adding data of {filename} to {out_filename}')
+        log.info(f'adding data of {filename} to {out_filename}')
         with open(out_filename, 'wb') as f:
             f.write(data)
 
@@ -230,7 +229,7 @@ class Patterns(object):
             del self.__basenames[os.path.basename(filename)]
         except KeyError:
             pass
-        logging.debug(f'File removed: {filename}')
+        log.debug(f'File removed: {filename}')
 
     def remove_files(self, filenames):
         for filename in filenames:
@@ -239,7 +238,7 @@ class Patterns(object):
                 self.__remove_file(filename)
                 os.remove(filename)
             except (FileNotFoundError, KeyError):
-                logging.exception('Skip file removing')
+                log.exception('Skip file removing')
         self.__save()
 
     def __init_basenames(self):
@@ -249,12 +248,12 @@ class Patterns(object):
         basename = os.path.basename(filename)
         if basename in self.__basenames:
             dup_filename = self.fullpath(self.__basenames[basename])
-            logging.info(f'Duplicate file detected: {basename}')
+            log.info(f'Duplicate file detected: {basename}')
             self.__remove_file(dup_filename)
             try:
                 os.remove(dup_filename)
             except FileNotFoundError:
-                logging.exception('Skip file removing')
+                log.exception('Skip file removing')
             self.__save()
 
     def load(self):
@@ -264,7 +263,7 @@ class Patterns(object):
             self.__persons = data['persons']
             self.__init_basenames()
         except Exception:
-            logging.exception(f"Can't load patterns: {self.__pickle_file}")
+            log.exception(f"Can't load patterns: {self.__pickle_file}")
 
     def optimize(self):
         encoder = self.__get_encoder()
@@ -281,7 +280,7 @@ class Patterns(object):
 
         to_remove = []
         while 0 < encs_len:
-            logging.debug(f'to optimize check: {encs_len}')
+            log.debug(f'to optimize check: {encs_len}')
             name = names.pop()
             fname = files.pop()
 
@@ -296,11 +295,11 @@ class Patterns(object):
                     if name != names[i]:
                         fn1 = self.fullpath(fname)
                         fn2 = self.fullpath(files[i])
-                        logging.warning(
+                        log.warning(
                             f'Different persons {dists[i]} "{fn1}" "{fn2}"')
                     else:
                         to_remove.append(self.fullpath(files[i]))
-                        logging.info(f'eq: {fname} {files[i]}')
+                        log.info(f'eq: {fname} {files[i]}')
 
                         names.pop(i)
                         files.pop(i)
@@ -311,16 +310,16 @@ class Patterns(object):
                 i += 1
 
         self.remove_files(to_remove)
-        logging.info(f'{len(to_remove)} files was optimized.')
+        log.info(f'{len(to_remove)} files was optimized.')
 
     def __analyze_duplicates(self, print_out):
-        logging.info(f'Analyze duplicates')
+        log.info(f'Analyze duplicates')
         fset = {}
         for f in self.__files:
             f = self.fullpath(f)
             filename = os.path.split(f)[1]
             if filename in fset:
-                logging.warning(
+                log.warning(
                     f'Duplicate pattern file: {f} ({fset[filename]})')
                 if print_out:
                     print(f)
@@ -329,13 +328,13 @@ class Patterns(object):
                 fset[filename] = f
 
     def __analyze_encodings_size(self, print_out):
-        logging.info(f'Analyze encodings')
+        log.info(f'Analyze encodings')
         dct = collections.defaultdict(list)
         for f, (enc, name, time, tp) in self.__files.items():
             f = self.fullpath(f)
             dct[len(enc)].append(f)
         if len(dct) != 1:
-            logging.warning('Inconsistent encoding: ' + str(dct.keys()))
+            log.warning('Inconsistent encoding: ' + str(dct.keys()))
             max_key = list(dct.keys())[0]
             for key in dct:
                 if len(dct[max_key]) < len(dct[key]):
@@ -343,27 +342,27 @@ class Patterns(object):
             del dct[max_key]
             for lst in dct.values():
                 for f in lst:
-                    logging.warning(f'wrong encoding: {f}')
+                    log.warning(f'wrong encoding: {f}')
                     if print_out:
                         print(f)
 
     def __analyze_landmarks(self, print_out):
-        logging.info(f'Analyze landmarks')
+        log.info(f'Analyze landmarks')
         for f in self.__files:
             f = self.fullpath(f)
             descr = tools.load_face_description(f)[0]
             if descr is None:
-                logging.warning(f'missed description: {f}')
+                log.warning(f'missed description: {f}')
                 if print_out:
                     print(f)
                 continue
             if 'landmarks' not in descr:
-                logging.warning(f'missed landmarks: {f}')
+                log.warning(f'missed landmarks: {f}')
                 if print_out:
                     print(f)
                 continue
             if not tools.test_landmarks(descr['landmarks']):
-                logging.warning(f'wrong landmarks: {f}')
+                log.warning(f'wrong landmarks: {f}')
                 if print_out:
                     print(f)
 
@@ -371,7 +370,7 @@ class Patterns(object):
         self.__analyze_duplicates(print_out)
         self.__analyze_encodings_size(print_out)
         self.__analyze_landmarks(print_out)
-        logging.info(f'Analyze done')
+        log.info(f'Analyze done')
 
     def __calc_persons(self):
         dct = {}

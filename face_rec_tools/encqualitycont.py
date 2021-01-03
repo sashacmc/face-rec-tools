@@ -2,7 +2,6 @@
 
 import os
 import shutil
-import logging
 import argparse
 
 import cv2
@@ -40,19 +39,19 @@ class EncodingQualityCont(object):
             image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             image = img_to_array(image) / 255.
         except Exception:
-            logging.exception(f'Problem with image {path}')
+            log.exception(f'Problem with image {path}')
             raise
         return image
 
     def train(self):
         self.__patterns.load()
-        logging.info('train started')
+        log.info('train started')
 
         files_bad = self.__patterns.encodings(patterns.PATTERN_TYPE_BAD)[2]
-        logging.info(f'found {len(files_bad)} bad files')
+        log.info(f'found {len(files_bad)} bad files')
 
         files_good = self.__patterns.encodings(patterns.PATTERN_TYPE_GOOD)[2]
-        logging.info(f'found {len(files_good)} good files')
+        log.info(f'found {len(files_good)} good files')
 
         limit = min(len(files_bad), len(files_good))
         files_bad = files_bad[:limit]
@@ -68,7 +67,7 @@ class EncodingQualityCont(object):
             [self.__load_image(self.__patterns.fullpath(f)) for f in files])
         labels = np.asarray(labels).astype('float32').reshape((-1, 1))
 
-        logging.info(f'loaded {len(images)} images')
+        log.info(f'loaded {len(images)} images')
         if self.__test_size != 0:
             images, images_test, labels, labels_test = train_test_split(
                 images, labels, test_size=self.__test_size,
@@ -88,8 +87,8 @@ class EncodingQualityCont(object):
 
         datagen.fit(images)
 
-        logging.info(f'ready for train {len(images)} images')
-        logging.info(f'ready for test {len(images_test)} images')
+        log.info(f'ready for train {len(images)} images')
+        log.info(f'ready for test {len(images_test)} images')
 
         model = keras.Sequential([
             keras.layers.Flatten(input_shape=(
@@ -133,7 +132,7 @@ class EncodingQualityCont(object):
                       loss=tf.keras.losses.BinaryCrossentropy(),
                       metrics=['accuracy'])
         model.summary()
-        logging.info('fit started')
+        log.info('fit started')
 
         model.fit(datagen.flow(images, labels, batch_size=self.__batch_size),
                   validation_data=dataset_test,
@@ -144,13 +143,13 @@ class EncodingQualityCont(object):
         if dataset_test is not None:
             results = model.evaluate(images_test, labels_test,
                                      batch_size=self.__batch_size)
-            logging.info(f'test loss, test acc: {results}')
+            log.info(f'test loss, test acc: {results}')
 
-        logging.info(f'model saving: {self.__modelfile}')
+        log.info(f'model saving: {self.__modelfile}')
         model.save(self.__modelfile)
 
     def test(self, files):
-        logging.info(f'model loading: {self.__modelfile}')
+        log.info(f'model loading: {self.__modelfile}')
         model = keras.models.load_model(self.__modelfile)
         images = np.array([self.__load_image(f) for f in files])
         return model.predict(images, batch_size=self.__batch_size)

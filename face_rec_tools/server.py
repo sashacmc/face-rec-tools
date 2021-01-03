@@ -7,7 +7,6 @@ import sys
 import json
 import shutil
 import urllib
-import logging
 import tempfile
 import argparse
 import http.server
@@ -64,7 +63,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                     self.__send_blob(data, 'image/jpeg', params)
                 else:
                     self.__not_found_response()
-                    logging.debug(f'File in cache not found: {fname}')
+                    log.debug(f'File in cache not found: {fname}')
                 return
         elif path.startswith('pattern/'):
             fname = self.server.patterns().fullpath(path[8:])
@@ -93,7 +92,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__send_blob(f.read(), cont, params)
         except IOError as ex:
             self.__not_found_response()
-            logging.exception(ex)
+            log.exception(ex)
 
     def __send_blob(self, data, cont, params):
         if 'thumbnail' in params:
@@ -202,17 +201,17 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
             return
         face_id = descr.get('face_id', None)
         if face_id is None:
-            logging.warning(f'face file {path} without face_id')
+            log.warning(f'face file {path} without face_id')
             self.__not_found_response()
             return
         count, ff = self.server.db().get_face(face_id)
         if count == 0:
-            logging.warning(f'face with id {face_id} not found')
+            log.warning(f'face with id {face_id} not found')
             self.__not_found_response()
             return
         pattern_filename = next(ff)['faces'][0]['pattern']
         if pattern_filename == '':
-            logging.warning(f'pattern file not specified')
+            log.warning(f'pattern file not specified')
             self.__not_found_response()
             return
         self.__ok_response(pattern_filename)
@@ -292,7 +291,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
         self.__ok_response('')
 
     def do_GET(self):
-        logging.debug('do_GET: ' + self.path)
+        log.debug('do_GET: ' + self.path)
         try:
             path, params = self.__path_params()
             if path == '/list_cache':
@@ -327,7 +326,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 path = 'index.html'
 
             if '..' in path:
-                logging.warning('".." in path: ' + path)
+                log.warning('".." in path: ' + path)
                 self.__not_found_response()
                 return
 
@@ -336,14 +335,14 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
                 self.__file_request(path, params)
                 return
 
-            logging.warning('Wrong path: ' + path)
+            log.warning('Wrong path: ' + path)
             self.__not_found_response()
         except Exception as ex:
             self.__server_error_response(str(ex))
-            logging.exception(ex)
+            log.exception(ex)
 
     def do_POST(self):
-        logging.debug('do_POST: ' + self.path)
+        log.debug('do_POST: ' + self.path)
         try:
             path, params = self.__path_params()
 
@@ -381,7 +380,7 @@ class FaceRecHandler(http.server.BaseHTTPRequestHandler):
 
         except Exception as ex:
             self.__server_error_response(str(ex))
-            logging.exception(ex)
+            log.exception(ex)
 
 
 class FaceRecServer(http.server.HTTPServer):
@@ -407,7 +406,7 @@ class FaceRecServer(http.server.HTTPServer):
     def __start_recognizer(self, method, *args):
         self.status()
         if self.__recognizer is not None:
-            logging.warning('Trying to create second recognizer')
+            log.warning('Trying to create second recognizer')
             raise Exception('Recognizer already started')
 
         self.__recognizer = recognizer_runner.RecognizerRunner(
@@ -529,13 +528,13 @@ def main():
 
     try:
         server = FaceRecServer(cfg)
-        logging.info("Face rec server up.")
+        log.info("Face rec server up.")
         server.serve_forever()
     except KeyboardInterrupt:
         server.stop(False)
         server.status()
         server.server_close()
-        logging.info("Face rec server down.")
+        log.info("Face rec server down.")
 
 
 if __name__ == '__main__':

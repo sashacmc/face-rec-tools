@@ -4,12 +4,12 @@ import os
 import cv2
 import sys
 import math
-import logging
 import numpy as np
 import face_recognition
 
 sys.path.insert(0, os.path.abspath('..'))
 
+from face_rec_tools import log  # noqa
 from face_rec_tools import tools  # noqa
 
 
@@ -33,8 +33,7 @@ class FaceEncoder(object):
                  align=True,
                  debug_out_folder=None):
 
-        logging.info(
-            f"Using {encoding_model} model and {distance_metric} metric")
+        log.info(f"Using {encoding_model} model and {distance_metric} metric")
 
         self.__encoding_model = encoding_model
         self.__num_jitters = int(num_jitters)

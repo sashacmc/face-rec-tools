@@ -1,11 +1,15 @@
 #!/usr/bin/python3
 
 import os
+import sys
 import atexit
 import sqlite3
-import logging
 import argparse
 import threading
+
+sys.path.insert(0, os.path.abspath('..'))
+
+from face_rec_tools import log  # noqa
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS face_images (
@@ -126,10 +130,10 @@ def speed_test(db):
 def createCacheDB(cfg):
     cachedb_file = cfg.get_path('files', 'cachedb')
     if cachedb_file:
-        logging.info(f'Using cachedb: {cachedb_file}')
+        log.info(f'Using cachedb: {cachedb_file}')
         return CacheDB(cachedb_file)
     else:
-        logging.info(f'Not using cachedb')
+        log.info(f'Not using cachedb')
         return None
 
 

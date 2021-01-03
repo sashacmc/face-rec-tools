@@ -2,7 +2,6 @@
 
 import os
 import sys
-import logging
 import argparse
 
 sys.path.insert(0, os.path.abspath('..'))
@@ -33,15 +32,15 @@ class PlexSync(object):
             if not self.__plexdb.tag_exists(tag, plexdb.TAG_TYPE_PHOTO):
                 self.__plexdb.create_tag(
                     tag, plexdb.TAG_TYPE_PHOTO, commit=False)
-                logging.info(f'Photo tag "{tag}" added to plex db')
+                log.info(f'Photo tag "{tag}" added to plex db')
             if not self.__plexdb.tag_exists(tag, plexdb.TAG_TYPE_VIDEO):
                 self.__plexdb.create_tag(
                     tag, plexdb.TAG_TYPE_VIDEO, commit=False)
-                logging.info(f'Video tag "{tag}" added to plex db')
+                log.info(f'Video tag "{tag}" added to plex db')
         self.__plexdb.commit()
 
     def set_tags(self, resync=False):
-        logging.info(f'Set tags started ({resync})')
+        log.info(f'Set tags started ({resync})')
         self.__create_tags()
 
         if resync:
@@ -62,7 +61,7 @@ class PlexSync(object):
                 if name in self.__names:
                     tags.append(TAG_PREFIX + name)
 
-            logging.debug(f"sync tags for image: {filename}: " + str(tags))
+            log.debug(f"sync tags for image: {filename}: " + str(tags))
             if len(tags) != 0:
                 ext = tools.get_low_ext(filename)
                 if ext in tools.IMAGE_EXTS:
@@ -79,16 +78,16 @@ class PlexSync(object):
         self.__plexdb.commit()
         self.__recdb.commit()
 
-        logging.info(
+        log.info(
             f'Set tags done: images={images_count} faces={faces_count}')
 
     def remove_tags(self):
-        logging.info(f'Remove tags started')
+        log.info(f'Remove tags started')
         self.__plexdb.delete_tags(TAG_PREFIX, cleanup=True)
-        logging.info(f'Remove tags done')
+        log.info(f'Remove tags done')
 
     def sync_new(self, cfg, patt, folders, exts):
-        logging.info(f'Sync new started')
+        log.info(f'Sync new started')
         cachedb_file = cfg.get_path('files', 'cachedb')
         cache_path = cfg.get_path('server', 'face_cache_path')
         if cachedb_file:
@@ -106,25 +105,25 @@ class PlexSync(object):
             filenames = sorted(plex_files - rec_files)
             count = len(filenames)
             if count != 0:
-                logging.info(f'Adding {count} files from {folder}')
+                log.info(f'Adding {count} files from {folder}')
                 rec.recognize_files(filenames, cache_path)
             else:
-                logging.info(f'No files to add from {folder}')
+                log.info(f'No files to add from {folder}')
         self.set_tags()
 
     def sync_deleted(self, folders):
-        logging.info(f'Sync deleted started')
+        log.info(f'Sync deleted started')
         for folder in folders:
-            logging.info(f'Check {folder}')
+            log.info(f'Check {folder}')
             plex_files = set(self.__plexdb.get_files(folder))
             rec_files = set(self.__recdb.get_files(folder))
             filenames = sorted(rec_files - plex_files)
             if len(filenames) != 0:
                 for filename in filenames:
-                    logging.info(f'removing from recdb: {filename}')
+                    log.info(f'removing from recdb: {filename}')
                     self.__recdb.remove(filename, commit=False)
             else:
-                logging.info(f'No files to remove from {folder}')
+                log.info(f'No files to remove from {folder}')
             self.__recdb.commit()
 
 
@@ -151,7 +150,6 @@ def main():
     cfg = config.Config(args.config)
 
     log.initLogger(args.logfile)
-    logging.basicConfig(level=logging.DEBUG)
 
     patt = patterns.createPatterns(cfg)
     patt.load()

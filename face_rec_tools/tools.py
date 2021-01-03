@@ -6,10 +6,12 @@ import glob
 import math
 import piexif
 import pickle
-import logging
 import collections
 from PIL import Image, ImageDraw
 
+sys.path.insert(0, os.path.abspath('..'))
+
+from face_rec_tools import log  # noqa
 
 IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')
 VIDEO_EXTS = ('.mp4', '.mpg', '.mpeg', '.mov', '.avi', '.mts')
@@ -42,11 +44,11 @@ def __list_files(path, exts, nomedia_names):
 
 
 def list_files(path, exts=None, nomedia_names=()):
-    logging.debug(f'list_files: {path}, {exts}, {nomedia_names}')
+    log.debug(f'list_files: {path}, {exts}, {nomedia_names}')
     files = []
     for p in glob.glob(path):
         files += __list_files(p, exts, nomedia_names)
-    logging.debug(f'list_files: found {len(files)} files')
+    log.debug(f'list_files: found {len(files)} files')
     return files
 
 
@@ -63,7 +65,7 @@ def cuda_init(tf_memory_limit=0):
     try:
         import tensorflow as tf
 
-        logging.debug('cuda init')
+        log.debug('cuda init')
         gpu = tf.config.experimental.list_physical_devices('GPU')[0]
         if tf.config.experimental.get_memory_growth(gpu):
             return
@@ -74,13 +76,13 @@ def cuda_init(tf_memory_limit=0):
                 [tf.config.experimental.VirtualDeviceConfiguration(
                     memory_limit=tf_memory_limit)])
     except ModuleNotFoundError as ex:
-        logging.info('tensorflow disabled, skip initialisation')
+        log.info('tensorflow disabled, skip initialisation')
 
 
 def cuda_release():
     import torch
 
-    logging.debug('cuda release')
+    log.debug('cuda release')
     torch.cuda.empty_cache()
 
 
@@ -91,10 +93,10 @@ def read_image(image_file, max_size):
 
 def read_video(video_file, max_size, max_video_frames, video_frames_step):
     if video_frames_step <= 0:
-        logging.error('video_frames_step must be > 0')
+        log.error('video_frames_step must be > 0')
         return {}
     if video_frames_step > max_video_frames:
-        logging.error('video_frames_step must less then max_video_frames')
+        log.error('video_frames_step must less then max_video_frames')
         return {}
     video = cv2.VideoCapture(video_file)
     frames = {}
@@ -164,7 +166,7 @@ def __set_landmarks(image, face_landmarks):
                                     (128 + g) % 255,
                                     (128 + b) % 255))
             except IndexError:
-                logging.debug(f'Incorrect landmark point: {pt}')
+                log.debug(f'Incorrect landmark point: {pt}')
 
 
 def __set_landmarks_lines(image, face_landmarks):
@@ -180,11 +182,11 @@ def enable_landmarks(filename, enable):
     enabled = thumbnail is not None
 
     if enable == enabled:
-        logging.debug(f'enable_landmarks skip: {filename}')
+        log.debug(f'enable_landmarks skip: {filename}')
         return
 
     if descr is None or 'landmarks' not in descr:
-        logging.warning(f'has no landmarks: {filename}')
+        log.warning(f'has no landmarks: {filename}')
         return
 
     image = Image.open(filename)
@@ -229,26 +231,26 @@ def test_line_angle(line):
 
 def test_landmarks(l):
     if l is None:
-        logging.debug('Empty landmarks')
+        log.debug('Empty landmarks')
         return False
     if 'chin' not in l:
-        logging.debug('landmarks without chin')
+        log.debug('landmarks without chin')
         return False
     size = bound_size(l['chin'])
     if not test_line_angle(l['chin']):
-        logging.debug('landmarks chin angle test failed')
+        log.debug('landmarks chin angle test failed')
         return False
     if bound_size(l['left_eye']) >= size / 4 or \
             bound_size(l['right_eye']) >= size / 4:
-        logging.debug('landmarks eye size test failed')
+        log.debug('landmarks eye size test failed')
         return False
     if bound_size(l['left_eyebrow']) >= size / 2 or \
             bound_size(l['right_eyebrow']) >= size / 2:
-        logging.debug('landmarks eyebrow size test failed')
+        log.debug('landmarks eyebrow size test failed')
         return False
     if bound_size(l['nose_tip']) >= size / 4 or \
             bound_size(l['nose_bridge']) >= size / 2:
-        logging.debug('landmarks nose size test failed')
+        log.debug('landmarks nose size test failed')
         return False
     return True
 
@@ -323,14 +325,14 @@ def reduce_faces_from_video(faces, min_count):
                 if test_face(dct[n]):
                     # skip weak because of name already persist in current file
                     ok = False
-                    logging.debug(f'skip weak: {n}')
+                    log.debug(f'skip weak: {n}')
                 else:
                     # extend weak count by already persisted name
                     face['count'] += dct[n]['count']
-                    logging.debug(f'extend weak: {n}')
+                    log.debug(f'extend weak: {n}')
         if ok:
             ok = test_face(face)
-        logging.debug(f'faces in video: {face["name"]}: {face["count"]}: {ok}')
+        log.debug(f'faces in video: {face["name"]}: {face["count"]}: {ok}')
         if ok:
             res.append(face)
     return res
@@ -355,7 +357,7 @@ class LazyImage(object):
 
     def get(self, dummy_frame_num=0):
         if self.__image is None:
-            logging.debug(f'LazyImage load: {self.__image_file}')
+            log.debug(f'LazyImage load: {self.__image_file}')
             self.__image = read_image(self.__image_file, self.__max_size)
         return self.__image
 
@@ -377,7 +379,7 @@ class LazyVideo(object):
 
     def frames(self):
         if self.__frames is None:
-            logging.debug(f'LazyVideo load: {self.__video_file}')
+            log.debug(f'LazyVideo load: {self.__video_file}')
             self.__frames = read_video(self.__video_file,
                                        self.__max_size,
                                        self.__max_video_frames,

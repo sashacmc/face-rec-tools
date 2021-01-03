@@ -2,7 +2,6 @@
 
 import re
 import os
-import logging
 import argparse
 
 import log
@@ -51,21 +50,21 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
     for patt_fname, enc in zip(filenames, encodings):
         fname, box = get_from_db(files_faces, db, patt_fname)
         if fname is None:
-            logging.warning(f'Not found in db: {patt_fname}')
+            log.warning(f'Not found in db: {patt_fname}')
             continue
 
-        logging.debug(f'Found in db file: {fname} {box}')
+        log.debug(f'Found in db file: {fname} {box}')
 
         try:
             image = tools.read_image(fname, max_size)
         except Exception as ex:
-            logging.warning(f'Cant''t read image: {fname}: ' + str(ex))
+            log.warning(f'Cant''t read image: {fname}: ' + str(ex))
             continue
 
         try:
             encodings, landmarks = encoder.encode(image, (box,))
             if not tools.test_landmarks(landmarks[0]):
-                logging.warning(
+                log.warning(
                     f'bad face detected in {patt_fname}')
                 continue
 
@@ -77,16 +76,16 @@ def update(patt, db, num_jitters, encoding_model, max_size, out_size):
                             image, enc,
                             out_size,
                             fname)
-            logging.info(f'Updated: {patt_fname}')
+            log.info(f'Updated: {patt_fname}')
         except Exception as ex:
-            logging.exception(f'Failed: {patt_fname}')
+            log.exception(f'Failed: {patt_fname}')
 
 
 def update_db(db, rec):
     count, files_faces = db.get_all()
-    logging.info(f'Start reencode {count} files')
+    log.info(f'Start reencode {count} files')
     rec.reencode_files(files_faces)
-    logging.info(f'Reencode done')
+    log.info(f'Reencode done')
 
 
 def args_parse():
@@ -102,7 +101,6 @@ def main():
     cfg = config.Config(args.config)
 
     log.initLogger(args.logfile)
-    logging.basicConfig(level=logging.DEBUG)
 
     tools.cuda_init(int(cfg['processing']['cuda_memory_limit']))
 

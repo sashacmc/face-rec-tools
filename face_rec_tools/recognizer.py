@@ -10,7 +10,6 @@ import numpy
 import random
 import shutil
 import signal
-import logging
 import argparse
 import itertools
 import collections
@@ -106,7 +105,7 @@ class Recognizer(object):
         self.__video_batch_size = int(video_batch_size)
 
     def recognize_image(self, filename):
-        logging.info(f'recognize image: {filename}')
+        log.info(f'recognize image: {filename}')
 
         image = tools.LazyImage(filename, self.__max_size)
 
@@ -118,7 +117,7 @@ class Recognizer(object):
             return [], None
 
     def reencode_image(self, filename, encoded_faces):
-        logging.info(f'reencode image: {filename}')
+        log.info(f'reencode image: {filename}')
 
         image = tools.LazyImage(filename, self.__max_size)
 
@@ -132,7 +131,7 @@ class Recognizer(object):
             encoded_faces[i]['profile_angle'] = profile_angles[i]
 
     def recognize_video(self, filename):
-        logging.info(f'recognize video: {filename}')
+        log.info(f'recognize video: {filename}')
         video = tools.LazyVideo(filename,
                                 self.__max_size,
                                 self.__max_video_frames,
@@ -173,7 +172,7 @@ class Recognizer(object):
                 batched_encoded_faces += encoded_faces
                 cnt += 1
 
-        logging.info(f'done {cnt} frames: {filename}')
+        log.info(f'done {cnt} frames: {filename}')
         return batched_encoded_faces, video
 
     def calc_names_in_video(self, encoded_faces):
@@ -193,12 +192,12 @@ class Recognizer(object):
             face_image = image[top:bottom, left:right]
             (height, width) = face_image.shape[:2]
             if height < self.__min_size or width < self.__min_size:
-                logging.debug(f'Skip too small face: {height}x{width}')
+                log.debug(f'Skip too small face: {height}x{width}')
                 continue
             gray = cv2.cvtColor(face_image, cv2.COLOR_BGR2GRAY)
             fm = cv2.Laplacian(gray, cv2.CV_64F).var()
             if fm < 50:
-                logging.debug(f'Skip too blurry face: {fm}')
+                log.debug(f'Skip too blurry face: {fm}')
                 continue
             filtered_boxes.append(box)
 
@@ -234,7 +233,7 @@ class Recognizer(object):
 
     def __match_faces(self, encoded_faces):
         if len(self.__pattern_encodings) == 0:
-            logging.warning('Empty patterns')
+            log.warning('Empty patterns')
 
         for i in range(len(encoded_faces)):
             if self.__step_stage_face():
@@ -251,7 +250,7 @@ class Recognizer(object):
                     dist = dist_bad
                     pattern = pattern_bad
 
-            logging.debug(f'matched: {name}: {dist}: {pattern}')
+            log.debug(f'matched: {name}: {dist}: {pattern}')
             if 'name' in encoded_faces[i]:
                 encoded_faces[i]['oldname'] = encoded_faces[i]['name']
 
@@ -328,7 +327,7 @@ class Recognizer(object):
                 elif ext in tools.VIDEO_EXTS:
                     encoded_faces, media = self.recognize_video(f)
                 else:
-                    logging.warning(f'Unknown ext: {ext}')
+                    log.warning(f'Unknown ext: {ext}')
                     continue
                 if media is None:
                     continue
@@ -341,7 +340,7 @@ class Recognizer(object):
                         is_video=ext in tools.VIDEO_EXTS,
                         skip_face_gen=skip_face_gen)
             except Exception as ex:
-                logging.exception(f'Image {f} recognition failed')
+                log.exception(f'Image {f} recognition failed')
         self.__end_stage()
 
     def reencode_files(self, files_faces):
@@ -357,15 +356,15 @@ class Recognizer(object):
                 elif ext in tools.VIDEO_EXTS:
                     encoded_faces, media = self.recognize_video(filename)
                 else:
-                    logging.warning(f'Unknown ext: {ext}')
+                    log.warning(f'Unknown ext: {ext}')
                     continue
                 self.__db.insert(filename, encoded_faces, commit=False)
             except Exception as ex:
-                logging.exception(f'{filename} reencoding failed')
+                log.exception(f'{filename} reencoding failed')
         self.__end_stage()
 
     def __get_files_faces_by_filter(self, fltr):
-        logging.debug(f'Get by filter: {fltr}')
+        log.debug(f'Get by filter: {fltr}')
         tp = fltr['type']
         if tp == 'unmatched':
             return self.__db.get_unmatched()
@@ -416,7 +415,7 @@ class Recognizer(object):
             if self.__step_stage():
                 break
             filename = ff['filename']
-            logging.info(f"match image: {filename}")
+            log.info(f"match image: {filename}")
             is_video = tools.get_low_ext(filename) in tools.VIDEO_EXTS
             if not self.__match_faces(ff['faces']):
                 continue
@@ -431,7 +430,7 @@ class Recognizer(object):
                                        commit=False)
                     cnt_changed += 1
                     changed = True
-                    logging.info(
+                    log.info(
                         f"face {face['face_id']} in file '{ff['filename']}' " +
                         f"changed '{face['oldname']}' -> '{face['name']}'")
                 if debug_out_folder and (changed or save_all_faces):
@@ -446,14 +445,14 @@ class Recognizer(object):
                         is_video=is_video,
                         skip_face_gen=skip_face_gen)
         self.__end_stage()
-        logging.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
+        log.info(f'match done: count: {cnt_all}, changed: {cnt_changed}')
 
     def __save_faces(self, files_faces, debug_out_folder):
         for ff in files_faces:
             if self.__step_stage():
                 break
             filename = ff['filename']
-            logging.info(f"save faces from image: {filename}")
+            log.info(f"save faces from image: {filename}")
             media = tools.load_media(filename,
                                      self.__max_size,
                                      self.__max_video_frames,
@@ -470,13 +469,13 @@ class Recognizer(object):
         for enc in encoded_faces:
             if 'profile_angle' in enc and \
                     enc['profile_angle'] > self.__max_face_profile_angle:
-                logging.debug(f"Skip profile face: {enc['profile_angle']}")
+                log.debug(f"Skip profile face: {enc['profile_angle']}")
                 continue
             if not tools.test_landmarks(enc['landmarks']):
-                logging.debug(f'Skip incorrect landmark')
+                log.debug(f'Skip incorrect landmark')
                 continue
             res.append(enc)
-            logging.debug(f"profile face: {enc['profile_angle']}")
+            log.debug(f"profile face: {enc['profile_angle']}")
         return res
 
     def recognize_folder(self, folder, debug_out_folder,
@@ -496,7 +495,7 @@ class Recognizer(object):
             return
         files_faces = self.__db.get_folder(folder)
         for ff in files_faces:
-            logging.info(f"remove from DB: {ff['filename']}")
+            log.info(f"remove from DB: {ff['filename']}")
             self.__db.remove(ff['filename'], False)
             if self.__cdb is not None:
                 for face in ff['faces']:
@@ -504,7 +503,7 @@ class Recognizer(object):
         # delete files without faces
         files = self.__db.get_files(folder)
         for f in files:
-            logging.info(f"remove image: {f}")
+            log.info(f"remove image: {f}")
             self.__db.remove(f, False)
         self.__end_stage()
 
@@ -562,7 +561,7 @@ class Recognizer(object):
                                     media.filename())
                     self.__cdb.save_face(enc['face_id'],
                                          out_stream.getvalue())
-                    logging.debug(f"face {enc['face_id']} cached")
+                    log.debug(f"face {enc['face_id']} cached")
                 if not skip_face_gen:
                     self.__cdb.add_to_cache(enc['face_id'], out_filename)
             elif not skip_face_gen:
@@ -570,7 +569,7 @@ class Recognizer(object):
                 tools.save_face(out_filename, media.get(enc['frame']), enc,
                                 self.__debug_out_image_size,
                                 media.filename())
-                logging.debug(f'face saved to: {out_filename}')
+                log.debug(f'face saved to: {out_filename}')
 
     def get_faces_by_face(self, filename, debug_out_folder,
                           remove_file=False):
@@ -581,7 +580,7 @@ class Recognizer(object):
 
         encoded_faces = self.encode_faces(image.get())
         face = encoded_faces[0]
-        logging.debug(f'found face: {face}')
+        log.debug(f'found face: {face}')
 
         all_encodings = self.__db.get_all_encodings(self.__max_workers)
 
@@ -597,7 +596,7 @@ class Recognizer(object):
                 filtered.append((dist, info))
         filtered.sort()
 
-        logging.debug(f'{len(filtered)} faces matched')
+        log.debug(f'{len(filtered)} faces matched')
 
         self.__start_stage(len(filtered))
         for dist, info in filtered:
@@ -614,11 +613,11 @@ class Recognizer(object):
                 (face,), media,
                 debug_out_folder, debug_out_file_name)
         if remove_file:
-            logging.debug(f'removing temp file: {filename}')
+            log.debug(f'removing temp file: {filename}')
             os.remove(filename)
 
     def stop(self, save=False):
-        logging.info(f'Stop called ({save})')
+        log.info(f'Stop called ({save})')
         self.__status['stop'] = True
         self.__status['save'] = save
 
@@ -632,7 +631,7 @@ class Recognizer(object):
         return self.__status['stop']
 
     def __start_stage(self, count):
-        logging.info(
+        log.info(
             f'Stage {self.__status["state"]} for {count} steps started')
         self.__status['count'] = count
         self.__status['current'] = 0
@@ -653,20 +652,20 @@ class Recognizer(object):
 
     def __end_stage(self):
         if self.__status.get('save', True):
-            logging.info(f'Commit transaction')
+            log.info(f'Commit transaction')
             if self.__db is not None:
                 self.__db.commit()
             if self.__cdb is not None:
                 self.__cdb.commit()
         else:
-            logging.info(f'Rollback transaction')
+            log.info(f'Rollback transaction')
             if self.__db is not None:
                 self.__db.rollback()
             if self.__cdb is not None:
                 self.__cdb.rollback()
         self.__status['stop'] = False
         self.__status['endtime'] = time.time()
-        logging.info(f'end stage: {self.__status}')
+        log.info(f'end stage: {self.__status}')
 
 
 def createRecognizer(patt, cfg, cdb=None, db=None, status=None):

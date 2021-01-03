@@ -7,7 +7,6 @@ import json
 import time
 import numpy
 import atexit
-import logging
 import sqlite3
 import argparse
 import collections
@@ -69,7 +68,7 @@ def convert_array(text):
 
 class RecDB(object):
     def __init__(self, filename, readonly=False):
-        logging.debug(f'Connect to {filename} ({readonly})')
+        log.debug(f'Connect to {filename} ({readonly})')
         sqlite3.register_adapter(numpy.ndarray, adapt_array)
         sqlite3.register_converter('array', convert_array)
 
@@ -252,7 +251,7 @@ class RecDB(object):
                             where_clause, args)
             count = res.fetchone()[0]
             elapsed = time.time() - start
-            logging.debug(
+            log.debug(
                 f'Count of "{where_clause}" fetched in {elapsed} sec: {count}')
             if count == 0:
                 return 0, iter(())
@@ -266,7 +265,7 @@ class RecDB(object):
              FROM files JOIN faces ON files.id=faces.file_id ' +
             where_clause, args)
         elapsed = time.time() - start
-        logging.debug(f'"{where_clause}" fetched in {elapsed} sec')
+        log.debug(f'"{where_clause}" fetched in {elapsed} sec')
         return count, self.__yield_files_faces(tools.cursor_iterator(res))
 
     def get_unmatched(self):
@@ -338,7 +337,7 @@ class RecDB(object):
         for f in filenames:
             path, name = os.path.split(f)
             if name in res:
-                logging.warn(
+                log.warning(
                     f'Duplicate file {name} in {path} and {res[name]}')
             res[name] = path
         return res
@@ -350,18 +349,18 @@ class RecDB(object):
         for name, oldpath in oldfiles.items():
             if name not in newfiles:
                 old = os.path.join(oldpath, name)
-                logging.info(f'removing unexists file: {old}')
+                log.info(f'removing unexists file: {old}')
                 self.remove(old, commit=False)
             elif newfiles[name] != oldpath:
                 old = os.path.join(oldpath, name)
                 new = os.path.join(newfiles[name], name)
-                logging.info(f'move file {old} to {new}')
+                log.info(f'move file {old} to {new}')
                 self.move(old, new, commit=False)
         self.commit()
 
     def get_all_encodings(self, encodings_split=1):
         if self.__all_encodings is None:
-            logging.debug(f'loading all encodings...')
+            log.debug(f'loading all encodings...')
             files_faces = tools.filter_images(self.get_all()[1])
             encodings = []
             info = []
@@ -373,7 +372,7 @@ class RecDB(object):
                 numpy.array(encodings),
                 encodings_split)
             self.__all_encodings = (np_encodings, info)
-            logging.debug(f'{len(info)} encodings was loaded')
+            log.debug(f'{len(info)} encodings was loaded')
         return self.__all_encodings
 
     def find_files_by_names(self, names, subfolder=None):

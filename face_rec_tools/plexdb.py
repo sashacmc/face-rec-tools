@@ -1,8 +1,13 @@
 #!/usr/bin/python3
 
+import os
+import sys
 import time
-import logging
 import sqlite3
+
+sys.path.insert(0, os.path.abspath('..'))
+
+from face_rec_tools import log  # noqa
 
 TAG_TYPE_PHOTO = 0
 TAG_TYPE_VIDEO = 2
@@ -10,7 +15,7 @@ TAG_TYPE_VIDEO = 2
 
 class PlexDB(object):
     def __init__(self, filename, readonly=False):
-        logging.debug(f'Connect to {filename} ({readonly})')
+        log.debug(f'Connect to {filename} ({readonly})')
         self.__conn = sqlite3.connect(
             'file:' + filename + ('?mode=ro' if readonly else ''),
             uri=True)
@@ -33,13 +38,13 @@ class PlexDB(object):
     def set_tags(self, filename, tags, tag_type, commit=True):
         fid = self.__get_id(filename)
         if fid is None:
-            logging.warning(f'Filename not found: {filename}')
+            log.warning(f'Filename not found: {filename}')
             return False
 
         for tag in tags:
             tag_id = self.__get_tag_id(tag, tag_type)
             if tag_id is None:
-                logging.warning(f'Tag not found: {tag}')
+                log.warning(f'Tag not found: {tag}')
                 continue
 
             self.__set_tag(fid, tag_id, commit)
@@ -49,7 +54,7 @@ class PlexDB(object):
     def get_tags(self, filename):
         fid = self.__get_id(filename)
         if fid is None:
-            logging.warning(f'Filename not found: {filename}')
+            log.warning(f'Filename not found: {filename}')
             return None
 
         c = self.__conn.cursor()
@@ -64,7 +69,7 @@ class PlexDB(object):
     def clean_tags(self, filename, tags=None, tag_prefix=None, commit=True):
         fid = self.__get_id(filename)
         if fid is None:
-            logging.warning(f'Filename not found: {filename}')
+            log.warning(f'Filename not found: {filename}')
             return 0
 
         res = 0
@@ -86,7 +91,7 @@ class PlexDB(object):
         if commit:
             self.__conn.commit()
 
-        logging.debug(f'Removed {res} tags for {filename}')
+        log.debug(f'Removed {res} tags for {filename}')
 
         return res
 
@@ -135,7 +140,7 @@ class PlexDB(object):
                  WHERE tag_id=?',
                 (tag_id, )).rowcount
             if res != 0:
-                logging.debug(f'Removed {res} taggings for tag {tag_id}')
+                log.debug(f'Removed {res} taggings for tag {tag_id}')
         else:
             res = c.execute(
                 'SELECT count(*) FROM taggings \
@@ -248,7 +253,6 @@ class PlexDB(object):
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
     db = PlexDB('/opt/tmp/test.db')
     fn = '/mnt/multimedia/NEW/Foto/2019/2019-11-05/2019-11-05_18-19-12.JPG'
     print(db.get_tags(fn))

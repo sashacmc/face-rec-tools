@@ -3,11 +3,11 @@
 import os
 import sys
 import time
-import logging
 import multiprocessing
 
 sys.path.insert(0, os.path.abspath('..'))
 
+from face_rec_tools import log  # noqa
 from face_rec_tools import tools  # noqa
 
 
@@ -43,7 +43,7 @@ class RecognizerRunner(multiprocessing.Process):
             recognizer = recognizer.createRecognizer(
                 patterns, cfg, cdb, db, self.__status)
 
-            logging.info(f'Run in process: {self.__method}{self.__args}')
+            log.info(f'Run in process: {self.__method}{self.__args}')
 
             if self.__method == 'recognize_folder':
                 tools.cuda_init(cuda_memory_limit)
@@ -58,10 +58,10 @@ class RecognizerRunner(multiprocessing.Process):
             elif self.__method == 'get_faces_by_face':
                 tools.cuda_init(cuda_memory_limit)
                 recognizer.get_faces_by_face(*self.__args)
-            logging.info(f'Process done: {self.__method}')
+            log.info(f'Process done: {self.__method}')
             self.__status['state'] = 'done'
         except Exception as ex:
-            logging.exception(ex)
+            log.exception(ex)
             self.__status['state'] = 'error'
             self.__status['error'] = str(ex)
 
@@ -80,6 +80,6 @@ class RecognizerRunner(multiprocessing.Process):
         return status
 
     def stop(self, save):
-        logging.info(f'Runner stop called ({save})')
+        log.info(f'Runner stop called ({save})')
         self.__status['stop'] = True
         self.__status['save'] = save
