@@ -60,18 +60,21 @@ def cuda_init(tf_memory_limit=0):
     if not has_cuda():
         return
 
-    import tensorflow as tf
+    try:
+        import tensorflow as tf
 
-    logging.debug('cuda init')
-    gpu = tf.config.experimental.list_physical_devices('GPU')[0]
-    if tf.config.experimental.get_memory_growth(gpu):
-        return
-    tf.config.experimental.set_memory_growth(gpu, True)
-    if tf_memory_limit:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpu,
-            [tf.config.experimental.VirtualDeviceConfiguration(
-                memory_limit=tf_memory_limit)])
+        logging.debug('cuda init')
+        gpu = tf.config.experimental.list_physical_devices('GPU')[0]
+        if tf.config.experimental.get_memory_growth(gpu):
+            return
+        tf.config.experimental.set_memory_growth(gpu, True)
+        if tf_memory_limit:
+            tf.config.experimental.set_virtual_device_configuration(
+                gpu,
+                [tf.config.experimental.VirtualDeviceConfiguration(
+                    memory_limit=tf_memory_limit)])
+    except ModuleNotFoundError as ex:
+        logging.info('tensorflow disabled, skip initialisation')
 
 
 def cuda_release():

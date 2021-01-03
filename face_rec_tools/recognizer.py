@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath('..'))
 try:
     import face_recognition
     from face_rec_tools import faceencoder
-except Exception as ex:
+except ModuleNotFoundError as ex:
     print('face_recognition not loaded, readonly mode: ' + str(ex))
 
 from face_rec_tools import log  # noqa
