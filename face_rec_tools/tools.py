@@ -20,6 +20,8 @@ RECOGNIZER_STATUS_INIT = {
     'state': '',
     'count': 0,
     'current': 0,
+    'faces_count': 0,
+    'faces_per_second': 0,
     'args': {},
     'starttime': 0,
     'stop': False
