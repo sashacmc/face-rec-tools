@@ -84,7 +84,7 @@ cp ~/.local/lib/python3.?/site-packages/face_rec_tools/cfg/frontal.cfg ~/.face-r
 face-rec-cli -a recognize_image -i imagefile.jpg
 
 # recognize single video and print summary output (useful for debug)
-face-rec-cli -a recognize_image -i imagefile.jpg
+face-rec-cli -a recognize_video -i videofile.mp4
 
 # recognize folder and store result in database
 face-rec-cli -a recognize_folder -i /folder/with/images
