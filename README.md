@@ -80,7 +80,34 @@ cp ~/.local/lib/python3.?/site-packages/face_rec_tools/cfg/frontal.cfg ~/.face-r
 ### Command-Line Interface
 
 ```bash
-face-rec-cli
+# recognize single image and print output (useful for debug)
+face-rec-cli -a recognize_image -i imagefile.jpg
+
+# recognize single video and print summary output (useful for debug)
+face-rec-cli -a recognize_image -i imagefile.jpg
+
+# recognize folder and store result in database
+face-rec-cli -a recognize_folder -i /folder/with/images
+
+# remove folder recognition result from database
+face-rec-cli -a remove_folder -i /folder/with/images
+
+# match/rematch unmatched faces in database
+face-rec-cli -a match_unmatched
+
+# match/rematch all faces in database
+face-rec-cli -a match_all
+
+# match/rematch faces from folder in database
+face-rec-cli -a match_folder -i /folder/with/images
+
+# save faces from folder (must be previously recognized)
+# cachedb must be disabled (otherwise they will saved inside cachedb)
+face-rec-cli -a save_faces -i /folder/with/images -o /folder/for/faces
+
+# find face from image in database and save them in folder
+# cachedb must be disabled (otherwise they will saved inside cachedb)
+face-rec-cli -a get_faces_by_face -i image_with_one_face.jpg -o /folder/for/faces
 ```
 
 ### Web Interface
