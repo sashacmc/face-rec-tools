@@ -492,7 +492,7 @@ class Recognizer(object):
     def remove_folder(self, folder):
         if self.__init_stage('remove_folder', locals()):
             return
-        files_faces = self.__db.get_folder(folder)
+        count, files_faces = self.__db.get_folder(folder)
         for ff in files_faces:
             log.info(f"remove from DB: {ff['filename']}")
             self.__db.remove(ff['filename'], False)
