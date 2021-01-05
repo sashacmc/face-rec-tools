@@ -80,8 +80,7 @@ class Recognizer(object):
         self.__db = db
 
         if status is None:
-            self.__status = {'state': '', 'stop': False,
-                             'count': 0, 'current': 0}
+            self.__status = tools.RECOGNIZER_STATUS_INIT
         else:
             self.__status = status
 

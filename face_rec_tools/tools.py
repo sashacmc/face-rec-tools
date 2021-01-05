@@ -16,6 +16,15 @@ from face_rec_tools import log  # noqa
 IMAGE_EXTS = ('.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff')
 VIDEO_EXTS = ('.mp4', '.mpg', '.mpeg', '.mov', '.avi', '.mts')
 
+RECOGNIZER_STATUS_INIT = {
+    'state': '',
+    'count': 0,
+    'current': 0,
+    'args': {},
+    'starttime': 0,
+    'stop': False
+}
+
 
 def seconds_to_str(s):
     hour = int(s / 3600)
