@@ -1,21 +1,20 @@
 # Face Rec Tools
 Media library face recognition tools
 
-## Features:
+## Features
   * Detect faces in photo/video files
   * Match faces to face patterns
   * Patterns manipulation
   * Face database search
   * Tagging faces in Plex Media Server library 
 
-### Requirements:
-
+## Requirements
   * Debian based Linux (Other Linux versions not officially supported, but might work)
   * Python 3.6+
   * NVIDIA GPU (optional)
   * Plex Media Server (optional)
 
-### Dependencies:
+## Dependencies
   * OpenCV + python3 bindings (better with CUDA support)
   * DLib + python3 bindings (better with CUDA support)
   * TensorFlow + python3 binding (optional)
@@ -27,20 +26,20 @@ Media library face recognition tools
 
 ## Installation
 
-### Dependencies installation:
+### Dependencies installation
 
-#### Build tools 
+#### Build tools and install tools
 For building dlib and others
 ```bash
-sudo apt-get install build-essential cmake
+sudo apt-get install build-essential cmake python3-pip
 ```
 
-#### OpenCV (skip if you have NVIDIA GPU):
+#### OpenCV (skip if you have NVIDIA GPU)
 ```bash
 sudo apt-get install python3-opencv
 ```
 
-#### CUDA, OpenCV and TensorFlow installation (skip if don't have NVIDIA GPU):
+#### CUDA, OpenCV and TensorFlow installation (skip if don't have NVIDIA GPU)
 Installation of libraries with CUDA is not so easy and may be differ for different OS versions.
 Some useful links for CUDA setup
 
@@ -50,7 +49,7 @@ https://medium.com/@sb.jaduniv/how-to-install-opencv-4-2-0-with-cuda-10-1-on-ubu
 
 https://www.pyimagesearch.com/2019/12/09/how-to-install-tensorflow-2-0-on-ubuntu/
 
-#### Deep Face library installation (skip if don't use deepface encoding, default):
+#### Deep Face library installation (skip if don't use deepface encoding, default)
 ```bash
 pip3 install deepface
 ```
