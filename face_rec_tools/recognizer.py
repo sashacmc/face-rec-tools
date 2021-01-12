@@ -461,6 +461,7 @@ class Recognizer(object):
             self.__save_debug_images(
                 ff['faces'], media,
                 debug_out_folder, debug_out_file_name, is_video=is_video)
+            self.__step_stage_face(len(ff['faces']))
         self.__end_stage()
 
     def __filter_encoded_faces(self, encoded_faces):
@@ -611,6 +612,7 @@ class Recognizer(object):
             self.__save_debug_images(
                 (face,), media,
                 debug_out_folder, debug_out_file_name)
+            self.__step_stage_face()
         if remove_file:
             log.debug(f'removing temp file: {filename}')
             os.remove(filename)
