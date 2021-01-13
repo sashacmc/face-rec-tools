@@ -86,10 +86,10 @@ face-rec-cli -a recognize_image -i imagefile.jpg
 # recognize single video and print summary output (useful for debug)
 face-rec-cli -a recognize_video -i videofile.mp4
 
-# recognize folder and store result in database
+# recognize folder and store the result in the database
 face-rec-cli -a recognize_folder -i /folder/with/images
 
-# remove folder recognition result from database
+# remove folder recognition the result from the database
 face-rec-cli -a remove_folder -i /folder/with/images
 
 # match/rematch unmatched faces in database
@@ -117,7 +117,20 @@ face-rec-server
 ```
 
 ### Plex Media Server synchronisation
+Face Recognition Tools allow syncing recognition results with Plex Media Server by means of tags.
+Recognized files will tagged with tags "person:[PERSON_NAME]"
 
 ```bash
-face-rec-plexsync
+# set all tags to the Plex database 
+face-rec-plexsync -a set_tags
+
+# clear all tags from the Plex database
+face-rec-plexsync -a remove_tags
+
+# recognize all files which present in the Plex database
+# but not recognized yet and store the result in the database 
+face-rec-plexsync -a sync_new
+
+# delete from database all files which not present in the Plex database
+face-rec-plexsync -a sync_deleted
 ```
