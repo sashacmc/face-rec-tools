@@ -467,7 +467,7 @@ class Recognizer(object):
     def __filter_encoded_faces(self, encoded_faces):
         res = []
         for enc in encoded_faces:
-            if 'profile_angle' in enc and \
+            if 'profile_angle' in enc and enc['profile_angle'] is not None and \
                     enc['profile_angle'] > self.__max_face_profile_angle:
                 log.debug(f"Skip profile face: {enc['profile_angle']}")
                 continue

@@ -185,7 +185,10 @@ def __set_landmarks_lines(image, face_landmarks):
         return
     draw = ImageDraw.Draw(image)
     for pts in face_landmarks.values():
-        draw.line(pts, fill=(255, 255, 255))
+        if len(pts) == 1:
+            draw.point(pts, fill=(255, 255, 255))
+        else:
+            draw.line(pts, fill=(255, 255, 255))
 
 
 def enable_landmarks(filename, enable):
@@ -246,7 +249,7 @@ def test_landmarks(l):
         return False
     if 'chin' not in l:
         log.debug('landmarks without chin')
-        return False
+        return True
     size = bound_size(l['chin'])
     if not test_line_angle(l['chin']):
         log.debug('landmarks chin angle test failed')

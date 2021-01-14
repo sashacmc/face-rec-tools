@@ -42,6 +42,7 @@ class FaceEncoder(object):
 
         if encoding_model == 'small':
             self.__encode = self.__encode_face_recognition
+            align = False
         elif encoding_model == 'large':
             self.__encode = self.__encode_face_recognition
         elif encoding_model == 'VGG-Face':
@@ -166,6 +167,8 @@ class FaceEncoder(object):
                 for pred in np.delete(preds, np.s_[2:], 2)]
 
     def __get_eyes_angle(self, pred):
+        if pred is None:
+            return None
         leftEyePts = pred[PRED_TYPES['eye2']]
         rightEyePts = pred[PRED_TYPES['eye1']]
         leftEyeCenter = leftEyePts.mean(axis=0).astype("int")
@@ -212,10 +215,10 @@ class FaceEncoder(object):
         if self.__aligner is not None:
             preds = self.__aligner.get_landmarks_from_image(
                 image, self.__aligner_boxes(boxes))
+            preds2d = self.__convert_to_2D(preds)
         else:
-            preds = None
-
-        preds2d = self.__convert_to_2D(preds)
+            preds = [None] * len(boxes)
+            preds2d = None
 
         encodings = face_recognition.face_encodings(
             image, boxes, self.__num_jitters,
