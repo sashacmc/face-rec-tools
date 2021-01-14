@@ -71,6 +71,7 @@ def has_cuda():
 
 def cuda_init(tf_memory_limit=0):
     if not has_cuda():
+        log.debug('cuda disabled')
         return
 
     try:
@@ -82,6 +83,7 @@ def cuda_init(tf_memory_limit=0):
             return
         tf.config.experimental.set_memory_growth(gpu, True)
         if tf_memory_limit:
+            log.debug(f'set cuda memory limit: {tf_memory_limit}')
             tf.config.experimental.set_virtual_device_configuration(
                 gpu,
                 [tf.config.experimental.VirtualDeviceConfiguration(

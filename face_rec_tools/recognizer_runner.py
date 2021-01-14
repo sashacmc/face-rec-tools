@@ -32,29 +32,36 @@ class RecognizerRunner(multiprocessing.Process):
             cfg = config.Config(self.__config)
 
             patterns = patterns.createPatterns(cfg)
+            patterns.load()
 
             db = recdb.RecDB(cfg.get_path('files', 'db'))
             cdb = cachedb.createCacheDB(cfg)
             cuda_memory_limit = int(cfg['processing']['cuda_memory_limit'])
 
-            patterns.load()
-            recognizer = recognizer.createRecognizer(
-                patterns, cfg, cdb, db, self.__status)
-
             log.info(f'Run in process: {self.__method}{self.__args}')
 
             if self.__method == 'recognize_folder':
                 tools.cuda_init(cuda_memory_limit)
+                recognizer = recognizer.createRecognizer(
+                    patterns, cfg, cdb, db, self.__status)
                 recognizer.recognize_folder(*self.__args)
             elif self.__method == 'match':
                 tools.cuda_init(cuda_memory_limit)
+                recognizer = recognizer.createRecognizer(
+                    patterns, cfg, cdb, db, self.__status)
                 recognizer.match(*self.__args)
             elif self.__method == 'clusterize':
+                recognizer = recognizer.createRecognizer(
+                    patterns, cfg, cdb, db, self.__status)
                 recognizer.clusterize(*self.__args)
             elif self.__method == 'save_faces':
+                recognizer = recognizer.createRecognizer(
+                    patterns, cfg, cdb, db, self.__status)
                 recognizer.save_faces(*self.__args)
             elif self.__method == 'get_faces_by_face':
                 tools.cuda_init(cuda_memory_limit)
+                recognizer = recognizer.createRecognizer(
+                    patterns, cfg, cdb, db, self.__status)
                 recognizer.get_faces_by_face(*self.__args)
             log.info(f'Process done: {self.__method}')
             self.__status['state'] = 'done'

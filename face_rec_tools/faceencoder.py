@@ -149,15 +149,15 @@ class FaceEncoder(object):
         if preds is None:
             return None
         return [{
-            "chin": pred[PRED_TYPES['face']].tolist(),
-            "left_eyebrow": pred[PRED_TYPES['eyebrow2']].tolist(),
-            "right_eyebrow": pred[PRED_TYPES['eyebrow1']].tolist(),
-            "nose_bridge": pred[PRED_TYPES['nose']].tolist(),
-            "nose_tip": pred[PRED_TYPES['nostril']].tolist(),
-            "left_eye": pred[PRED_TYPES['eye2']].tolist(),
-            "right_eye": pred[PRED_TYPES['eye1']].tolist(),
-            "top_lip": pred[PRED_TYPES['lips']].tolist(),
-            "bottom_lip": pred[PRED_TYPES['teeth']].tolist()}
+            "chin": pred[PRED_TYPES['face']],
+            "left_eyebrow": pred[PRED_TYPES['eyebrow2']],
+            "right_eyebrow": pred[PRED_TYPES['eyebrow1']],
+            "nose_bridge": pred[PRED_TYPES['nose']],
+            "nose_tip": pred[PRED_TYPES['nostril']],
+            "left_eye": pred[PRED_TYPES['eye2']],
+            "right_eye": pred[PRED_TYPES['eye1']],
+            "top_lip": pred[PRED_TYPES['lips']],
+            "bottom_lip": pred[PRED_TYPES['teeth']]}
             for pred in preds]
 
     def __convert_to_2D(self, preds):
@@ -176,10 +176,10 @@ class FaceEncoder(object):
         dist_2d = math.hypot(leftEyeCenter[0] - rightEyeCenter[0],
                              leftEyeCenter[1] - rightEyeCenter[1])
         dist_z = abs(leftEyeCenter[2] - rightEyeCenter[2])
-        return np.degrees(np.arctan2(dist_z, dist_2d))
+        return float(np.degrees(np.arctan2(dist_z, dist_2d)))
 
     def __profile_angles(self, preds):
-        return [float(self.__get_eyes_angle(pred)) for pred in preds]
+        return [self.__get_eyes_angle(pred) for pred in preds]
 
     def __encode_deepface(self, image, boxes):
         from tensorflow.keras.preprocessing import image as keras_image
@@ -188,7 +188,8 @@ class FaceEncoder(object):
         if self.__aligner is not None:
             preds = self.__aligner.get_landmarks_from_image(
                 image, self.__aligner_boxes(boxes))
-            landmarks = self.__convert_to_landmarks(preds)
+            landmarks = self.__convert_to_landmarks(
+                self.__convert_to_2D(preds))
         else:
             preds = [None] * len(boxes)
             landmarks = [{}] * len(boxes)
