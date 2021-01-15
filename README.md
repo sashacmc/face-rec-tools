@@ -162,3 +162,12 @@ face-rec-plexsync -a sync_new
 # delete from database all files which not present in the Plex database
 face-rec-plexsync -a sync_deleted
 ```
+
+### Seach in DB without Plex
+If you have no Plex, or want to use some more complex search you can use follow command 
+
+(it will search all files in folder 2020 which contains faces of persons Name1 and Name2)
+
+```bash
+face-rec-db -a find_files_by_names -f 2020 -n Name1,Name2
+```
