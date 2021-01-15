@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 from face_rec_tools import log  # noqa
 from face_rec_tools import tools  # noqa
+from face_rec_tools import config  # noqa
 
 SCHEMA = '''
 CREATE TABLE IF NOT EXISTS files (
@@ -407,7 +408,7 @@ def args_parse():
                  'find_files_by_names',
                  'remove_file',
                  'update_filepaths'])
-    parser.add_argument('-d', '--database', help='Database file')
+    parser.add_argument('-c', '--config', help='Config file')
     parser.add_argument('-f', '--file', help='File or folder')
     parser.add_argument('-l', '--logfile', help='Log file')
     parser.add_argument(
@@ -419,8 +420,10 @@ def args_parse():
 
 def main():
     args = args_parse()
+    cfg = config.Config(args.config)
     log.initLogger(args.logfile)
-    db = RecDB(args.database, args.dry_run)
+
+    db = RecDB(cfg.get_path('files', 'db'), args.dry_run)
 
     if args.action == 'get_names':
         print(db.get_names(args.file))
