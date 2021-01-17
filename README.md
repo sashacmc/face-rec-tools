@@ -6,7 +6,7 @@ Media library face recognition tools
   * Match faces to face patterns
   * Patterns manipulation
   * Face database search
-  * Tagging faces in Plex Media Server library 
+  * Tagging faces in the Plex Media Server library 
 
 ## Requirements
   * Debian based Linux (Other Linux versions not officially supported, but might work)
@@ -121,7 +121,7 @@ For recognize a new folder click to "Recognition"->"Add new files...".
 And specify a folder which you want to recognize.
 ![face_rec_screen_1](https://user-images.githubusercontent.com/28735879/104759965-fa22e580-5760-11eb-9e18-e20cc340c96f.png)
 
-First time recognition will take a while, because of loading necessary models.
+First time the recognition will take a while, because of loading necessary models.
 
 After first recognition you will get all faces as unknown.
 ![face_rec_screen_3](https://user-images.githubusercontent.com/28735879/104760428-a1a01800-5761-11eb-9765-cf036d2639f7.png)
@@ -171,3 +171,8 @@ If you have no Plex, or want to use some more complex search you can use follow 
 ```bash
 face-rec-db -a find_files_by_names -f 2020 -n Name1,Name2
 ```
+
+## Acknowledgements
+Thanks to everyone who tested and gave advice.
+
+**Bug reports, suggestions and pull request are welcome!**
