@@ -117,7 +117,6 @@ def __speed_test(db):
     count = 1000
     for i in range(count):
         db.save_face(i, data)
-    del db
 
 
 def speed_test(db):

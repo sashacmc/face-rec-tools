@@ -361,7 +361,7 @@
         
         function yearFromFileName(filename)
         {
-            res = filename.match(/_(\d\d\d\d)-/);
+            var res = filename.match(/_(\d\d\d\d)-/);
             if (res) {
                 return res[1];
             } else {
@@ -635,7 +635,7 @@
                     return;
                 }
                 $('#facePropModalSubmit').off('click');
-                $('#facePropModal').off("keydown")
+                $('#facePropModal').off("keydown");
                 if (newname == "new_name_value") {
                     newname = $("#inputNew").val();
                     newname = newname.replace(' ', '_');
@@ -660,7 +660,7 @@
                             var img = $('img[title="' + images[i] + '"]');
                             img.css('opacity', 0.2);
                             img.prop('onclick', '');
-                            var chb = $('input:checkbox[class=img_checkbox][imgname="' + images[i] + '"]')
+                            var chb = $('input:checkbox[class=img_checkbox][imgname="' + images[i] + '"]');
                             chb.prop('checked', false);
                             chb.prop('disabled', true);
                             chb.prop('personname', '');
