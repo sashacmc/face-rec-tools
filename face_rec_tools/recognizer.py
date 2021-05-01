@@ -625,9 +625,9 @@ class Recognizer(object):
     def __init_stage(self, cmd, args):
         self.__status['state'] = cmd
         self.__status['args'] = {}
-        del args['self']
+        del args['self']  # lgtm[py/modification-of-locals]
         for k, v in args.items():
-            args[k] = str(v)
+            args[k] = str(v)  # lgtm[py/modification-of-locals]
         self.__status['args'] = args
         return self.__status['stop']
 
