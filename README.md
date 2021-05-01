@@ -1,6 +1,9 @@
 # Face Rec Tools
-Media library face recognition tools
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/sashacmc/face-rec-tools.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sashacmc/face-rec-tools/alerts/)
+[![Language grade: JavaScript](https://img.shields.io/lgtm/grade/javascript/g/sashacmc/face-rec-tools.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sashacmc/face-rec-tools/context:javascript)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/sashacmc/face-rec-tools.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/sashacmc/face-rec-tools/context:python)
 
+Media library face recognition tools
 ## Features
   * Detect faces in photo/video files
   * Match faces to face patterns
